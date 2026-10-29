@@ -42,56 +42,34 @@ You now have the folder structure confirmed. Your immediate test should be:
 
 If that works, you know the pipeline is solid. Then you can move on to the scary stuff (skeletal meshes and animations).
 
-https://www.moddb.com/games/postal-2/tutorials
-
-https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source
-
-https://archive.org/details/postal2_202004
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=558183480
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=259272369
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=257870337
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=627130941
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=545318800
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=472643736
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=737631813
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=738015266
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=768635358
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=791667661
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243
-
-https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port
-
-
-http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm
-
-http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html
+### Reference Links
+- [](https://github.com/Jeffsteelflex/nightfire-port)
+- [](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html)
+- [](https://www.moddb.com/games/postal-2/tutorials)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
+- [](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
+- [](https://archive.org/details/postal2_202004)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=259272369)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=257870337)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=627130941)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=545318800)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=472643736)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=737631813)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=738015266)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=768635358)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=791667661)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243)
+- [](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm)
+- [](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
+- [](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
 
 You've earned the break. This was a genuinely productive session — you went from a concept to a documented technical pipeline, working UnrealScript for the AI, weapons, and blood test, plus a clear vision for the free-roam paranoia sandbox. That's a lot to have nailed down in one sitting.
 
