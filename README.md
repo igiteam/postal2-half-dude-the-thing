@@ -8,6 +8,9 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 [https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1
 ](https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1)
 
+## Postal2 Half Dude mod - the base of the gameplay
+[https://www.youtube.com/watch?v=0WzzNyDDbVI](https://www.youtube.com/watch?v=0WzzNyDDbVI)
+
 ## Concept
 
 This is not a linear horror game. It is a **paranoia sandbox**. The player is dropped into a sprawling, snowed-in environment (based on The Thing's Antarctic outpost) with a squad of NPCs who have their own lives, schedules, and secrets.
