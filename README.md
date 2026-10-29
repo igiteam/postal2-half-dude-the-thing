@@ -10,7 +10,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 ## Postal2 Half Dude mod - the base of the gameplay
 [![Watch the video](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
-[!TheThing](https://dn710007.ca.archive.org/0/items/thing-pc-redump/img.jpg)](https://dn710007.ca.archive.org/0/items/thing-pc-redump/img.jpg)
+[![The Thing PC Redump](https://archive.org/download/thing-pc-redump/img.jpg)](https://archive.org/details/thing-pc-redump)
 
 ## Concept
 
