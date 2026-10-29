@@ -1,0 +1,82 @@
+1. The Asset Inventory (What do you actually have?)
+You need a spreadsheet (or a text file) listing every asset you've extracted or plan to extract. For each one, note:
+
+Asset Type	Source	Format You Have	Format Needed	Status
+Character models (The Thing)	PS2 ISO	Proprietary	.psk (skeletal)	Not extracted
+Face textures (DigiMask)	PS2 ISO	Proprietary	.utx	Partially extracted
+Sounds (roars, wind, heartbeat)	PS2 ISO	.wav / .ogg	.uax	Extracted
+Maps (Antarctic base)	Reference images	N/A	.fuk (POSTed)	Not started
+Weapons (flamethrower, pistol)	Postal 2 native	.u / .usx	Reuse or modify	Available
+Fire propagation	Postal 2 native	Built-in	Reuse	Available
+Why this matters: You can't plan the facial animation system until you know whether the DigiMask textures are in a usable format. You can't plan the map until you know whether you're rebuilding from scratch or porting. This inventory tells you what's actually possible before you commit.
+
+2. The System Map (How do the systems talk to each other?)
+Draw this on paper. It's a flowchart of every major system and what data flows between them.
+
+text
+[ThingGameInfo]
+       |
+       | injects
+       v
+[ThingSquadController] <-----> [ThingBloodTest]
+       |                              |
+       | infection timer              | reveals
+       v                              v
+[ThingMonster] <-------------- [TransformIntoThing()]
+       |
+       | attacks
+       v
+[Player] <----> [ThingWeapon]
+       |
+       | recruits
+       v
+[ThingRecruitTrigger] ----> [Squad Follow Logic]
+Why this matters: When you're coding the ThingBloodTest, you need to know exactly which function it calls on the controller (PerformBloodTest()). If you don't have this map, you'll invent a new function, then realize the controller doesn't have it, then rewrite both. The map forces you to define the interface before you write the implementation.
+
+3. The Data Dictionary (What variables does each system need?)
+For each major class, list every variable and what it's for. This is the contract between systems.
+
+ThingSquadController:
+
+bIsInfected (bool) — Is this NPC a Thing?
+
+InfectionTimer (float) — Seconds until transformation.
+
+TrustLevel (float 0-100) — How much they trust the player.
+
+FearLevel (float 0-100) — How scared they are.
+
+ParanoiaLevel (float 0-100) — How suspicious they are.
+
+bIsInPlayerSquad (bool) — Are they following the player?
+
+CurrentTactic (string) — "advance", "fallback", "flank", "charge".
+
+ThingBloodTest:
+
+UsesRemaining (int) — How many tests left.
+
+bIsTesting (bool) — Is a test running?
+
+TestTimer (float) — How long the test takes.
+
+ThingMonster:
+
+AttackDamage (float) — Melee damage.
+
+AttackRange (float) — How close to attack.
+
+AttackCooldown (float) — Time between attacks.
+
+Why this matters: When you write ThingBloodTest.Use(), you need to know that the controller has a PerformBloodTest() function that returns a bool, and that it modifies TrustLevel and FearLevel. The data dictionary is the reference you check when you're not sure what a variable is called or what it does.
+
+4. The Interaction Matrix (Who can interact with whom?)
+A simple table showing which systems can call functions on which other systems.
+
+System	Can Call	Function	Purpose
+ThingBloodTest	ThingSquadController	PerformBloodTest()	Reveal infection
+ThingRecruitTrigger	ThingSquadController	TryRecruit()	Add to squad
+ThingSquadController	ThingMonster	Spawn()	Transform
+ThingMonsterController	ThingMonster	PerformMeleeAttack()	Attack player
+ThingGameInfo	All Pawns	Possess()	Inject AI
+Why this matters: If you're coding the blood test and you realize it needs to check if the NPC is already transformed, you look at this matrix and see that PerformBloodTest() handles that check internally. You don't add a redundant check in the blood test. The matrix prevents duplicated logic.
