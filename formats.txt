@@ -1,3 +1,48 @@
+Based on the yellow text in the image, here is the list of file formats and their meanings:
+
+* **UKX** - Animations
+* **KA** - KarmaData
+* **FUK** - Maps
+* **OGG** - Music
+* **UAX** - Sounds
+* **USX** - StaticMeshes
+* **U_INT** - System (or Scripts in Custom directory)
+* **INI** - System (in main game directory!)
+* **UTX** - Textures
+
+So this screenshot is actually **great news for your workflow**—it confirms exactly what you need to do with files once you’ve converted them. It’s a cheat sheet for where to dump assets so POSTed actually sees them.
+
+Here’s the practical takeaway for your *The Thing* remake:
+
+### 1. Your Import Targets (What you create in POSTed/UnrealEd)
+When you import The Thing assets, you must save them as these package files, and put them in the **correct folders**:
+
+* **`.utx` (Textures)** → Put in `Textures` folder. (The Thing’s wall gore, snow textures, etc.)
+* **`.usx` (StaticMeshes)** → Put in `StaticMeshes` folder. (Props, debris, non-animated objects.)
+* **`.ukx` (Animations)** → Put in `Animations` folder. (Critical: This is where your PSK/PSA converted skeletal animations go.)
+* **`.uax` (Sounds)** → Put in `Sounds` folder. (The Thing’s roars, wind, heartbeat.)
+* **`.ogg` (Music)** → Put in `Music` folder. (Ambient tracks—remember POSTed doesn't import these directly; you drop the file here.)
+
+### 2. The "System" Trap
+* **`.u` / `.int` (Scripts/System)** → The image says "System (or Scripts in Custom directory)". If you write UnrealScript for The Thing's infection/trust mechanic, these go in `System`.
+* **`.ini`** → **Warning:** The image explicitly says *"System (in main game directory!)"*. Do **not** put your `.ini` in your custom mod folder if you want it to load globally; it needs to go into the main `System` folder of the Postal 2 installation.
+
+### 3. The Critical Step (The Big Yellow Text)
+The giant yellow text at the top says: **"We will have to move them to their respective folders manually."**
+
+This means: **POSTed will not automatically sort your files.** When you import that The Thing model into POSTed and save it as `ThingMonster.usx`, it might just dump it in the root directory or a temp folder. You **must** manually drag/copy that `.usx` file into the `StaticMeshes` folder (or `Animations` for `.ukx`) before the game/editor will reliably load it in your map.
+
+### What this means for your next step
+You now have the folder structure confirmed. Your immediate test should be:
+1. Convert **one** simple The Thing prop (e.g., a crate or a snow barrel) to `.ase` or `.psk`.
+2. Import it into POSTed.
+3. Save it as `ThingProp.usx`.
+4. **Manually move** `ThingProp.usx` into `Postal2/StaticMeshes/`.
+5. Place it in a map and save.
+
+If that works, you know the pipeline is solid. Then you can move on to the scary stuff (skeletal meshes and animations).
+
+
 1. The Asset Inventory (What do you actually have?)
 You need a spreadsheet (or a text file) listing every asset you've extracted or plan to extract. For each one, note:
 
