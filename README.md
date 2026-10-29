@@ -133,6 +133,11 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 ## Postal 2 video tutorials
 [![Postal 2 Editor Tutorials](https://img.youtube.com/vi/THaRzdtM5RY/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLzlHQaNpSPoVHU1drEgjgEsZmX9DkNbBx)
 
+## The Thing Editor & Modding
+[![The Thing Editor Files](https://media.moddb.com/cache/images/downloads/1/181/180370/thumb_620x2000/thethingeditor.jpg)](https://www.moddb.com/games/the-thing/downloads/editor-files-password-viruspunk)
+## How to Mod The Thing with Editor
+[How to Mod The Thing with Editor](https://www.moddb.com/games/the-thing/tutorials/how-to-mod-the-thing-with-editor)
+
 ## The Thing 1982 OST
 - [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
 [![The Thing Soundtrack](https://img.youtube.com/vi/kXBGDf2IDQI/maxresdefault.jpg)](https://www.youtube.com/watch?v=kXBGDf2IDQI&list=RDkXBGDf2IDQI)
