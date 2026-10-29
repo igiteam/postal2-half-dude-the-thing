@@ -1,7 +1,5 @@
 # postal2-half-dude-the-thing
-
-# Postal 2: Half Dude - The Thing Remake
-
+## Postal 2: Half Dude - The Thing Remake
 A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Postal 2 with the unscripted paranoia and survival horror of *The Thing* (2002) and the atmosphere of Half-Life 2's Ravenholm.
 
 ## Github Treeview
