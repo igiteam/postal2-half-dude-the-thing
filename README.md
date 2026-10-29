@@ -130,8 +130,9 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 
 ## The Thing 1982 OST
 - [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
+[![The Thing Soundtrack](https://img.youtube.com/vi/kXBGDf2IDQI/maxresdefault.jpg)](https://www.youtube.com/watch?v=kXBGDf2IDQI&list=RDkXBGDf2IDQI)
 
-## The Thing 1982 OST
+## The Thing 1982 
 - [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
 - [https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4](https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4)
 
