@@ -158,12 +158,11 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 [![Postal 2 PC Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png) [![![The Thing PS2 Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)
 
 ## Unreal Engine Game List
-[![Unreal Engine Game List]([https://unrealenginegames.netlify.app/ue3.png)](https://unrealarchive.org/static/images/games/t_Unreal%20Tournament%202003.png))](https://unrealenginegames.netlify.app/)
+[![Unreal Engine Game List](https://unrealarchive.org/static/images/games/t_Unreal%20Tournament%202003.png)](https://unrealenginegames.netlify.app/)
 ## Unreal Tournament 2004 Archive
 [![Unreal Tournament 2004 Archive](https://unrealarchive.org/static/images/contents/t_voices.png)](https://unrealarchive.org/unreal-tournament-2004/index.html)
 
 ## How to Contribute
-
 1. Clone the repository.
 2. Install Postal 2 (version 1409 recommended).
 3. Set up POSTed and the UnrealScript compiler (`ucc.exe`).
