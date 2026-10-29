@@ -10,6 +10,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 ## Postal2 Half Dude mod - the base of the gameplay
 [![Watch the video](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
+[TheThing](https://dn710007.ca.archive.org/0/items/thing-pc-redump/img.jpg)
 
 ## Concept
 
@@ -96,6 +97,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 
 ### Reference Links
 - [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
+- [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
 - [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
 - [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
 - [https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
@@ -124,6 +126,14 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
 - [https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
 
+## The Thing 1982 OST
+- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
+
+## The Thing 1982 OST
+- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
+- [https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4](https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4)
+
+  
 ## Current Status
 
 - ✅ Design document finalized.
