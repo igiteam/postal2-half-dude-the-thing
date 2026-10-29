@@ -88,38 +88,34 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 4. **Maps**: Rebuild manually in POSTed (no converter from PS2 format).
 
 ### Reference Links
-- [Nightfire-Port Repository](https://github.com/Jeffsteelflex/nightfire-port) (Weapon feel, ADS, camera logic)
-- [MoHPA AI Documentation](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html) (Squad tactics, morale system)
-- [Postal 2 ModDB Tutorials](https://www.moddb.com/games/postal-2/tutorials) (Basic AI changes, mapping)
-- [Postal 2 File Structure Guide](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480) (Asset placement)
-https://www.moddb.com/games/postal-2/tutorials
-https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source
-https://archive.org/details/postal2_202004
-https://steamcommunity.com/sharedfiles/filedetails/?id=558183480
-https://steamcommunity.com/sharedfiles/filedetails/?id=259272369
-https://steamcommunity.com/sharedfiles/filedetails/?id=257870337
-https://steamcommunity.com/sharedfiles/filedetails/?id=627130941
-https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268
-https://steamcommunity.com/sharedfiles/filedetails/?id=545318800
-https://steamcommunity.com/sharedfiles/filedetails/?id=472643736
-https://steamcommunity.com/sharedfiles/filedetails/?id=737631813
-https://steamcommunity.com/sharedfiles/filedetails/?id=738015266
-https://steamcommunity.com/sharedfiles/filedetails/?id=768635358
-https://steamcommunity.com/sharedfiles/filedetails/?id=791667661
-https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346
-https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789
-https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489
-https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616
-https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863
-https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973
-https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517
-https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243
-http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm
-http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html
-https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port
-https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript
-
-
+### Reference Links
+- [](https://github.com/Jeffsteelflex/nightfire-port)
+- [](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html)
+- [](https://www.moddb.com/games/postal-2/tutorials)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
+- [](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
+- [](https://archive.org/details/postal2_202004)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=259272369)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=257870337)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=627130941)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=545318800)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=472643736)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=737631813)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=738015266)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=768635358)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=791667661)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517)
+- [](https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243)
+- [](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm)
+- [](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
+- [](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
 ## Current Status
 
 - ✅ Design document finalized.
@@ -129,17 +125,6 @@ https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript
 - 🚧 Map design (Antarctic outpost) not started.
 - 🚧 Facial animation system under research.
 
-## The First Playable Loop
-
-1. Player spawns in a small room with two NPCs.
-2. One NPC is infected; one is human. (You don't know which.)
-3. Player has a blood test item with one use.
-4. Player uses it on an NPC.
-   - If human: They join the squad.
-   - If infected: They transform and attack.
-5. Player must survive the attack using a weapon with the Nightfire sway logic.
-
-If this loop works, the game works. If it doesn't, we know exactly which system is broken.
 
 ## How to Contribute
 
