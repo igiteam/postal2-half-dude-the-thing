@@ -90,7 +90,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 ### Reference Links
 - [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
 - [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
-- - [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
 - [https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
 - [https://github.com/Jeffsteelflex/nightfire-port](https://github.com/Jeffsteelflex/nightfire-port)
 - [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html)
