@@ -1,0 +1,110 @@
+Based on the yellow text in the image, here is the list of file formats and their meanings:
+
+* **UKX** - Animations
+* **KA** - KarmaData
+* **FUK** - Maps
+* **OGG** - Music
+* **UAX** - Sounds
+* **USX** - StaticMeshes
+* **U_INT** - System (or Scripts in Custom directory)
+* **INI** - System (in main game directory!)
+* **UTX** - Textures
+
+So this screenshot is actually **great news for your workflow**—it confirms exactly what you need to do with files once you’ve converted them. It’s a cheat sheet for where to dump assets so POSTed actually sees them.
+
+Here’s the practical takeaway for your *The Thing* remake:
+
+### 1. Your Import Targets (What you create in POSTed/UnrealEd)
+When you import The Thing assets, you must save them as these package files, and put them in the **correct folders**:
+
+* **`.utx` (Textures)** → Put in `Textures` folder. (The Thing’s wall gore, snow textures, etc.)
+* **`.usx` (StaticMeshes)** → Put in `StaticMeshes` folder. (Props, debris, non-animated objects.)
+* **`.ukx` (Animations)** → Put in `Animations` folder. (Critical: This is where your PSK/PSA converted skeletal animations go.)
+* **`.uax` (Sounds)** → Put in `Sounds` folder. (The Thing’s roars, wind, heartbeat.)
+* **`.ogg` (Music)** → Put in `Music` folder. (Ambient tracks—remember POSTed doesn't import these directly; you drop the file here.)
+
+### 2. The "System" Trap
+* **`.u` / `.int` (Scripts/System)** → The image says "System (or Scripts in Custom directory)". If you write UnrealScript for The Thing's infection/trust mechanic, these go in `System`.
+* **`.ini`** → **Warning:** The image explicitly says *"System (in main game directory!)"*. Do **not** put your `.ini` in your custom mod folder if you want it to load globally; it needs to go into the main `System` folder of the Postal 2 installation.
+
+### 3. The Critical Step (The Big Yellow Text)
+The giant yellow text at the top says: **"We will have to move them to their respective folders manually."**
+
+This means: **POSTed will not automatically sort your files.** When you import that The Thing model into POSTed and save it as `ThingMonster.usx`, it might just dump it in the root directory or a temp folder. You **must** manually drag/copy that `.usx` file into the `StaticMeshes` folder (or `Animations` for `.ukx`) before the game/editor will reliably load it in your map.
+
+### What this means for your next step
+You now have the folder structure confirmed. Your immediate test should be:
+1. Convert **one** simple The Thing prop (e.g., a crate or a snow barrel) to `.ase` or `.psk`.
+2. Import it into POSTed.
+3. Save it as `ThingProp.usx`.
+4. **Manually move** `ThingProp.usx` into `Postal2/StaticMeshes/`.
+5. Place it in a map and save.
+
+If that works, you know the pipeline is solid. Then you can move on to the scary stuff (skeletal meshes and animations).
+
+https://www.moddb.com/games/postal-2/tutorials
+
+https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source
+
+https://archive.org/details/postal2_202004
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=558183480
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=259272369
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=257870337
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=627130941
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=545318800
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=472643736
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=737631813
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=738015266
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=768635358
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=791667661
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243
+
+https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port
+
+
+http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm
+
+http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html
+
+You've earned the break. This was a genuinely productive session — you went from a concept to a documented technical pipeline, working UnrealScript for the AI, weapons, and blood test, plus a clear vision for the free-roam paranoia sandbox. That's a lot to have nailed down in one sitting.
+
+When you come back, you'll have all of this waiting for you:
+
+- The full UnrealScript stack (`ThingGameInfo`, `ThingSquadController`, `ThingMonster`, `ThingBloodTest`, `ThingWeapon`).
+- The raw GitHub links to the Nightfire-port repo for reference.
+- The MoHPA class documentation for squad/morale design.
+- The asset pipeline (Blender → PSK → POSTed).
+- The injection test as your first practical milestone.
+
+Sleep on it. Let the map design and the "tell" for infected NPCs percolate in the back of your head.
+
+Finally I locked in the second game.
+Operation Flashpoint - Cold War Crisis Project Igi
+Postal2 half dude The Thing
