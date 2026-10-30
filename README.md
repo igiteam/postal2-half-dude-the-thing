@@ -5,6 +5,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 ## Github Treeview
 [https://treegit.macosxjs.com/?url=igiteam/postal2-half-dude-the-thing
 ](https://treegit.macosxjs.com/?url=igiteam/postal2-half-dude-the-thing)
+
 ## Github Tree Api Direct JSON
 [https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1
 ](https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1)
@@ -12,6 +13,9 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 ## Postal2 Half Dude mod - the base of the gameplay
 [![Watch the video](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
 [![The Thing PC Redump](https://archive.org/download/thing-pc-redump/img.jpg)](https://archive.org/details/thing-pc-redump)
+
+## WS11WineCX20.0.4 (MacOSX Big Sur 32bit)
+[WS11WineCX20.0.4.tar.7z](https://github.com/vitor251093/porting-kit-engines/releases/download/wineskin/WS11WineCX20.0.4.tar.7z)
 
 ## Dev Environment
 
