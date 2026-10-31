@@ -139,6 +139,8 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
 - [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
 - [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
+- [https://archive.org/details/DukeNukemForver2001LeakedBuild](https://archive.org/details/DukeNukemForver2001LeakedBuild)
+- [https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project](https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project)
 - [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
 - [https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
 - [https://github.com/Jeffsteelflex/nightfire-port](https://github.com/Jeffsteelflex/nightfire-port)
@@ -170,9 +172,11 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 
 ## The Ultimate POSTAL 2 Mods Installation Guide
 [![The Ultimate POSTAL 2 Mods Installation Guide](https://img.youtube.com/vi/MMkF9aJnUSk/maxresdefault.jpg)](https://www.youtube.com/watch?v=MMkF9aJnUSk&t=7s)
+
 ## Postal 2 video tutorials
 [![Postal 2 Editor Tutorials](https://img.youtube.com/vi/THaRzdtM5RY/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLzlHQaNpSPoVHU1drEgjgEsZmX9DkNbBx)
 
+[![duke-nukem-forever-2001-unreal-engine-1(https://i.ytimg.com/vi/pzFTJ7qpw0s/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLb8oNKiUbnjH9MZYeI3zRvRXYDSMJkSSZ)
 ## The Thing Editor & Modding
 [![The Thing Editor Files](https://media.moddb.com/cache/images/downloads/1/181/180370/thumb_620x2000/thethingeditor.jpg)](https://www.moddb.com/games/the-thing/downloads/editor-files-password-viruspunk)
 ## How to Mod The Thing with Editor
