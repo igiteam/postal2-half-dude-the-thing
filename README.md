@@ -19,6 +19,10 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 [![wine windows games on macosx](https://raw.githubusercontent.com/igiteam/igi1-macbook-3d-workstation/refs/heads/main/wine-engine-config.png)](https://github.com/igiteam/wine_engines)
 
+## Digimask
+[![Digimask SDK](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimask-wireframe.png)](https://archive.org/details/digimask-launchpad2-2002)
+[DigimaskPS2.txt]([https://archive.org/details/digimask-launchpad2-2002](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimaskps2.txt))
+
 ## Dev Environment
 
 **Official White Wii Remote With Nunchuk — Tested And Working — £14.99**
