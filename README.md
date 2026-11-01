@@ -58,8 +58,6 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 **igi1-macbook-3d-workstation**
 [https://github.com/igiteam/igi1-macbook-3d-workstation](https://github.com/igiteam/igi1-macbook-3d-workstation)
 
-## Wiimote+Nunchuk, MX Mouse Keys, Xbox360 Controller
-[https://github.com/igiteam/logitec_mx_mouse_3_macos](https://github.com/igiteam/logitec_mx_mouse_3_macos)
 ---
 
 ## Concept
