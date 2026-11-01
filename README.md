@@ -21,7 +21,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 ## Digimask
 [![Digimask SDK](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimask-wireframe.png)](https://archive.org/details/digimask-launchpad2-2002)
-[DigimaskPS2.txt]([https://archive.org/details/digimask-launchpad2-2002](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimaskps2.txt))
+[DigimaskPS2.txt](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimaskps2.txt)
 
 ## Dev Environment
 
