@@ -115,6 +115,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
 - [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
 - [https://archive.org/details/unreal-script-classes](https://archive.org/details/unreal-script-classes)
+- [https://archive.org/details/forums.epicgames.com](https://archive.org/details/forums.epicgames.com)
 - [https://archive.org/details/DukeNukemForver2001LeakedBuild](https://archive.org/details/DukeNukemForver2001LeakedBuild)
 - [https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project](https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project)
 - [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
