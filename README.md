@@ -24,6 +24,8 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 [DigimaskPS2.txt](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/digimaskps2.txt)
 
+[This is Football 2005 PS2 Digimask](https://archive.org/download/PS2_COLLECTION_PART25/This%20Is%20Football%202005%20%28Europe%29%20%28En%2CEs%2CPt%2CAr%29.zip)
+
 ## Dev Environment
 
 **Official White Wii Remote With Nunchuk — Tested And Working — £14.99**
