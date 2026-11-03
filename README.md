@@ -164,6 +164,8 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 ## AudioScriptTM The Thing
 [https://audioscripttm.macosxjs.com/](https://audioscripttm.macosxjs.com/)
 
+[https://thethingscript.macosxjs.com/](https://thethingscript.macosxjs.com/)
+
 ## The Thing 1982 OST
 - [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
 [![The Thing Soundtrack](https://img.youtube.com/vi/kXBGDf2IDQI/maxresdefault.jpg)](https://www.youtube.com/watch?v=kXBGDf2IDQI&list=RDkXBGDf2IDQI)
