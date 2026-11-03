@@ -11,9 +11,9 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 ](https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1)
 
 ## Postal2 Half Dude mod - the base of the gameplay
-[![Watch the video](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
+[![Postal2 Half Dude mod](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
 
-[![Watch the video](https://img.youtube.com/vi/XrmHncD-z-Q/maxresdefault.jpg)](https://www.youtube.com/watch?v=XrmHncD-z-Q)
+[![The Thing PS2 Gameplay](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/thethingsquad.png)](https://www.youtube.com/watch?v=XrmHncD-z-Q)
 
 [![The Thing PC Redump](https://archive.org/download/thing-pc-redump/img.jpg)](https://archive.org/details/thing-pc-redump)
 
