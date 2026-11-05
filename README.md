@@ -149,6 +149,9 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm)
 - [https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
 - [https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
+- [https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new](https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new)
+- [https://www.gildor.org/smf/index.php?topic=8889.0](https://www.gildor.org/smf/index.php?topic=8889.0)
+- [Brothers In Arms road to Hill 30: How to get Unreal Editor to Work](https://ytembed.macosxjs.com/?cDlKekVueng4Y2c)
 
 ## The Ultimate POSTAL 2 Mods Installation Guide
 [![The Ultimate POSTAL 2 Mods Installation Guide](https://img.youtube.com/vi/MMkF9aJnUSk/maxresdefault.jpg)](https://www.youtube.com/watch?v=MMkF9aJnUSk&t=7s)
