@@ -153,6 +153,8 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://www.gildor.org/smf/index.php?topic=8889.0](https://www.gildor.org/smf/index.php?topic=8889.0)
 - [Brothers In Arms road to Hill 30: How to get Unreal Editor to Work](https://ytembed.macosxjs.com/?cDlKekVueng4Y2c)
 - [https://sites.google.com/site/biawarzone/downloads](https://sites.google.com/site/biawarzone/downloads)
+- [https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq](https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq)
+- [Map Making #7 - Brothers in Arms: Earned in Blood Mod - MOWAS2](https://www.youtube.com/watch?v=ZXP1RCMCu10)
 
 ## The Ultimate POSTAL 2 Mods Installation Guide
 [![The Ultimate POSTAL 2 Mods Installation Guide](https://img.youtube.com/vi/MMkF9aJnUSk/maxresdefault.jpg)](https://www.youtube.com/watch?v=MMkF9aJnUSk&t=7s)
