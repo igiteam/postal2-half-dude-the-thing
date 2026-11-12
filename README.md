@@ -5,7 +5,6 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 ## Github Codespace
 [https://wretched-skull-xgjgj6q6g7g3pgj7.github.dev/](https://wretched-skull-xgjgj6q6g7g3pgj7.github.dev/)
 
-
 ## Github Treeview
 [https://treegit.macosxjs.com/?url=igiteam/postal2-half-dude-the-thing
 ](https://treegit.macosxjs.com/?url=igiteam/postal2-half-dude-the-thing)
@@ -13,6 +12,9 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 ## Github Tree Api Direct JSON
 [https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1
 ](https://api.github.com/repos/igiteam/postal2-half-dude-the-thing/git/trees/main?recursive=1)
+
+## Postal2 Webassembly
+[https://kahnstation.kahn.lol/gopostal/](https://kahnstation.kahn.lol/gopostal/)
 
 ## Postal2 Half Dude mod - the base of the gameplay
 [![Postal2 Half Dude mod](https://img.youtube.com/vi/0WzzNyDDbVI/maxresdefault.jpg)](https://www.youtube.com/watch?v=0WzzNyDDbVI)
