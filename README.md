@@ -111,6 +111,84 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 | `TheThingSuicideSystem.uc` | The sanity/suicide manager. |
 | `ThingHUD.uc` | The paranoia HUD (trust/fear bars, screen effects). |
 
+## Postal 2 Test Maps
+
+Thing_Test_Wind.fuk
+Thing_Test_Wind_Physics.fuk
+Thing_Test_Fire.fuk
+Thing_Test_Fire_Propagation.fuk
+Thing_Test_Fire_Wind_Interaction.fuk
+Thing_Test_NPC_Human.fuk
+Thing_Test_NPC_Monster.fuk
+Thing_Test_NPC_Fire_Interaction.fuk
+Thing_Test_Smoke.fuk
+Thing_Test_Debris.fuk
+Thing_Test_Karma_Physics.fuk
+Thing_Test_Environmental_Effects.fuk
+Thing_Test_Combined_Systems.fuk
+Thing_Test_Performance.fuk
+Thing_Test_Stress.fuk
+Thing_Test_Debug.fuk
+
+# How to Add Data in Postal 2
+
+## File Extensions
+
+| Extension | Directory |
+|---|---|
+| `.UKX` | Animations |
+| `.KA` | KarmaData |
+| `.FUK` | Maps |
+| `.OGG` | Music |
+| `.UAX` | Sounds |
+| `.USX` | StaticMeshes |
+| `.U`, `.INT` | System (or Scripts in Custom Directory) |
+| `.INI` | System (in main game) |
+| `.UTX` | Textures |
+
+## How to Add Data in Postal 2
+
+Create a `custom_mod_folder` and add the following directories:
+
+- Animations
+- KarmaData
+- Maps
+- Music
+- Sounds
+- StaticMeshes
+- Textures
+
+Move or copy all files into their respective folders:
+
+| File Extension | Destination Folder |
+|---|---|
+| `.UKX` | Animations |
+| `.KA` | KarmaData |
+| `.FUK` | Maps |
+| `.OGG` | Music |
+| `.UAX` | Sounds |
+| `.USX` | StaticMeshes |
+| `.U`, `.INT`, `.INI` | System |
+| `.UTX` | Textures |
+
+## How to Install the Mod
+
+1. Create a copy of `Postal2.ini`.
+2. Rename the copied file to `Default.ini`.
+3. Edit `Default.ini`.
+4. Modify the `Paths` entries to include the custom mod directories:
+
+```ini
+Paths=..\..\System\*.u
+Paths=..\..\Animations\*.ukx
+Paths=..\..\KarmaData\*.ka
+Paths=..\..\Maps\*.fuk
+Paths=..\..\Music\*.ogg
+Paths=..\..\Sounds\*.uax
+Paths=..\..\StaticMeshes\*.usx
+Paths=..\..\Textures\*.utx
+```
+
 ### Asset Pipeline
 1. **Models**: Extract from PS2 ISO → Blender → `.psk` / `.psa` → POSTed.
 2. **Textures**: Extract → `.dds` / `.tga` → `.utx` → POSTed.
@@ -188,64 +266,6 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
 - [https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4](https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4)
 
-# How to Add Data in Postal 2
-
-## File Extensions
-
-| Extension | Directory |
-|---|---|
-| `.UKX` | Animations |
-| `.KA` | KarmaData |
-| `.FUK` | Maps |
-| `.OGG` | Music |
-| `.UAX` | Sounds |
-| `.USX` | StaticMeshes |
-| `.U`, `.INT` | System (or Scripts in Custom Directory) |
-| `.INI` | System (in main game) |
-| `.UTX` | Textures |
-
-## How to Add Data in Postal 2
-
-Create a `custom_mod_folder` and add the following directories:
-
-- Animations
-- KarmaData
-- Maps
-- Music
-- Sounds
-- StaticMeshes
-- Textures
-
-Move or copy all files into their respective folders:
-
-| File Extension | Destination Folder |
-|---|---|
-| `.UKX` | Animations |
-| `.KA` | KarmaData |
-| `.FUK` | Maps |
-| `.OGG` | Music |
-| `.UAX` | Sounds |
-| `.USX` | StaticMeshes |
-| `.U`, `.INT`, `.INI` | System |
-| `.UTX` | Textures |
-
-## How to Install the Mod
-
-1. Create a copy of `Postal2.ini`.
-2. Rename the copied file to `Default.ini`.
-3. Edit `Default.ini`.
-4. Modify the `Paths` entries to include the custom mod directories:
-
-```ini
-Paths=..\..\System\*.u
-Paths=..\..\Animations\*.ukx
-Paths=..\..\KarmaData\*.ka
-Paths=..\..\Maps\*.fuk
-Paths=..\..\Music\*.ogg
-Paths=..\..\Sounds\*.uax
-Paths=..\..\StaticMeshes\*.usx
-Paths=..\..\Textures\*.utx
-```
 
 ## Current Status
 
