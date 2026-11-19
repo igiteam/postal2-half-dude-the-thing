@@ -159,6 +159,155 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 10. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc)
 
 
+# **Initial Architectural Findings**
+
+- `ThingSquad.uc` owns the central roster, player owner, shared enemy and current order.
+- `ThingSquadController.uc` retains individual NPC psychology and combat AI.
+- `ThingSquadRecruitment.uc` currently has its own separate member array.
+- `ThingRecruitTrigger.uc` provides proximity-based recruitment interaction.
+- `ThingSquadHud.uc` displays squad status.
+- `ThingSquadAudio.uc` provides structured action/reaction voice selection.
+
+There is already a potential architectural conflict: both `ThingSquad` and `ThingSquadRecruitment` maintain squad membership. We should resolve that before expanding the system.
+
+## **1. Critical Issues I Found**
+
+These are the things I'd fix before adding more features.
+
+### **A. Recruitment Has Two Competing Rosters**
+
+**Priority: Critical**
+
+`ThingSquad.uc` uses `Members`, whereas `ThingSquadRecruitment.uc` uses `RecruitedMembers`.
+
+Recruitment currently adds NPCs to its own array instead of calling `ThingSquad.AddMember()`.
+
+**Fix:** `ThingSquad` must be the single authority for membership.
+
+### **B. Controller Variables Are Inconsistent**
+
+**Priority: Critical**
+
+The recruitment file references:
+
+- `bIsRecruited`
+- `SquadCommander`
+
+These are not declared in the current controller source.
+
+The HUD also references:
+
+- `SquadID`
+- `bIsSquadLeader`
+- `bIsInSquad`
+- `SquadRole`
+
+These are not declared in the current controller either.
+
+**Fix:** Establish one consistent membership and ownership model.
+
+### **C. Recruitment Trigger Calls a Missing Function**
+
+**Priority: Critical**
+
+`ThingRecruitTrigger.uc` calls:
+
+```
+TargetController.TryRecruit(PlayerPawn)
+```
+
+There is no `TryRecruit()` implementation in the controller shown.
+
+**Fix:** Route the interaction through `ThingSquadRecruitment`, which then calls the central squad manager.
+
+### **D. Following Isn't Implemented**
+
+**Priority: High**
+
+`ThingSquadController.UpdateSquadTactics()` currently returns immediately when `SquadLeader == None`.
+
+That is incompatible with a player-led squad unless we change the controller's logic.
+
+**Fix:** Implement player-follow behaviour independently of an NPC squad leader.
+
+### **E. HUD Uses a Different Squad Architecture**
+
+**Priority: High**
+
+`ThingSquadHud` searches all controllers by `SquadID` and leader flags rather than reading the central `ThingSquad.Members` roster.
+
+**Fix:** Make the HUD read directly from the authoritative squad manager.
+
+These issues are visible in the current source implementations. (GitHub +4)
+
+## **2. What Is Already Good**
+
+There is quite a bit worth preserving.
+
+| System                       | Assessment          |
+| ---------------------------- | ------------------- |
+| Central squad manager        | Good foundation     |
+| Dynamic member array         | Good                |
+| Trust-based recruitment      | Good                |
+| Shared enemy variable        | Good starting point |
+| Tactical orders              | Good starting point |
+| Infection and transformation | Preserve            |
+| Morale and psychology        | Preserve            |
+| HUD rendering                | Useful prototype    |
+| Voice record structure       | Promising           |
+| NPC recruitment interaction  | Needs integration   |
+
+In particular, I like that `ThingSquad.uc` explicitly allows infected NPCs to be recruited.
+
+That's an excellent design decision for a paranoia horror game: you might recruit someone who is already infected without knowing it. (GitHub +1)
+
+## **3. The Architecture I Recommend Now**
+
+I'd consolidate the project around this structure:
+
+```
+ThingSquad.uc
+│
+├── Authoritative roster
+├── Player ownership
+├── Tactical orders
+├── Enemy knowledge
+└── Squad capacity
+│
+├── Recruitment
+│   └── ThingSquadRecruitment
+│
+├── Interaction
+│   └── ThingRecruitTrigger
+│
+├── NPC Intelligence
+│   └── ThingSquadController
+│
+├── Presentation
+│   └── ThingSquadHud
+│
+└── Communication
+    └── ThingSquadAudio
+```
+
+The player owns the squad. NPC controllers remain responsible for their own personalities and behaviour.
+
+## **4. My Recommended Development Roadmap**
+
+I'd work in this order:
+
+1. **Unify membership:** Connect recruitment to `ThingSquad.AddMember()` and `RemoveMember()`.
+2. **Fix controller integration:** Add the missing membership references and ensure the controller can follow the player.
+3. **Fix recruitment interaction:** Make the trigger recruit the NPC the player is actually looking at.
+4. **Fix the HUD:** Display the central squad roster.
+5. **Implement shared enemy awareness:** Recruits inherit the squad's known enemy.
+6. **Implement formations:** Followers spread out instead of walking into each other.
+7. **Implement tactical orders:** Follow, hold, advance, fallback, flank and charge.
+8. **Integrate audio:** Connect `ThingSquadAudio` to actual NPC events.
+9. **Add personality-driven squad behaviour:** Fear, paranoia, trust, morale and infection influence decisions.
+
+**Recommended next step:** Fix the duplicate squad rosters first. Everything else should build on `ThingSquad` as the single source of truth for squad membership.
+
 ##  Karma Physics Engine
 [https://beyondunrealwiki.github.io/pages/karma.html](https://beyondunrealwiki.github.io/pages/karma.html)
 
