@@ -146,6 +146,12 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - Thing_Test_Thermal_Performance.fuk
 - Thing_Test_Thermal_Stress.fuk
 
+##  Karma Physics Engine
+[https://beyondunrealwiki.github.io/pages/karma.html](https://beyondunrealwiki.github.io/pages/karma.html)
+
+[https://unrealarchive.org/wikis/unreal-wiki/Legacy:PhysicsType.html](https://unrealarchive.org/wikis/unreal-wiki/Legacy:PhysicsType.html)
+
+
 # How to Add Data in Postal 2
 
 ## File Extensions
