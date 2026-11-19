@@ -340,3 +340,338 @@ The player has to weigh: "Do I burn this Thing now, knowing the fire might consu
 For the Thing Monster: Fire should deal massive damage to ThingMonster but the monster should also become a fire source while burning, potentially igniting nearby cells and forcing the player to move. This creates the "fire is a tool, but an unpredictable one" feeling from your design doc.
 
 Compilation reminder: When you write these .uc files, remember to delete the relevant .u file (e.g., ThingFireGrid.u) before running ucc make in your Postal2/System folder, or the compiler won't rebuild it .
+
+
+What did I actually give you?
+I gave you a sketch of one file called ThingFireGrid.uc. Think of it as a blueprint for one actor in your Postal 2 mod.
+
+In UnrealScript, an actor is basically "a thing that exists in the game world"—a player, an NPC, a barrel, a light, a fire. ThingFireGrid is a new kind of actor you invent. Its job is to manage fire spreading across an area.
+
+It does not replace Postal 2's fire. It sits on top of it and decides where fire spreads and how fast.
+
+That's the whole idea. Everything else is detail.
+
+The one big idea, in one sentence
+Fire is simulated as a grid of little squares. Each square has "health." A burning square damages its neighbors. When a neighbor's health hits zero, it catches fire too.
+
+That's it. If you understand that sentence, you understand 90% of the file.
+
+Why a grid at all?
+Because checking "is everything near this fire flammable?" every frame for every object is expensive and messy. A grid is cheap and simple:
+
+Divide the flammable area into equal-sized squares (like graph paper).
+
+Each square knows: where it is, how tough it is, whether it's burning.
+
+Fire only talks to adjacent squares (up, down, left, right).
+
+That's the Far Cry trick. Simple, fast, believable.
+
+Walking through the file section by section
+1. The struct — "what is one square?"
+unrealscript
+struct FireCell
+{
+    var vector  WorldPos;
+    var float   HitPoints;
+    var float   MaxHitPoints;
+    var float   BurnLifetime;
+    var float   CurrentBurnTime;
+    var bool    bBurning;
+    var bool    bDisabled;
+    var int     GridX, GridY;
+};
+A struct is just a bundle of variables grouped together. This bundle describes one square of the grid.
+
+Plain English for each line:
+
+WorldPos — where this square is in the 3D world.
+
+HitPoints — how much fire damage it can take before it ignites. Like health.
+
+MaxHitPoints — its starting health (for reference / resetting).
+
+BurnLifetime — once it's burning, how long it burns before going out.
+
+CurrentBurnTime — countdown timer for the above.
+
+bBurning — is it on fire right now? (the b prefix is UnrealScript convention for booleans)
+
+bDisabled — is this square un-ignitable? (under a rock, underwater, inside a wall)
+
+GridX, GridY — its coordinates in the graph paper, so we can find its neighbors.
+
+That's the atom of the whole system.
+
+2. The variables on the actor — "settings for the whole grid"
+unrealscript
+var() array<FireCell> Cells;
+var() int GridWidth, GridHeight;
+var() float CellSize;
+var() float BaseDamagePerTick;
+var() float TickInterval;
+var() means "this variable shows up in the editor so a designer can tweak it." Think of it as a knob in POSTed.
+
+Cells — the actual list of all squares. array<FireCell> = "a list of FireCell things."
+
+GridWidth, GridHeight — how many squares across and down.
+
+CellSize — how big each square is in world units (e.g., 64 units = ~1 meter).
+
+BaseDamagePerTick — how much damage a burning square does to a neighbor each tick.
+
+TickInterval — how often we run the simulation (e.g., every 0.1 seconds instead of every frame, to save CPU).
+
+3. The economy variables — "the fire budget"
+unrealscript
+var() int SpreadingPoints;
+var() int CostPerIgnition;
+This is the most important gameplay bit, and I want to make sure you get it.
+
+SpreadingPoints — a budget of fire energy.
+
+CostPerIgnition — how many points it costs to light each new square.
+
+So: if a Molotov gives the grid 60 points, and each new square costs 8 points, then the fire can spread to about 7 squares before running out and dying.
+
+Throw two Molotovs → 120 points → 15 squares → fire spreads farther.
+
+Why does this matter for your mod? Because otherwise a single flamethrower burst could burn down the entire Antarctic outpost. This budget keeps fire tactical and limited—which is exactly what a survival-horror game needs. You want the player to choose to use fire, knowing it won't spread infinitely, but might spread farther than they expect.
+
+4. Wind variables
+unrealscript
+var() vector WindDirection;
+var() float WindInfluence;
+WindDirection — a direction vector (which way the wind blows).
+
+WindInfluence — how strongly wind affects spread (0 = no wind effect, 1 = strong).
+
+You'll see how these are used in a minute.
+
+5. Runtime variables
+unrealscript
+var float AccumulatedTime;
+var array<FireCell> BurningCells;
+var array<Box> BroadcastGroups;
+var float BroadcastInterval;
+AccumulatedTime — a timer accumulator. We only process the grid every TickInterval seconds, so we add up delta time until we hit the interval, then run.
+
+BurningCells — a shortcut list of only the squares currently on fire. We don't want to loop over every square every tick; just the burning ones.
+
+BroadcastGroups — grouped AABBs (boxes) of burning cells, used to send "I'm on fire" messages efficiently.
+
+BroadcastInterval — how often to send those messages.
+
+6. PostBeginPlay() — "when the actor appears in the world"
+unrealscript
+function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    // Optional: Build grid immediately if pre-placed.
+}
+PostBeginPlay() runs once, when the actor is spawned. Right now it does almost nothing—just calls the parent version. The comment says: if you placed this grid by hand in the editor, build it now; otherwise, wait until fire touches it.
+
+Why wait? Because building grids for every flammable zone in the map at level load would waste memory. Far Cry's system creates grids lazily—only when fire first arrives.
+
+7. IgniteAt() — "start a fire here"
+unrealscript
+function IgniteAt(vector DamageSource, int IgnitionBudget)
+{
+    if (Cells.Length == 0)
+        BuildGrid();
+
+    SpreadingPoints = IgnitionBudget;
+
+    local int NearestIdx;
+    NearestIdx = FindNearestCell(DamageSource);
+    if (NearestIdx >= 0 && !Cells[NearestIdx].bDisabled)
+    {
+        Cells[NearestIdx].HitPoints -= 100.0;
+        if (Cells[NearestIdx].HitPoints <= 0)
+            IgniteCell(NearestIdx);
+    }
+}
+Plain English:
+
+If we don't have a grid yet, build one. (Lazy creation.)
+
+Set the fire budget from whatever called us (a Molotov, a flamethrower, a burning barrel).
+
+Find the square closest to where the fire came from.
+
+If that square is valid (not disabled), hit it hard (-100 HP) so it ignites immediately.
+
+If its HP hit zero, light it.
+
+So the player throws a Molotov → this function is called → the nearest square catches fire → next tick, the fire starts spreading.
+
+8. BuildGrid() — "make the graph paper"
+unrealscript
+function BuildGrid()
+{
+    // 1. Determine bounding box.
+    // 2. Divide into Cells.
+    // 3. Check each cell against BlockingVolumes, water, etc.
+    // 4. Populate Cells array.
+}
+This is a stub—I left it as comments because the implementation depends on your level design. But the concept is:
+
+Figure out the volume the flammable thing occupies.
+
+Chop it into equal-sized squares.
+
+For each square, trace or check: is it under a rock? underwater? inside a wall? If yes → bDisabled = true.
+
+Fill in the Cells array with real data.
+
+Disabled cells are important: fire should not spread under a rock or through a wall.
+
+9. IgniteCell() — "light one square on fire"
+unrealscript
+function IgniteCell(int CellIdx)
+{
+    if (Cells[CellIdx].bDisabled) return;
+    if (Cells[CellIdx].bBurning) return;
+    if (SpreadingPoints < CostPerIgnition) return;
+
+    Cells[CellIdx].bBurning = true;
+    Cells[CellIdx].CurrentBurnTime = Cells[CellIdx].BurnLifetime;
+    SpreadingPoints -= CostPerIgnition;
+    BurningCells.AddItem(Cells[CellIdx]);
+
+    SpawnFireEmitter(Cells[CellIdx].WorldPos);
+    BroadcastBurnEvent(Cells[CellIdx].WorldPos);
+}
+Line by line:
+
+If this square is disabled → bail.
+
+If it's already burning → bail.
+
+If we don't have enough budget points → bail. (← the economy at work)
+
+Mark it as burning.
+
+Start its burn timer.
+
+Subtract the cost from the budget.
+
+Add it to the active list.
+
+Spawn a visible fire effect at that spot.
+
+Tell the world "I'm on fire here." (This is the chain-reaction broadcast—barrels, NPCs, other grids.)
+
+10. Tick() — "run the simulation every frame"
+unrealscript
+function Tick(float DeltaTime)
+{
+    AccumulatedTime += DeltaTime;
+    if (AccumulatedTime < TickInterval) return;
+    AccumulatedTime = 0.0;
+
+    // for each burning cell:
+    //   - damage its neighbors
+    //   - ignite any neighbor that drops to 0 HP
+    //   - tick down its own burn timer
+    //   - remove it if it burns out
+
+    UpdateBroadcastGroups();
+}
+This is the heartbeat. Every frame, it adds up time, and only actually simulates every TickInterval seconds. Then:
+
+For each burning square:
+
+Damage its neighbors (with wind scaling—see next function).
+
+If a neighbor hits 0 HP → ignite it (which respects the budget).
+
+Tick down the burning square's lifetime.
+
+If it burns out → remove it from the burning list.
+
+Then refresh the broadcast boxes so the rest of the game knows where fire is.
+
+11. CalculateNeighborDamage() — the wind trick
+unrealscript
+function float CalculateNeighborDamage(FireCell Burning, FireCell Neighbor)
+{
+    local vector Dir;
+    local float DotWind, DamageScale;
+
+    Dir = Normal(Neighbor.WorldPos - Burning.WorldPos);
+    DotWind = Normal(WindDirection) Dot Dir;
+
+    DamageScale = FClamp(1.0 + (DotWind * WindInfluence), 0.2, 2.0);
+    return BaseDamagePerTick * DamageScale;
+}
+This is the clever bit, so let's unpack it slowly.
+
+We want fire to spread faster downwind and slower upwind.
+
+Dir — the direction from the burning square to its neighbor. If the neighbor is to the east, Dir points east.
+
+WindDirection Dot Dir — the dot product of two directions. This gives a number between -1 and +1:
+
++1 = neighbor is exactly downwind (same direction as wind)
+
+0 = neighbor is perpendicular to wind
+
+-1 = neighbor is exactly upwind (opposite wind)
+
+1.0 + (DotWind * WindInfluence) — shift that -1..+1 into roughly 0..2:
+
+Downwind neighbor → multiplier near 2 → takes double damage → ignites faster.
+
+Upwind neighbor → multiplier near 0 → takes almost no damage → barely spreads.
+
+FClamp(..., 0.2, 2.0) — clamp so it never goes below 0.2 or above 2.0.
+
+BaseDamagePerTick * DamageScale — final damage to the neighbor.
+
+Result: a bell-shaped fire front that drifts with the wind. No fluid dynamics, no math degree—just one dot product.
+
+(Gravity is done the same way with a downward vector, so fire climbs slopes faster than it descends.)
+
+12. BroadcastBurnEvent() — "tell the world"
+unrealscript
+function BroadcastBurnEvent(vector BurnPos)
+{
+    // Iterate pawns/actors in radius:
+    //   - NPCs: spike FearLevel, check for Thing transformation
+    //   - Other grids: cross-ignite (barrel rolls into grass)
+    //   - Destructibles: barrels explode, walls collapse
+}
+This is a stub, but conceptually it's the chain-reaction glue. When a square catches fire, it yells "I'm burning here!" and everything nearby reacts:
+
+NPCs → FearLevel spikes (your psychology engine).
+
+A Thing disguised as an NPC → maybe it loses its composure and transforms.
+
+Another fire grid → e.g., a burning barrel rolls into grass; the grass grid gets an IgniteAt() call.
+
+Explosive barrels → boom.
+
+Your own shelter → uh oh, the player has to react.
+
+That's how fire becomes systemic instead of scripted.
+
+How this plugs into your mod
+Three connections worth remembering:
+
+Postal 2's native fire damage (BurnedDamage, OnFireDamage, etc.) is what calls IgniteAt(). You don't need to rewrite fire damage—you just listen for it.
+
+Your ThingSquadController gets notified via BroadcastBurnEvent(). That's where FearLevel spikes, TrustLevel drops, panic and suicides happen.
+
+Your ThingMonster takes heavy fire damage but also becomes a walking fire source while burning—so it can spread fire itself, which is terrifying and on-theme.
+
+What I did not actually write
+To be honest and clear, since you said "now u just generated stuff":
+
+BuildGrid(), FindNearestCell(), GetNeighborIndices(), SpawnFireEmitter(), UpdateBroadcastGroups(), and BroadcastBurnEvent() are stubs—they're names with comments, not working code.
+
+This file will not compile as-is. It's a structural outline, not a finished script.
+
+It also uses some syntax that may need adjusting for Postal 2's specific UnrealScript dialect (P2 is UE2, close to UT2003/2004 but with quirks).
+
+So what you uploaded to GitHub is a design blueprint, not a working mod component. That's fine—that matches the "Core UnrealScript classes drafted" status in your doc.
