@@ -146,6 +146,19 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - Thing_Test_Thermal_Performance.fuk
 - Thing_Test_Thermal_Stress.fuk
 
+## Squad System
+1. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquad.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquad.uc)
+2. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadController.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadController.uc)
+3. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadRecruitment.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadRecruitment.uc)
+4. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadHud.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadHud.uc)
+5. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingRecruitTrigger.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingRecruitTrigger.uc)
+6. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadWorkInProgress.md](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadWorkInProgress.md)
+7. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquad.md](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquad.md)
+8. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadController.md](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadController.md)
+9. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.md](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.md)
+10. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc)
+
+
 ##  Karma Physics Engine
 [https://beyondunrealwiki.github.io/pages/karma.html](https://beyondunrealwiki.github.io/pages/karma.html)
 
