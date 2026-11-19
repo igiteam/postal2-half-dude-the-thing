@@ -308,6 +308,109 @@ I'd work in this order:
 
 **Recommended next step:** Fix the duplicate squad rosters first. Everything else should build on `ThingSquad` as the single source of truth for squad membership.
 
+# **What We Should Take from The Thing (2002)**
+
+## **1. NPC Roles**
+
+The original game had three principal NPC classes:
+
+- **Soldiers:** Better combat performance and more health.
+- **Medics:** Heal the player and other squad members.
+- **Engineers:** Repair electrical systems and unlock progression.
+
+This is something I'd absolutely bring into your Postal 2 mod.
+
+We could have different NPC professions, each with useful abilities outside combat.
+
+## **2. Trust and Fear Must Be Separate**
+
+The original system had an important distinction:
+
+| Attribute | Gameplay effect                                 |
+| --------- | ----------------------------------------------- |
+| Trust     | Determines whether NPCs obey you                |
+| Fear      | Determines how NPCs react to danger             |
+| Morale    | Determines combat confidence                    |
+| Infection | Determines whether an NPC eventually transforms |
+
+Your existing Paranoia Engine already has these separate attributes. That's a very good foundation.
+
+## **3. NPCs Must Be Useful in Combat**
+
+One of the review's biggest compliments was that squadmates could genuinely defend the player.
+
+I'd implement:
+
+- Autonomous target selection.
+- Covering fire.
+- Ammunition awareness.
+- Medic healing.
+- Friendly-fire avoidance.
+- Retreating when overwhelmed.
+- Tactical positioning.
+
+## **4. Infection Must Be Genuinely Unpredictable**
+
+**Important design decision**
+
+This is probably the biggest lesson from the original game.
+
+The original developers wanted randomized infection, but narrative requirements forced particular characters to transform at predetermined moments. The developers themselves discussed this conflict.
+
+For your mod, I'd do something different:
+
+- NPC infection is determined independently.
+- Enemy contact can cause infection probabilistically.
+- Infection has a hidden incubation timer.
+- Blood tests reveal the actual infection state.
+- A confirmed human must never arbitrarily transform because a scripted event demands it.
+- NPCs can transform even when the player isn't watching.
+
+That last point is particularly important for your paranoia sandbox.
+
+## **5. My Proposed Squad Features**
+
+| Feature                  | Inspiration                     |
+| ------------------------ | ------------------------------- |
+| Dynamic recruitment      | Half-Life 2                     |
+| Fear and trust           | The Thing                       |
+| NPC professions          | The Thing                       |
+| Tactical combat          | Medal of Honor: Pacific Assault |
+| Squad coordination       | Half-Life 2                     |
+| Individual personalities | Your Paranoia Engine            |
+| Infection simulation     | The Thing, redesigned           |
+| Autonomous survival      | Your own system                 |
+
+## **6. One Thing I Would Change from the Original Game**
+
+**Don't make squadmates disposable.**
+
+In The Thing, companions often disappear between sections, which makes it difficult to become attached to them.
+
+Your Postal 2 sandbox could make NPC relationships much more meaningful:
+
+- Recruits remember previous missions.
+- NPCs develop relationships with other squad members.
+- They remember being rescued.
+- They can refuse orders if trust is low.
+- They can become frightened of another squad member.
+- They can abandon the player after repeated mistreatment.
+- They can secretly be infected.
+
+That creates emergent storytelling rather than relying on scripted events.
+
+## **My Conclusion**
+
+I'd use three games as the primary design references:
+
+- **Half-Life 2:** Squad architecture, recruitment and coordination.
+- **The Thing (2002):** Psychology, fear, trust and infection.
+- **Medal of Honor: Pacific Assault:** Tactical combat and battlefield squad behaviour.
+
+The objective should be to combine these influences into something more ambitious: a persistent, autonomous squad where every NPC has a profession, personality, psychological state, relationships and potentially a hidden infection.
+
+**The player shouldn't simply command a squad. They should have to manage a group of people who have their own fears, motivations and survival instincts.**
+
 ##  Karma Physics Engine
 [https://beyondunrealwiki.github.io/pages/karma.html](https://beyondunrealwiki.github.io/pages/karma.html)
 
