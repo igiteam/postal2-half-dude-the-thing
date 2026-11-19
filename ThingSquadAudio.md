@@ -1,4 +1,4 @@
-# ThingSquareAudio — Research & Design Document
+# ThingSquadAudio — Research & Design Document
 
 ## 1. Source voice-line catalogue
 
@@ -151,7 +151,7 @@ The following table preserves the 142 supplied records and their original wordin
 
 ## 2. Project concept
 
-**ThingSquareAudio** is a data-driven action/reaction/NPC-state voice system for *The Paranoia Engine*. A voice record belongs to a character, contains an optional **Action** line and/or **Reaction** line, and can be filtered or selected according to the NPC's current state.
+**ThingSquadAudio** is a data-driven action/reaction/NPC-state voice system for *The Paranoia Engine*. A voice record belongs to a character, contains an optional **Action** line and/or **Reaction** line, and can be filtered or selected according to the NPC's current state.
 
 The supplied UI concept includes:
 - **New Audio Record / Project Name** — create or name an audio-recording project.
@@ -224,7 +224,7 @@ The audio system should be a separate subsystem rather than embedding a large di
 
 Suggested responsibility split:
 - `ThingSquadController` — coordinates NPC behaviour and emits semantic events.
-- `ThingDialogueSystem` or `ThingSquareAudio` — finds and plays the appropriate voice record.
+- `ThingDialogueSystem` or `ThingSquadAudio` — finds and plays the appropriate voice record.
 - `ThingTrustSystem`, `ThingFearSystem`, `ThingParanoiaSystem`, `ThingMoraleSystem`, and `ThingInfectionSystem` — update state values and notify the dialogue/audio layer when a meaningful state transition occurs.
 - Squad orders and combat logic — request relevant action/reaction lines without directly managing sound assets.
 
