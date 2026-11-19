@@ -158,6 +158,12 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 9. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.md](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.md)
 10. [https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/ThingSquadAudio.uc)
 
+## Flame system
+[https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFireGrid.uc](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFireGrid.uc)
+[https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFirePropagation.md](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFirePropagation.md)
+[https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlamethrower.md](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlamethrower.md)
+[https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlameChunk.uc](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlameChunk.uc)
+
 
 # **Initial Architectural Findings**
 
