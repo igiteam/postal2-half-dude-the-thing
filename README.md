@@ -123,6 +123,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 - [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
 - [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
 - [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
+- [https://github.com/SuiMachine/The-Thing-Wrapper](https://github.com/SuiMachine/The-Thing-Wrapper)
 - [https://archive.org/details/unreal-script-classes](https://archive.org/details/unreal-script-classes)
 - [https://archive.org/details/forums.epicgames.com](https://archive.org/details/forums.epicgames.com)
 - [https://archive.org/details/DukeNukemForver2001LeakedBuild](https://archive.org/details/DukeNukemForver2001LeakedBuild)
