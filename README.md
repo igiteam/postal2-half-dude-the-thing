@@ -151,6 +151,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 
 [https://unrealarchive.org/wikis/unreal-wiki/Legacy:PhysicsType.html](https://unrealarchive.org/wikis/unreal-wiki/Legacy:PhysicsType.html)
 
+[https://beyondunrealwiki.github.io/pages/karma-functions-and-events.html](https://beyondunrealwiki.github.io/pages/karma-functions-and-events.html)
 
 # How to Add Data in Postal 2
 
