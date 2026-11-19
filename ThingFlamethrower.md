@@ -1,7 +1,5 @@
 can u translate this to uc?\
-[https://github.com/iortcw/iortcw/blob/master/SP/code/cgame/cg_flamethrower.c](https://github.com/iortcw/iortcw/blob/master/SP/code/cgame/cg_flamethrower.c)
-
-
+https://raw.githubusercontent.com/iortcw/iortcw/refs/heads/master/SP/code/cgame/cg_flamethrower.c
 
 this is the original\
 [https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/FlameWeapon.uc](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/FlameWeapon.uc)\
