@@ -163,7 +163,7 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 [https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFirePropagation.md](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFirePropagation.md)
 [https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlamethrower.md](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlamethrower.md)
 [https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlameChunk.uc](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/ThingFlameChunk.uc)
-
+[https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/cg_flamethrower.c](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/cg_flamethrower.c)
 
 # **Initial Architectural Findings**
 
