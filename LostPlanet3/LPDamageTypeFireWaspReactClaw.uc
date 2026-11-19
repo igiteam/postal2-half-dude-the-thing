@@ -1,0 +1,1 @@
+class LPDamageTypeFireWaspReactClaw extends LPDamageTypeMelee;

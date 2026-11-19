@@ -1,0 +1,2 @@
+start local.node:
+self exec global/moveto.scr anim/crawl_walk.scr local.node

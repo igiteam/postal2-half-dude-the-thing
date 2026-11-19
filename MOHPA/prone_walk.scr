@@ -1,0 +1,21 @@
+//------------
+// Prone_walk
+//------------
+// Move while prone.  Have to go prone first if we're not already.
+
+//println "prone_walk.scr"
+
+start:
+
+self waitthread anim/prone.scr::transition
+self waitexec anim/motionblend.scr::PlayAnim walk
+
+/*	jsl-->
+self setmotionanim (self getalias walk)
+self setlocomotionblend 1 0	// cosine=1, sine=0: full forward
+self waittill flaggedanimdone
+*/
+
+end
+
+

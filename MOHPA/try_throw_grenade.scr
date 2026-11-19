@@ -1,0 +1,62 @@
+
+//----------------------------------------------------------------------------
+start local.destination local.desperate local.simple local.forceit:
+//
+// parameters:
+// local.destination - position where we want the grenade to go
+//----------------------------------------------------------------------------
+
+	if ( local.desperate == NIL )
+		local.desperate = 0
+
+	if ( local.simple == NIL )
+		local.simple = 0
+
+	if ( local.forceit == NIL )
+		local.forceit = 0
+
+	local.grenadescript = self calcgrenadetoss local.destination local.desperate local.simple local.forceit
+
+	if (local.grenadescript != "")
+	{
+		self turnto local.destination
+		self animscript local.grenadescript
+		self waittill animdone
+		local.success = 1
+	}
+	else
+	{
+		dprintln "Cant throw Grenade!"
+		local.success = 0
+	}
+
+end local.success
+
+
+//----------------------------------------------------------------------------
+TossSatchel local.destination:
+//
+// parameters:
+// local.destination - position where we want the satchel to go
+//----------------------------------------------------------------------------
+
+	local.grenadescript = self calcsatcheltoss local.destination 1
+
+	if (local.grenadescript != "")
+	{
+		// Force Satchel anim
+		local.grenadescript = "anim/grenade.scr::TossSatchel"
+
+		self turnto local.destination
+		self animscript local.grenadescript
+		self waittill animdone
+		local.success = 1
+	}
+	else
+	{
+		dprintln "Cant toss Satchel!"
+		local.success = 0
+	}
+
+end local.success
+

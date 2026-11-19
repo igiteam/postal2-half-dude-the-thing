@@ -1,0 +1,1471 @@
+// --------------------------------------------------------------------------------
+// actor_utils.scr
+//
+//	
+//	Useful functions for working with and managing actors in levels.
+//	
+//
+//
+// --------------------------------------------------------------------------------
+
+
+
+// --------------------------------------------------------------------------------
+GetActorname local.testset local.actorname:
+//
+//	Accepts a $targetname array of actors and an actorname to search for,
+//	and returns the first actor from that $targetname array, if any, with
+//	the sought actorname.
+//	Returns NIL if no actor could be found with that actorname.
+//
+//	Accepts:
+//	local.testset:		The $targetname array on which you'd like to run the search.	Required	No Default
+//	local.actorname:	The actorname you're looking for.				Required	No Default
+//
+//	Returns:
+//	A pointer to the found actor, if any
+//	NIL, if no actor was found.
+// --------------------------------------------------------------------------------
+	println "Thread launched: global/actor_utils.scr::GetActorname, with " local.testset ", " local.actorname
+	
+	assert (local.testset != NIL && "GetActorname called without a valid testset.")
+	assert ((local.actorname != NIL && local.actorname != "") && "GetActorname called without a valid actorname to look for.")
+	
+	local.myguy = NIL
+	for (local.i =1; local.i <= local.testset.size; local.i++)
+	{
+		if (local.testset[local.i].actorname == local.actorname)
+		{
+			local.myguy = local.testset[local.i]
+			break
+		}
+	}
+	
+end local.myguy
+
+
+//----------------------------------------------------------------------------
+SetTargetnameToActorname:
+//
+//	Sets an actor's $targetname to his actorname
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/actor_utils.scr::SetTargetnameToActorname, on " self
+	
+	assert (self.actorname != NIL && "self.actorname hasn't been properly initialized.")
+	self.targetname = self.actorname
+	
+end
+
+
+// --------------------------------------------------------------------------------
+CheckProximity local.testset local.testorigin local.testrange:
+//
+//	Accepts a $targetname array of actors, an origin, and a range,
+//	and returns the first actor from that $targetname array, if any, in range
+//	of the supplied origin.
+//	Returns NIL if no actor could be found in range.
+//
+//	Accepts:
+//	local.testset:		The $targetname array on which you'd like to run the search.	Required	No Default
+//	local.testorigin:	The origin you'd like to test against.				Required	No Default
+//	local.testrange:	The range within which you'd like to test.			Optional	128
+//
+//	Returns:
+//	A pointer to the found actor, if any
+//	NIL, if no actor was found.
+// --------------------------------------------------------------------------------
+
+	//println "Thread launched: CheckProximity, with " local.testset ", " local.testorigin ", " local.testrange
+	
+	// check values and set defaults
+	assert (local.testset != NIL && "CheckProximity requires a targetname array to run on.")
+	assert (local.testorigin != NIL && "CheckProximity requires an origin to test against.")
+	if (local.testrange == NIL)
+		local.testrange = 128
+	
+	// initialize our return value
+	local.myguy = NIL
+	// iterate through the testset
+	for (local.i =1; local.i <= local.testset.size; local.i++)
+	{
+		local.currange = vector_length(local.testset[local.i].origin - local.testorigin)
+		if (local.currange <= local.testrange )
+		{
+			local.myguy = local.testset[local.i]
+			break
+		}
+	}
+	
+end local.myguy
+
+
+// --------------------------------------------------------------------------------
+SetMood local.mymood:
+//	
+//	Sets self's mood to the passed value.
+//
+//	Accepts:
+//	local.mymood:	(String): "atease", "cautious", or "alert"
+// --------------------------------------------------------------------------------
+
+	assert (local.mymood == "atease" || local.mymood == "cautious" || local.mymood == "alert")
+	
+	self.mood = local.mymood
+
+end
+
+
+//----------------------------------------------------------------------------
+TeleportActor local.locatorprefix:
+//
+//	Teleports an actor to a locator whose targetname consists of a prefix
+//	passed as an argument and the actor's actorname.
+//	
+//	For example, if we have an actor with $targetname "myguy", and actorname "billy",
+//	and we want to teleport him to $locator_s03_billy, enter:
+//	$myguy waitthread TeleportActor "locator_s03_"
+//
+//	Accepts:
+//	local.locatorprefix:	String to be combined with this actor's targetname to 
+//				resolve his teleport destination.
+//				Required.  No default.
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/actor_utils.scr::TeleportActor, on " self.actorname
+	assert (self.actorname != NIL && "TeleportActor requires the actor to have an actorname defined.")
+	assert (local.locatorprefix != NIL && "TeleportActor expects a string containing the prefix to the squad locator's names.  Suffix is the actor's actorname.")
+
+	local.mydest = $(local.locatorprefix + self.actorname)
+	if (local.mydest != NULL)
+	{
+		self.origin = local.mydest.origin
+		self.angles = local.mydest.angles
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+GlueTo local.spot:
+//
+//	Glues an AI to a designated spot
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/actor_utils.scr::GlueTo, on " self.actorname
+	
+	assert (local.spot != NIL && "GlueTo requires that the targetname of a valid object be passed as the glue target.")
+	
+	self glue local.spot
+	self physics off
+	self notsolid
+	
+end
+
+
+//----------------------------------------------------------------------------
+Unglue:
+//
+//	Releases a previously glued AI
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/actor_utils.scr::GlueTo, on " self.actorname
+
+	self unglue
+	self physics on
+	self solid
+	
+end
+
+//----------------------------------------------------------------------------
+DeleteMe:
+//
+//	Deletes the actor from the world (doesn't kill him, just removes him.)
+//
+//	Usage:
+//		$badguys thread global/actor_utils.scr::DeleteMe
+//
+//----------------------------------------------------------------------------
+
+
+	self delete
+	
+	end
+
+//----------------------------------------------------------------------------
+DeleteMeOnTrigger local.trigger:
+//
+//	Deletes this actor (self) when the passed trigger fires..
+//
+//----------------------------------------------------------------------------
+
+	local.trigger waittill trigger
+	if ( self )
+		self delete
+
+
+	end
+
+
+//----------------------------------------------------------------------------
+DeleteMeWhenUnseen local.iRange:
+//
+//	Removes an AI from the world once he's more than 512(default) units away,
+//	and out of player's view frustum.
+//	
+//	Accepts:
+//		Integer Range (default 1024)
+//
+//	Returns:
+//		Nothing
+//
+//	Usage:
+//		$badguys thread global/actor_utils.scr::DeleteMeWhenUnseen
+//		
+//----------------------------------------------------------------------------
+
+	println "Thread launched: global/actor_utils.scr::DeleteMeWhenUnseen, on " self ", with " local.iRange
+	
+	assert (self != NIL && self != NULL)
+	if (local.iRange == NIL)
+		local.iRange = 1024
+	
+	while (isalive self)
+	{
+		local.v_playerToObject = self.origin - $player.origin
+		local.v_playerForward = angles_toforward $player.angles
+		local.playerviewdot = vector_dot local.v_playerToObject local.v_playerForward
+		local.dist = vector_length(local.v_playerToObject)
+		if ((local.dist > local.iRange) && (local.playerviewdot < 0))
+		{
+			println "DeleteMeWhenUnseen: Removing object: " self ", at dist from player: " local.dist
+			self remove
+			break
+		}
+		else
+		{
+			wait 1
+		}
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+AutoHeal local.delaytime:
+//
+//	Automatically heal yourself if you go "undead"
+//----------------------------------------------------------------------------
+	if ( local.delaytime==NIL )
+		local.delaytime = 10
+
+	if ( self.autoheal_thread!=NIL && self.autoheal_thread!=NULL )
+	{
+		self waitthread AutoHealStop
+	}
+
+	self.autoheal_thread = local
+
+	while ( self != NULL && self != NIL )
+	{
+		self.immortal = 1			// make sure we can't die.
+
+		self waittill undead		// wait until we go undead
+		//dprintln "AutHeal timer started for:" self.actorname
+		wait local.delaytime		// wait 10 seconds
+		//dprintln "AutHeal expired for:" self.actorname
+		if ( self.undead==1 )
+		{
+			//dprintln "Autoheal invoking for:" self.actorname
+			// only heal us if we are still undead...
+			self heal					// heal/resurrect ourself
+		}
+	}
+	
+
+	end
+
+//----------------------------------------------------------------------------
+AutoHealStop:
+//
+//	Call this to stop the autoheal behavior...
+//
+//----------------------------------------------------------------------------
+	if ( self.autoheal_thread!=NIL && self.autoheal_thread!=NULL )
+	{
+		self.autoheal_thread delete
+		self.autoheal_thread = NULL
+	}
+
+	end
+
+
+//----------------------------------------------------------------------------
+GagModeStart local.allowIdleCover local.nosquad local.noresurrect:
+//
+//	Turns off AI functionality in preperation for performing a "gag"
+//
+//	If you want the guy to still perform idlecover, pass 1 for parameter 1
+//----------------------------------------------------------------------------
+	self runto NULL	//	stop running anywhere
+
+	self.gagmode = 1
+
+	if ( local.noresurrect == NIL )
+		local.noresurrect	= 0
+	
+	if ( local.allowIdleCover == NIL )
+		local.allowIdleCover = 0
+
+	if( local.nosquad == NIL )
+		local.nosquad = 0
+
+	// jsl-->Added 10/18/04 -->If we're going into GagMode, we need to get off the ground.
+	if ( local.noresurrect==0 )
+		self waitthread Resurrect
+
+	self.enableEnemy			= 0
+	self.bulletaware			= 0
+	self.enablePain				= 0
+//	self.interval				= 0
+	self nodamage
+	self exitmg				// jsl-->Exit any mounted machinegun we may be on.
+	self.avoidplayer			= 0
+
+	if ( self.save_type_squad == NIL || self.save_type_squad == NULL )
+		self.save_type_squad		= self.type_squad
+
+	if ( self.save_type_squadactive==NIL || self.save_type_squadactive == NULL )
+		self.save_type_squadactive	= self.type_squadactive
+
+	if ( self.save_type_idle == NIL || self.save_type_idle == NULL )
+		self.save_type_idle			= self.type_idle
+	
+	if( local.nosquad )
+	{
+		self.save_squadname = self.squad_name
+		self.squad_name = ""
+	}
+	else
+	{
+		self.save_squadname = self.squad_name
+	}
+	
+	self type_squad void
+	self type_squadactive void
+	self order_cancel
+
+	if ( local.allowIdleCover == 0 )
+	{
+		self type_idle idle
+		self idlecoverstop
+	}
+	
+	self.ignorebadplaces		= 1
+
+	end
+
+//----------------------------------------------------------------------------
+GagModeStop:
+//
+//	Turns AI functionality back on after performing a gag
+//
+//----------------------------------------------------------------------------
+	
+	if(self.gagmode)
+	{
+		self.enablePain				= 1
+		self.enableEnemy			= 1
+		self.bulletaware			= 1
+		// self.interval				= 64
+
+		self.squad_name				= self.save_squadname
+
+		self type_idle				self.save_type_idle
+		self type_squad				self.save_type_squad
+		self type_squadactive		self.save_type_squadactive
+		self takedamage
+
+		self.save_type_idle			= NULL
+		self.save_type_squad		= NULL
+		self.save_type_squadactive	= NULL
+		self.save_squadname			= NULL
+		self.ignorebadplaces		= 0
+		self.avoidplayer			= 1
+
+	}
+	self.gagmode = 0
+	
+	end
+
+//----------------------------------------------------------------------------
+EnableFastMode local.nothreat local.fastsquad local.fastmove local.fastthink local.noenemy:
+//
+//	This function is useful for setting an AI character to use as little 
+//	CPU as possible.
+//
+//	If you don't pass any parameters, this guy will be set up for optimal efficiency.
+//
+//	Here is an explanation of the various parameters you can pass to customize your AI
+//
+//	local.nothreat		- if this is set to 1 (by default), this guy will not be processed
+//						by enemy AI.  This makes him less of a hit on the system, but you
+//						may want to set this to 0 in many situations (so enemy will attack them)
+//
+//	local.fastsquad		- when this is 1, the AI will not avoid / waitfor friendlies in their path 
+//						You may want to set this to 0 when the AI is going to be moving near other friendlies
+//
+//
+//	local.fastmove		- when this is 1, the AI doesn't do any collision detection and only uses
+//						the pathnode network for movement.  When this is 2, AI will do fast move AND hug the terrain (slower)
+//
+//	local.fastthink		- when this is 1, the AI will not react to his environment 
+//						no grenades, taking fire, close combat, out of ammo, vehicles, weapon search, weaponless
+//						enemy hunting, etc.  Will check for orders and squad commands/destinations. (runto/walkto,etc)
+//
+//	local.noenemy		- when this is 1, the AI will not look for or attack the enemy
+//
+//	
+//
+//----------------------------------------------------------------------------
+
+	if ( local.nothreat==NIL )
+		local.nothreat = 1
+
+	if ( local.fastmove==NIL )
+		local.fastmove = 1
+
+	if ( local.fastthink==NIL )
+		local.fastthink = 1
+
+	if ( local.noenemy==NIL )
+		local.noenemy = 1
+
+
+	if ( local.fastsquad==NIL )
+		local.fastsquad = 1
+
+
+	self.fastmove	= local.fastmove
+	self.fastthink	= local.fastthink
+
+	if ( local.fastmove > 0 )
+	{
+		// don't do any of the side-stepping that might put us inside of walls
+		self.aimdodge		= 0
+		self.ainododge		= 1
+		self.ainostrafe		= 1
+	}
+
+	if ( local.noenemy )
+		self.enableEnemy = 0
+	else
+		self.enableEnemy = 1
+
+	if ( local.nothreat )
+		self threatbias ignoreme
+	else
+		self threatbias 0
+
+	if ( local.fastsquad )
+	{
+		self.interval = 0
+		self.avoid_squadmate_dist = 0
+		self.failsafeinterval = 0
+	}
+	else
+	{
+		self.interval = 128
+		self.avoid_squadmate_dist = 128
+		self.failsafeinterval = 500
+	}
+
+
+	end
+		
+//----------------------------------------------------------------------------
+StopFastMode:
+//
+//	Removes all the FastMode restrictions on self.
+//
+//----------------------------------------------------------------------------
+
+	self.fastmove = 0
+	self.fastthink = 0
+	self.enableEnemy = 1
+	self threatbias 0
+	self.interval = 128
+	self.avoid_squadmate_dist = 220
+	self.failsafeinterval = 500
+
+	self.aimdodge		= 1
+	self.ainododge		= 0
+	self.ainostrafe		= 0
+
+	end
+
+
+//----------------------------------------------------------------------------
+SetCustomIdleAnim local.anim local.clear_on_enemy local.exitanim local.painanim local.deathanim:
+//
+//	This function gives you the ability to specify a custom idle animation
+//  for your Actor.  He will play this idle instead of his normal idle animations
+//	If your custom idle is looping, he will continually loop the animation.
+//	For looping animations, if he is told to run somewhere or fights an enemy, 
+//	he will do the task and then fallback into looping the animation)
+//	If you want the looping idle animation to be cancelled when he gets an
+//	enemy, set local.clear_on_enemy to 1.
+//	
+//	If the custom idle animation is not looping, he will play the animation and
+//	then just fallback into normal idle behavior.
+//
+//	You may optionally pass an exit, pain, or custom death animation.
+//	Once the Actor is out of this mode, he will no longer use the pain or death anims..
+//
+//----------------------------------------------------------------------------
+
+	if ( local.clear_on_enemy==NIL )
+		local.clear_on_enemy = 0
+
+	self.customidleanim = local.anim
+
+	// jsl-->if we require a custom pain or exit anim, need to use "idletask" thinker.
+	if ( self.customidleanim && (local.exitanim || local.painanim || local.deathanim) )
+	{
+		if ( local.exitanim )
+			self.customidleanim_exit		= local.exitanim
+
+		if ( local.painanim )
+			self.customidleanim_pain		= local.painanim
+
+		if ( local.deathanim )
+			self.customidleanim_death		= local.deathanim
+
+		// launch our idle task thinker...
+		self.idletaskthread				= "anim/idletask.scr::IdleTask"
+	}
+
+	if ( local.clear_on_enemy )
+	{
+		self waittill hasenemy
+		self.customidleanim = NULL
+	}
+
+	end
+
+//----------------------------------------------------------------------------
+SetCustomIdleThread local.thread local.clear_on_enemy:
+//
+//	This function allows a more advanced option for creating custom idle
+//	functionality.  You can specify a thread to run while performing
+//	idle behavior.  local.thread will be automatically launched whenever
+//	the actor is in idle mode.   You may optionally specify that when the
+//	Actor gets an enemy, he will stop doing the custom idle thread.
+//
+//	IMPORTANT:
+//
+//	The thread that you specify must use the setmotionanim/ waittill flaggedanimdone
+//	combination to play animations.  DO NOT use the anim command in this thread.
+//
+//	Example Usage:
+//
+//		self waitthread global/actor_utils.scr::SetCustomIdleThread maps/5_1/5_1_temp.scr::MyCustomHandler 1
+//		end
+//
+//
+//	MyCustomHandler:
+//		self setmotionanim MY_CUSTOM_ANIM
+//		self waittill flaggedanimdone
+//		self setmotionanim A_DIFFERENT_CUSTOM_ANIM
+//		self waittill flaggedanimdone
+//		// we're done, clear out the custom idle thread.
+//		self waitthread global/actor_utils.scr::SetCustomIdleThread NULL
+//		end
+//
+//----------------------------------------------------------------------------
+
+	if ( local.clear_on_enemy==NIL )
+		local.clear_on_enemy = 0
+
+
+	self.customidlethread = local.thread
+
+	if ( local.clear_on_enemy )
+	{
+		self waittill hasenemy
+		self.customidleanim = NULL
+	}
+
+	
+	end
+
+//----------------------------------------------------------------------------
+Dialog local.say local.useSay:
+//
+//
+//----------------------------------------------------------------------------
+
+	if( local.say == NIL )
+	{
+		println "ERROR: global/actor_utils.scr::Dialog no alias passed"
+	}
+	
+	if( local.useSay  == NIL )
+	{
+		local.useSay = 1
+	}
+	
+	if( local.useSay == 1 )
+	{		
+		self say local.say
+		self waittill saydone
+	}
+	else
+	{	
+		self playsound local.say wait
+		self waittill sounddone
+	}
+
+end
+
+
+
+//----------------------------------------------------------------------------
+SetAsVeteran:
+//
+//	Setting a guy to veteran will cause him to use specialized wall cover animations
+//	(doesn't expose himself as much when using wall cover)
+//----------------------------------------------------------------------------
+	
+	self.skilltype = "vet"
+
+	end
+
+//----------------------------------------------------------------------------
+SetAsRookie:
+//
+//	Setting a guy to rookie will cause him to use specialized wall cover animations
+//	(leaves himself more exposed when using wall cover)
+//----------------------------------------------------------------------------
+
+	self.skilltype = "rook"
+
+	end
+
+// ----------------------------------------------------------------------------------
+SetEnableEnemy local.enabled:
+//
+//	
+// ----------------------------------------------------------------------------------
+	
+	self.enableEnemy = local.enabled
+
+end
+
+// ----------------------------------------------------------------------------------
+ReallyRunTo local.mydest:
+//
+//	
+// ----------------------------------------------------------------------------------
+	
+	self.enableEnemy = 0
+	self runto local.mydest
+	self waittill movedone
+	self.enableEnemy = 1
+
+end
+
+
+// ----------------------------------------------------------------------------------
+RunAndShootTo local.mydest:
+//
+//	
+// ----------------------------------------------------------------------------------
+	
+	self runandshoot local.mydest
+	self waittill movedone
+
+end
+
+
+// --------------------------------------------------------------------------------
+FastRunAndShoot local.howlong local.intervalmin local.intervalmax:
+//
+// Run this thread on an Actor you want to aim/shoot in the direction they are running
+// but don't necessarily have anything to shoot at. 
+//
+//	NOTE: this thread assumes that 'self' is currently running and it is okay to 
+//  play his run while shooting animation.  (ie: he's not in chest high water)
+//
+//	Parameters:
+//		howlong			= howlong (in seconds ) to do this for ( 0 means until self dies )
+//		intervalmin		= minimum interval between shots
+//		intervalmax		= maximum interval between shots
+//
+//
+// --------------------------------------------------------------------------------
+
+	if ( local.howlong==NIL )
+		local.howlong = 5
+
+	if ( local.intervalmin==NIL )
+		local.intervalmin = 3
+
+	if ( local.intervalmax==NIL )
+		local.intervalmax = local.intervalmin * 2
+
+	local.stoptime = level.time + local.howlong
+
+	switch ( self.weapongroup )
+	{
+	case	rifle:
+	case	pistol:
+	case	shotgun:
+		local.rounds	= 1
+		break
+	default:
+		local.rounds	= 5	// mg will do 5 shot bursts
+		break;
+	}
+
+	// lets put ourself into an alert running mode.
+
+	self.customrunalias = (self getalias run "" "" "" "alert")
+	wait 0.4
+
+	// now, start shooting...
+
+	while ( isAlive(self) && (local.howlong==0 || level.time < local.stoptime) )
+	{
+		switch ( self.position )
+		{
+		case	run:
+		case	walk:
+		case	crouchrun:
+		case	crouchwalk:
+			break;
+		default:
+			wait 0.5
+			continue
+		}
+
+		for ( local.i=0;local.i<local.rounds;local.i++ )
+		{
+			self fire
+			waitframe
+		}
+
+		local.interval = randomfloat(local.intervalmax - local.intervalmin)
+		local.interval += lcoal.intervalmin
+
+		wait local.interval
+	}
+
+	self.customrunalias = NULL
+
+	end
+
+
+//----------------------------------------------------------------------------
+SmokeCigarette local.mintime local.maxtime:
+//
+//	You may optionally pass minttime and maxtime.  If you don't pass them,
+//	the AI will use default values.
+//
+//----------------------------------------------------------------------------
+
+	self.smoking_mintime	= local.mintime
+	self.smoking_maxtime	= local.maxtime
+
+	self.idletaskthread		= "anim/smoking.scr::Smoke"
+
+	self waittill taskdone
+
+	end
+
+//----------------------------------------------------------------------------
+SmokeCigarette_Cancel:
+//
+//	Call this if you'd like to abort AI smoking...
+//	This will simply tell the AI to put out his cigarette.  The above waittill
+//	taskdone will fire when he's finished throwing away his smoke.
+//
+//	Alternatively, you can do a waitthread on this thread and it'll return
+//	when we're done.
+//----------------------------------------------------------------------------
+
+	// see if we are currently smoking...
+	self.smoking_endtime	= level.time
+	self waittill taskdone
+
+	end
+
+//----------------------------------------------------------------------------
+StartFastCover:
+//
+//	Set this actor's type_attack to fastcover
+//----------------------------------------------------------------------------
+
+	self type_attack "fastcover"
+
+end
+
+
+//----------------------------------------------------------------------------
+StopFastCover:
+//
+//	Set this actor's type_attack to cover (default)
+//----------------------------------------------------------------------------
+
+	self type_attack "cover"
+
+end
+
+
+//----------------------------------------------------------------------------
+StayOnCover local.chargeEnemyDist local.chargePlayerDist local.covernode:
+//
+//	Call this function to tell a guy to prefer pick a new enemy when his 
+//	cover is invalid rather than pick a new covernode.
+//
+//	you may optionally change the default distances to charge the enemy
+//	or the player.
+//
+//	if you pass local.covernode, that's the node the AI will stay at...
+//
+//----------------------------------------------------------------------------
+
+	if ( local.chargeEnemyDist!=NIL )
+		self.chargeenemydist = local.chargeEnemyDist
+
+	if ( local.chargePlayerDist!=NIL )
+		self.chargeplayerdist = local.chargePlayerDist
+
+	if ( local.covernode )
+	{
+		self idlecover local.covernode
+	}
+	else
+	{
+		self idlecover
+	}
+
+	self.mood = cautious
+
+	// for now, only fastcover is implemented to handle stayoncover....
+	self type_attack "fastcover"
+
+	self.stayoncover = 1
+
+	end
+
+
+//----------------------------------------------------------------------------
+RunAwayFromDanger local.danger local.duration local.minsafedist:
+//
+// AI will attempt to run away (and find cover) minsafedist away from 
+// the passed entity or vector
+//----------------------------------------------------------------------------
+
+	self danger local.danger local.duration local.minsafedist
+	
+	wait local.duration
+
+	end
+
+
+// -------------------------------------------------------------------------------
+GroupWaitForFirstEnemy local.group:
+//
+//	Level
+//	Waits for the any of the group to have an enemy
+// -------------------------------------------------------------------------------
+
+	for ( local.i = 1; local.i <= local.group.size; local.i++ )
+	{
+		local.group[local.i] thread WaittillEnemyThenKillThread local
+	}
+
+	while (1)
+	{
+		wait 777
+	}
+
+end
+
+// -------------------------------------------------------------------------------
+WaittillEnemyThenKillThread local.thread:
+// -------------------------------------------------------------------------------
+
+	self waittill hasenemy
+	if ( local.thread != NULL )
+		local.thread remove
+
+end
+
+
+// -------------------------------------------------------------------------------
+SetupCustomWrithe local.knockdown local.writhe:
+//
+//	You may specify which writhing knockdown and/or which writhing in pain 
+//	animations to play with this function.
+//
+//	NOTE: if you don't pass local.writhe, he will just play a
+//	"back" or "belly" version of the writhe corresponding to the knockdown you pass
+//
+//	This function also disables writhing transitions ( from back to belly and vice-versa)
+//	and crawling to cover...
+//
+// -------------------------------------------------------------------------------
+
+	self.writhe_customknockdown		= local.knockdown
+	self.writhe_customwrithe		= local.writhe
+
+	self.writhe_nocrawl				= 1
+	self.writhe_notransitions		= 1
+	
+
+	end
+
+
+// -------------------------------------------------------------------------------
+ClearCustomWrithe:
+//
+//	Set a guy back to normal writhing behavior with this...
+// -------------------------------------------------------------------------------
+
+	self.writhe_customknockdown		= NULL
+	self.writhe_customwrithe		= NULL
+
+	self.writhe_nocrawl				= 0
+	self.writhe_notransitions		= 0
+
+	end
+
+
+//----------------------------------------------------------------------------
+SetupPlayerWaittill local.waittill:
+//
+//	Setup a player waittill that can be waited for and invoked
+//
+//	NOTE: Only call this function once in your level initialization section
+//
+//----------------------------------------------------------------------------
+
+	$player addwaittill local.waittill
+
+	end
+
+
+//----------------------------------------------------------------------------
+InvokePlayerWaittill local.waittill:
+//
+//	Call this when you want the waittill to be invoked
+//----------------------------------------------------------------------------
+
+	$player invokewaittill local.waittill
+
+
+	end
+
+//----------------------------------------------------------------------------
+DeleteMeOnPlayerWaittill local.waittill:
+//
+//	Make sure you create the waittill (one) using above SetupPlayerWaittill function
+//
+//	then run everything you want to have deleted when that waittill is invoked thru this script.
+//
+//	A very usefull way to group a bunch of objects to be deleted at the
+//	same time.
+//	
+//----------------------------------------------------------------------------
+
+	$player waittill local.waittill
+
+	if ( self )
+		self delete
+
+	end
+
+//----------------------------------------------------------------------------
+DrawIconRestoreState:
+//
+// Restores the value of cg_draw_allies_icon from the saved version.
+//----------------------------------------------------------------------------
+	
+	// Reset _current
+	setcvar "cg_draw_allies_icon_current" -1
+end
+
+//----------------------------------------------------------------------------
+DrawIconSetState local.draw:
+//
+// Sets the value of cg_draw_allies_icon_current to 0 - dont draw, 1 - draw, 
+//	2 - draw when in view angle.
+//----------------------------------------------------------------------------
+
+	setcvar "cg_draw_allies_icon_current" local.draw
+
+end
+
+
+//----------------------------------------------------------------------------
+IsOutOfView local.range:
+//
+//	Checks if an origin is outside of player's view frustum, and > given distance away
+//	
+//	Accepts:
+//		Integer Range (default 512)
+//
+//	Returns:
+//		Whether the position is in range
+//
+//	Usage:
+//		$badguy thread global/actor_utils.scr::IsOutOfView
+//		
+//----------------------------------------------------------------------------
+
+	assert (self != NIL && self != NULL)
+
+	// Set Range
+	if (local.range == NIL)
+		local.range = 512
+		
+	local.v_playerToObject = self.origin - $player.origin
+	local.v_playerForward  = angles_toforward $player.angles
+	local.playerviewdot    = vector_dot local.v_playerToObject local.v_playerForward
+	local.dist = vector_length(local.v_playerToObject)
+
+	// Text
+	if ((local.dist > local.range) && (local.playerviewdot < 0))
+		local.bOutOfView = 1
+	else
+		local.bOutOfView = 0
+
+end local.bOutOfView
+
+
+//----------------------------------------------------------------------------
+SetAsFastTurret:
+//
+//	This guy will stand and attack.  He will not try to path or melee attack
+//  unless your in range of his attack.
+//
+//----------------------------------------------------------------------------
+	
+	self type_attack "fastturret"
+
+	self.leash					= 1
+	self.mindist				= 1
+	
+	self.ainododge				= 1 
+	self.ainostrafe				= 1
+	self.ainoprone				= 1
+	self.ainocrouch				= 1
+	self.autochargedist			= 0
+	self.autochargeplayerdist	= 0
+
+	self thread EnableFastMode 0 1 0 0 0
+
+end
+
+//----------------------------------------------------------------------------
+Resurrect:
+//
+//
+//----------------------------------------------------------------------------
+
+	if( self.undead == 1 )
+	{
+		self heal
+	}
+
+end
+
+//----------------------------------------------------------------------------
+SetNoDamage local.nodamage:
+//
+//
+//----------------------------------------------------------------------------
+
+	if( local.nodamage == 1 )
+	{
+		self nodamage
+	}
+	else
+	{
+		self takedamage
+	}
+
+end
+
+//----------------------------------------------------------------------------
+SetNoPain local.noPain:
+//
+//
+//----------------------------------------------------------------------------
+
+	if( local.noPain == 1 )
+	{
+		self.enablePain = 0
+	}
+	else
+	{
+		self.enablePain = 1
+	}
+
+end
+
+//----------------------------------------------------------------------------
+SetFastMove local.fastMove:
+//
+//
+//----------------------------------------------------------------------------
+
+	self.fastmove = local.fastMove
+
+end
+
+//----------------------------------------------------------------------------
+AnimStop:
+//
+//
+//----------------------------------------------------------------------------
+
+	self animstop
+
+end
+
+//----------------------------------------------------------------------------
+SetIgnoreBadPlaces local.ignore:
+//
+//
+//----------------------------------------------------------------------------
+
+	self.ignorebadplaces = local.ignore
+
+end
+
+//----------------------------------------------------------------------------
+WatchForDeathFailSafe local.wait local.minGuys local.banzai:
+//
+// self				[REQUIRED] - the target array to watch.
+// local.wait		[REQUIRED] - the amount of time to wait until we kill off the
+//							   - the remaining guys in this array.
+// local.minGuys	[OPTIONAL] - Don't start the time until we've only got this
+//							   - many left.
+// local.banzai		[OPTIONAL] - Tell the remaining guys to banzai the player
+//
+// Usage:
+//
+// $dudes thread WaitForDeathFailSafe 60 2 1
+// Where the $dudes array will start a 60 second timer when only 2 are left and 
+// then banzai the player or die based on the third parameter
+//
+// $dudes thread WaitForDeathFailSafe 60
+// The $dudes array will die off after 60 seconds.
+//
+//----------------------------------------------------------------------------
+
+	if( local.wait == NIL )
+	{
+		println "ERROR: global/actor_utils.scr::WatchForDeathFailSafe no minimum wait passed."
+		end
+	}
+
+	if( local.minGuys == NIL )
+	{
+		local.minGuys = 0
+	}
+
+	if( local.banzai == NIL )
+	{
+		local.banzai = 0
+	}
+
+	if( local.minGuys > 0 )
+	{   		
+		//Wait until we have a minimum number of guys		
+		while( isAlive self && local.minGuys > 0 && $(self.targetname).size > local.minGuys )
+		{
+			//println "Waiting for: " self.targetname " to reach: " local.minGuys " Remaining: " $(self.targetname).size
+			wait 1
+		}
+
+		if( isAlive self && $(self.targetname).size < local.minGuys )
+		{
+			wait local.wait
+			
+			if( isAlive self )
+			{
+				if( local.banzai == 1 )
+				{
+					self order_banzai $player
+					self thread BanzaiOrderFailSafe
+				}
+				else
+				{
+					self kill
+				}
+			}
+		}
+	}
+	else
+	{   		
+		wait local.wait
+		
+		if( isAlive self )
+		{
+			if( local.banzai == 0 )
+			{
+				self kill
+			}
+			else
+			{
+				self order_banzai $player
+				self thread BanzaiOrderFailSafe
+			}
+		}
+	}
+end
+
+//----------------------------------------------------------------------------
+BanzaiOrderFailSafe local.wait:
+//
+// self				[REQUIRED] - the target entity to watch.
+// local.wait		[OPTIONAL] - the amount of time to wait until we check this
+//								 guys think to determine if he is in closecombat.					   
+//
+// This thread is used by WatchForDeathFailSafe when guys are sent to banzai.
+// We use this thread to wait a few seconds than check if they are in close
+// combat.  If not they are most likely having a pathing issue so we just
+// kill them off.
+//
+//----------------------------------------------------------------------------
+	
+	if( local.wait == NIL || local.wait == NULL )
+	{
+		local.wait = 5
+	}
+
+	local.lastOrigin = self.origin
+
+	wait local.wait
+
+	if( self.lastMeleeAttack == NIL )
+	{
+		self.lastMeleeAttack = 0
+	}
+
+	while( isAlive self )
+	{		
+		local.lastAttack = level.inttime - self.lastMeleeAttack
+		
+		//dprintln "Thinkstate: " self.thinkstate
+		//If after (x) seconds we are still not in close_combat we are probably stuck.  So just die.
+		if( self.thinkstate != "closecombat" )
+		{
+//			dprintln "Guy is not in closecombat killing him."
+			self kill
+		}
+
+		//Make sure our guy isn't stuck
+		if( local.lastAttack > 4000 )
+		{
+			local.isStuck = vector_within local.lastOrigin self.origin 16
+			if( local.isStuck == 1 )
+			{
+//				dprintln "Guy hasn't moved he's stuck, killing him."
+				self kill
+				end
+			}
+		}
+		
+		wait 4
+
+		//Update the last origin
+		local.lastOrigin = self.origin
+	}
+
+end
+
+//----------------------------------------------------------------------------
+CancelOrder:
+//
+// cancel any order this guy may have.
+//
+//----------------------------------------------------------------------------
+	self order_cancel
+
+end
+
+
+//--------------------------------------------------
+AutoReinforce local.set local.targetname local.waittime local.max_ai local.destination local.start_trigger local.test_trigger local.kill_trigger local.count:
+//
+//	This thread is useful for areas in the game where if the player waits too long, you want to spawn in some re-inforcements so 
+//	it doesn't feel like the enemy stops coming when the player stops moving.
+//
+//	Params:
+//		set				- set# to spawn in
+//		targetname		- targetname you want them to have (note: their squadname will be 'targetname'_squad
+//		waittime		- how long to wait before checking if the reinforcements should come
+//		max_ai			- max # of bad guys in the world to do this with (ie: pass 2 if you don't want re-inforcments if more than 2 bad guys are in the level
+//		destination		- squadnode of where you want the reinforcements to go
+//		start_trigger	- name of trigger to start this with.
+//		test_trigger	- when player hits this trigger, cancel the reinforcement request
+//		kill_trigger	- optional trigger to magically kill these reinforcement guys.
+//		count			- # of times you'd like to have this happen. (default=1)
+//
+//--------------------------------------------------
+
+	assert (local.test_trigger!=NIL)
+	assert (local.start_trigger!=NIL)
+	assert (local.set!=NIL)
+
+	if ( local.waittime==NIL )
+		local.waittime		= 1
+
+	if ( local.count==NIL )
+		local.count			= 1
+
+	local.test_trigger thread AutoReinforce_TestTrigger local local.targetname
+
+	println "AutoReinforce waiting for trigger:" local.start_trigger
+
+	local.start_trigger waittill trigger
+
+	println "AutoReinforce trigger fired:" local.start_trigger
+
+	wait local.waittime
+
+	if ( local.kill_trigger )
+	{
+		// kill trigger will kill them and end this thread if it still exists...
+		local.kill_trigger thread AutoReinforce_KillThem local.targetname
+		local.kill_trigger thread AutoReinforce_TestTrigger local local.targetname
+	}
+
+	while ( local.count>0 )
+	{
+		local.numaxis = getnumaxisalive 0
+
+		while ( local.numaxis > local.max_ai )
+		{
+			println "AutoReinforce checking numaxis:" local.targetname " (" local.numaxis " >? " local.max_ai
+			wait 1
+			local.numaxis = getnumaxisalive 0
+		}
+
+		println "AutoReinforce spawning them in:" local.targetname " set#" local.set
+
+		local.oldsize = $(local.targetname).size
+
+		// time to spawn...
+		waitthread global/aispawn.scr::spawnset local.set local.targetname
+
+		local.newsize = $(local.targetname).size
+		local.spawncount = local.newsize - local.oldsize
+
+		println "AutoReinforce spawn count:" local.spawncount
+
+		local.squad_name = local.targetname + "_squad"
+
+		$(local.targetname) thread AutoReinforceInit local.squad_name
+
+		if ( local.destination )
+		{
+			println "AutoReinforce: sending them to destination:" local.destination
+
+			$(local.squad_name) squad_destination local.destination
+			$(local.squad_name) squad_slowadvance local.destination
+		}
+
+		wait 5		// make sure we wait at least 5 seconds before spawning again...
+		local.count--
+	}
+
+	println "AutoReinforce: Reinforcements for " local.targetname " are done."
+
+	end
+
+//--------------------------------------------------
+AutoReinforce_KillThem local.targetname:
+//--------------------------------------------------
+	println "AutoReinforce: kill trigger (" self.targetname ") waiting to kill:" local.targetname
+
+	self waittill trigger
+
+	println "AutoReinforce: Kill trigger fired.  Killing reinforcements: " local.targetname
+
+	if ( $(local.targetname).size > 0 )
+	{
+		$(local.targetname) thread AutoReinforce_Die
+	}
+
+	end
+
+//--------------------------------------------------
+AutoReinforce_TestTrigger local.kill_thread local.targetname:
+//	used by AutoReinforce function, do not call this
+//	function.
+//--------------------------------------------------
+
+	self waittill trigger
+
+	println "AutoReinforce: Ending reinforcements for:" local.targetname
+
+	if ( local.kill_thread )
+		local.kill_thread delete
+
+	end
+
+//--------------------------------------------------
+AutoReinforceInit local.squad_name:
+//	used by AutoReinforce function, do not call this
+//	function.
+//--------------------------------------------------
+
+	self.squad_name			= local.squad_name
+	self.quicknotice		= 1		// assume we're in battle, we want to be noticed quickly.
+	self type_attack cover
+	self idlecover
+
+	self waittill death
+	self.targetname = "deadguy"
+
+	end
+
+//--------------------------------------------------
+AutoReinforce_Die:
+//	used by AutoReinforce function, do not call this
+//	function.
+//--------------------------------------------------
+
+	println "AutoReinforce: Being forced to die:" self.targetname
+
+	self hurt 250
+
+	end
+
+
+//--------------------------------------------------
+ExitMG:
+//--------------------------------------------------
+	self exitmg
+
+	end
+
+//----------------------------------------------------------------------------
+SetNoMount local.nomount:
+//----------------------------------------------------------------------------
+
+	self.nomount = local.nomount
+
+	end

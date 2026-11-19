@@ -1,0 +1,95 @@
+//
+// mp_combat_classes.scr
+//
+
+//-----------------------------------------------------------------------------
+main:
+	level.combatClassDebugOutput = 0
+
+	level waittill prespawn
+	level waittill spawn
+
+	if (getcvar("dm_combatClassesEnabled") != "0")
+		thread monitor_classes
+end
+
+
+//-----------------------------------------------------------------------------
+monitor_classes:
+//------------------
+
+	waitthread combatclass_debug "monitor_classes thread started"
+
+	while (1)
+	{
+		wait 1
+		local.i = 1
+		while (local.i <= $player.size)
+		{
+			local.player = $player[local.i]
+
+			if (local.player.sniperwobbleinitialized != 1)
+			{
+				local.player.sniperwobbleinitialized = 1
+				if (local.player.combatclass == "scout")
+				{
+					// duration, period, amplitude, azimuth, incidence
+					local.player sniperwobble 1.5 0.5 1.0 3.0 .3
+				}
+				else
+				{
+					// TODO : make wobble for non-scout 
+					//        classes more _pronounced_
+					// duration, period, amplitude, azimuth, incidence
+					local.player sniperwobble 2.5 1.5 3.0 4.0 .6
+				}
+			}
+
+			if (local.player.combatclass == "engineer")
+			{
+				if (local.player.ccthread != 1)
+				{
+					local.player.ccthread = 1				
+					local.player thread engineer_thread
+				}
+			
+			}
+			local.i++
+		}
+	}
+end
+
+
+//------------------
+combatclass_debug local.output:
+//------------------
+	
+	if (level.combatClassDebugOutput != 0){
+		thread global/mp_message.scr::general "COMBATCLASS:CombatClass" local.output
+	//	println "COMBAT CLASS: " local.output
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+engineer_thread:
+//------------------
+
+	// Each frame check to see if the engineer has uncovered a new
+	// landmine. If he has, tell him so and actually uncover it.
+	while (self && self.combatclass == "engineer")
+	{
+		local.mine = self checkLandMines level.dm_landmineMaxSpotDistance level.dm_landmineSpottingNarrowness level.dm_landmineSpotMultStand level.dm_landmineSpotMultCrouch level.dm_landmineSpotMultProne
+
+		if (local.mine)
+		{
+			self waitthread global/mp_message.scr::player_message "COMBATCLASS:DiscoveredLandmine"
+			//self iprint "Landmine discovered!"
+			local.mine waitthread global/landmine.scr::expose_landmine
+			self incrementstat numMinesDetected
+		}
+
+		wait 0.3
+	}
+end
+

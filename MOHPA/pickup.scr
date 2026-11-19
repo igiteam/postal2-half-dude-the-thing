@@ -1,0 +1,40 @@
+// -----------------------------------------------------------------------
+//	pickup.scr
+//
+//	Implements picking up stuff.
+//
+//	For now, picking up weapons are supported.
+//
+// -----------------------------------------------------------------------
+
+
+main:
+
+	println "pickup.scr error:  Do not exec this script directly!"
+
+end
+
+
+// -----------------------------------------------------------------------
+PickupWeapon:
+// 
+//	Play's the pickup weapon animation and exits..
+// -----------------------------------------------------------------------
+
+	self endactionanim
+	self setmotionanim xxxxx_pickup_weapon
+	self waittill flaggedanimdone
+
+
+end
+
+// -----------------------------------------------------------------------
+PickupSupplies:
+// 
+//	Play's the pickup supplies animation and exits..
+// -----------------------------------------------------------------------
+	
+	waitthread PickupWeapon
+	
+	end
+

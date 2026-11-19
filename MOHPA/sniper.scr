@@ -1,0 +1,60 @@
+//-----
+// Sniper.scr
+//-----
+
+//=============================================================
+//=============================================================
+SniperMain:
+// Note: I rely on this being the only entry point to this script, for initialization purposes.
+//println "Entering sniper script"
+
+	self.backawaypct		= 0
+	self.shootpct			= 100
+	self.lastmovement		= "none"
+
+		
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	
+	while (1)
+	{
+		waitexec anim/sniper.scr::SniperProneAttack
+		waitframe
+	}
+end
+
+//=============================================================
+//=============================================================
+SniperAim:
+	self.blendtime = 0.30
+	self thread anim/SayManager.scr::SayManager face_aiming 3
+	waitexec anim/aim.scr::Aim
+	wait self.blendtime
+
+end
+
+//=============================================================
+//=============================================================
+SniperProneAttack:
+
+	waitexec anim/turret.scr::AttackCheckProne
+	waitexec anim/turret.scr::AttackProneDown
+	
+//	self waitexec anim/shoot.scr::Shoot
+
+	if (self.lastmovement != "prone_attack")
+	{
+		self waitthread SniperAim
+		self.lastmovement = "prone_attack"
+	}
+	
+	self.blendtime = 0.10
+	self thread anim/SayManager.scr::SayManager face_aiming 3
+	waitexec anim/shoot.scr::Shoot
+//	self waittill upperanimdone
+	
+end

@@ -1,0 +1,23 @@
+main local.nextlevel local.mission_end:
+	if ($player.health <= 0)
+		pause
+
+	$player stopwatch 0	
+	if (local.nextlevel != NIL)
+	{
+		if (local.mission_end == 1)
+		{
+			game.loadout = false
+			//bsptransition local.nextlevel
+			// Show stats, no squad state saved
+			missiontransition local.nextlevel
+		}
+		else
+		{
+			game.loadout = NIL
+			// No stats, no squad state saved
+			leveltransition local.nextlevel
+		}
+	}
+
+end

@@ -1,0 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+// Hands attachment for 3rd person
+// nothing shows up in third person
+///////////////////////////////////////////////////////////////////////////////
+class HandsAttachment extends P2WeaponAttachment;
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    WeapClass=Class'HandsWeapon'
+    RelativeLocation=(X=0.0000000,Y=1.0000000,Z=-0.3000000)
+    RelativeRotation=(Pitch=0,Yaw=0,Roll=32768)
+}

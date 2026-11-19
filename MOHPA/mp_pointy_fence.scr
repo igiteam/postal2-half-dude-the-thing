@@ -1,0 +1,44 @@
+// When executed this script will take care of spawning in and removal of 
+// trigger_hurts through the use of a trigger_multiple brush.
+// To Use:
+// - place a trigger_multiple and map where you would like the player to take damage
+// - check the DAMAGE and NOT_PLAYER boxes
+// - set targetname to pointy_fence
+// - set health to 100000
+// - set #damage to amount of damage you want to induce per tick
+// - place the following line in your script
+//	exec global/mp_pointy_fence.scr
+
+main:
+	//dprintln "running mp_pointy_fence.scr"
+	if ($pointy_fence)
+		$pointy_fence thread pointy_manager		
+end
+
+//-----------------------------------------------------------------------------
+pointy_manager:
+//-----------------
+	//dprintln "pointy manager"
+	
+	// commented out lines making the pointy sticks hurt -scosgrave
+	//local.hurt = spawn trigger_hurt 
+	//local.min = self.getmins 
+	//local.max = self.getmaxs 
+	//local.hurt setsize local.min local.max
+	//local.hurt.origin = self.origin
+	self.target havok_disable_wakeup
+	//dprintln ("self.damage = " + self.damage)
+	//if (self.damage != NIL && self.damage != NULL)
+	//	local.hurt damage self.damage
+	self immune bullet fast_bullet bash impale
+	self immune shotgun aagun bulletlarge
+	self removeimmune grenade satchel landmine
+	self takedamage
+	//dprintln "waiting for damage"
+	self waittill damage
+	//local.hurt remove
+	thread global/mp_fx.scr::spawn_fx $(self.target).origin "models/fx/Pointyfence_explode1_tko.tik" 1	
+	spawn script_model "model" "models/MP_common/manmade/PointyFence_d.gr2" "origin" $(self.target).origin "angles" $(self.target).angles
+	self.target remove
+	self remove
+end

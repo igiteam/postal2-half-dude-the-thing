@@ -1,0 +1,297 @@
+//-----------------------------------------------------------------------------
+// global/playershellshock.scr
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// PlayerShellShockInit
+//
+//-----------------------------------------------------------------------------
+PlayerShellShockInit:
+	level.SS_TIME_DEFAULT		= 5.25							// seconds
+
+	level.SS_MONO_BLUR		= 0.5						// default = half mono blur
+	level.SS_SAT			= 0.3						// base-line oscillate around this value 
+
+	level.SS_FOV_DEFAULT		= 80						// default FOV
+	level.SS_FOV_SHELLSHOCK		= 90						// Base FOV while in SS
+	level.SS_FOV_VARIANCE		= 15
+	level.SS_FOV_TIMER			= 10						// seconds (how long it takes to get to adjusted FOV
+	
+	level.SS_FOV_ANGLE_FREQ		= 1.0
+	level.SS_FOV_ANGLE_AMP		= 0.333
+	
+	level.SS_TURN_ATTN			= 0.5
+
+	level.SS_SOUND_RINGING_EAR = "snd_shellshock"			// default alias
+	level.SS_SOUND_ZIPTONORMAL = "snd_shellshock_end"		// default alias
+	level.ss_saved_threatbias	= 9876
+
+	level.SS_INIT	= 1
+
+end
+
+//-----------------------------------------------------------------------------
+// PlayerShellShock
+//
+PlayerShellShock local.timer local.radialBlur local.mod_height local.strRingingEarSound local.strZipBackToNormalSound:
+//-----------------------------------------------------------------------------
+
+	// Make sure SS is initialized
+	if (level.SS_INIT==NIL)
+	{
+	     waitthread PlayerShellShockInit
+	}
+
+	// This will prevent shellshock during VOD or critical bleeding
+	if ($player.invod)
+	{
+		end
+	}
+
+	// This will prevent multiple shellshock events 
+	if ($player.in_shellshock)
+	{
+		end
+	}
+
+	local.timer = level.SS_TIME_DEFAULT
+	
+	waitthread PlayerShellShockBegin local.radialBlur
+
+	level.SS_DONE		= 0
+	
+	local.ss_fov_step	= 1
+	local.ss_player_fov	= level.SS_FOV_DEFAULT
+
+	thread PlayerShellShockTimerBegin local.timer
+
+	while( 0 == level.SS_DONE )
+	{
+		//
+		// Slightly roll player-camera to and fro about view axis
+		//
+		local.sinValue = sin ( ( level.SS_FOV_ANGLE_FREQ * level.SS_CLOCK * 180 ) / 3.1415379 )
+		local.cosValue = cos ( ( level.SS_FOV_ANGLE_FREQ * level.SS_CLOCK * 180 ) / 3.1415379 )
+		
+		local.view_angles = $player.viewangles
+		
+		local.view_angles[1] += level.SS_FOV_ANGLE_AMP * local.sinValue
+		local.view_angles[2] += level.SS_FOV_ANGLE_AMP * local.cosValue
+		
+		$player.viewangles = local.view_angles
+		
+		local.ss_player_fov = level.SS_FOV_SHELLSHOCK + local.cosValue * level.SS_FOV_VARIANCE
+		
+	//	dprintln "S: " local.sinValue "  C: " local.cosValue "  FOV: " local.ss_player_fov
+		
+		$player lerpadjustfov local.ss_player_fov 0.5
+
+		if ($player.invod)
+		{
+			$player thread RestoreViewAngles
+			// Grace period between shell shock events			
+			$player aimsmoothadjustfov level.SS_FOV_DEFAULT 0.35
+			if ( level.ss_saved_threatbias != 9876 )
+			{
+				$player.threatbias			= level.ss_saved_threatbias	
+				level.ss_saved_threatbias	= 9876
+			}
+			$player end_shellshock
+			end
+		}
+
+		waitframe
+	}
+	
+	waitthread PlayerShellShockEnd
+end
+
+//-----------------------------------------------------------------------------
+DuckVolume:
+//-----------------------------------------------------------------------------
+	// Wait so player can hear the explosion
+	wait 0.25 
+	$player lowpass_frequency_target	0.2		1.0
+	$player ducked_volume_target		0.02	0.2
+	$player ambient_volume_target		0.02	1.0
+end
+
+// -----------------------------------------
+DoSound:
+// -----------------------------------------
+	
+	$world playsound snd_shellshock wait
+	$world waittill sounddone
+	
+end
+
+//-----------------------------------------------------------------------------
+// PlayerShellShockBegin
+//
+PlayerShellShockBegin local.radialBlur:
+//-----------------------------------------------------------------------------
+	
+	$player begin_shellshock
+	waitframe
+	
+	thread DoSound
+		
+	$player turn_attenuation			level.SS_TURN_ATTN
+	
+	thread DuckVolume
+
+	$player set_medic_call_bool 0
+//	$player physics_off_partial_immobilize
+	$player safeholster 1
+	drawhud 0
+
+	if ( level.ss_saved_threatbias == 9876 )
+	{
+		level.ss_saved_threatbias	= $player.threatbias	
+	}
+	$player.threatbias			= ignoreme
+
+	thread PostFXScrambler
+end
+
+//-----------------------------------------------------------------------------
+// PlayerShellShockEnd
+//
+PlayerShellShockEnd:
+//-----------------------------------------------------------------------------
+	
+	
+	$player set_medic_call_bool 1
+
+	if ($player.invod)
+	{
+		if ( level.ss_saved_threatbias!=9876 )
+		{
+			$player.threatbias				= level.ss_saved_threatbias		
+			level.ss_saved_threatbias		= 9876
+		}
+		end
+	}
+
+	$player thread RestoreViewAngles
+
+//	level.ss_fov_thread remove
+	level.ss_postfx_thread	remove
+	$player lowpass_frequency_target	1.0	2.0
+	$player ducked_volume_target		1.0	1.2
+	$player ambient_volume_target		1.0	1.0
+
+	$player physics_on
+	$player turn_attenuation 0
+		
+	// Blend back to normal FOV
+	$player aimsmoothadjustfov level.SS_FOV_DEFAULT 0.35
+			
+	// hack for demo
+	$player postfx_blend_to_default 0 0.6
+	$player postfx_blend_to_default 1 2.5
+	wait 1.0		
+	$player safeholster 0
+	if ( level.ss_saved_threatbias!=9876 )
+	{
+		$player.threatbias			= level.ss_saved_threatbias	
+		level.ss_saved_threatbias	= 9876
+	}
+	drawhud 1
+	// Grace period between shell shock events
+	$player end_shellshock
+	dprintln "Shell shock ended."
+	
+end
+
+// =======================================================
+RestoreViewAngles:
+//========================================================
+	
+	local.test = abs $player.viewangles[2]
+	
+	while (local.test>0.1)
+	{
+		local.view_angles		= $player.viewangles
+		local.view_angles[2]	= local.view_angles[2]*0.85
+		$player.viewangles		= local.view_angles
+		local.test				= abs $player.viewangles[2]
+		waitframe
+	}
+	
+	local.view_angles		= $player.viewangles
+	local.view_angles[2]	= 0.0
+	$player.viewangles		= local.view_angles
+
+end
+
+// =======================================================
+PostFXScrambler:
+// =======================================================
+
+	level.ss_postfx_thread		= local
+	// "postfx_mode, postfx_initial_value, postfx_target_value, postfx_blend_time post_fx_param(opt)",
+	// Pure white initially
+	$player postfx_blend 7 0.0 0.0 0.1 1
+	wait 0.3
+	
+	local.sat_target = 	level.SS_SAT
+	$player postfx_blend 7 0.4 local.sat_target 0.5 1
+	wait 0.5
+	$player postfx_blend 7 0.0 0.7 0.3
+	wait 0.3
+	
+	while (1)
+	{
+		if ($player.invod)
+		{
+			end
+		}
+		
+		local.time				= 0.2 + randomfloat 0.2
+		local.last_sat_target	= local.sat_target 
+		
+		local.sat_offset		= randomfloat 0.2
+		local.sat_offset		= 0.5 - local.sat_offset
+		local.sat_target		= local.sat_offset + level.SS_SAT
+		$player postfx_blend 7 local.last_sat_target local.sat_target local.time 1
+		wait local.time
+	}
+
+end
+
+//-----------------------------------------------------------------------------
+// PlayerShellShockTimerBegin
+//
+PlayerShellShockTimerBegin local.timer:
+//-----------------------------------------------------------------------------
+	thread PlayerShellShockClockTick
+
+	wait local.timer
+
+	level.SS_DONE = 1
+end
+
+
+
+
+//-----------------------------------------------------------------------------
+// PlayerShellShockClockTick
+//
+PlayerShellShockClockTick:
+//-----------------------------------------------------------------------------
+	level.SS_CLOCK = 0
+
+	if ($player.invod)
+	{
+		end
+	}
+
+	local.frametime = 1.0 / 20.0
+	
+	while( 0 == level.SS_DONE )
+	{
+		level.SS_CLOCK += local.frametime
+		waitframe
+	}
+end

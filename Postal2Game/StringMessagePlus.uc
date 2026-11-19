@@ -1,0 +1,2 @@
+class StringMessagePlus extends LocalMessagePlus;
+

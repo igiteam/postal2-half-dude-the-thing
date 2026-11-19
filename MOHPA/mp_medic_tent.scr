@@ -1,0 +1,1212 @@
+//
+// mp_medic_tent.scr
+//
+// written by ccaron for TKO-software 12/10/03
+//
+// This script enables the 'medic_tent' / 'reload_point' gag as described
+// in the Invader GDD.  A medic tent can be added to any map with the 
+// following steps.
+//
+// 1 > Place a trigger multiple in the room designated as the tent w/attr:
+//       'targetname medic_tent'
+//       '#set (n)', where n is a unique int
+//       '$team (allies|axis)' (defaults to 'axis')
+//
+//     If any of these fields (except team) are missing then an error 
+//     message is sent and the thread terminates.
+//
+// 2 > Place a script_origin to indicate the AirDrop drop point.
+//     The drop point should be in a place such that the crate can
+//     parachute to the vicinity of the tent unimpeded.  When the
+//     parachute touches any geom, the crate disappears and the 
+//     the tent is restocked.  Give the script_origin these attr:
+//	     'targetname drop_point'
+//       '#set (n)', where n is the same as the medic_tent who owns it
+//
+// 3 > Load the tent with ammo as if it were in it's fully loaded state
+//       All ammo must be inside the bounding volume of the trigger
+//
+// 4 > Place any number of script_origins OR info_splinepaths around the 
+//      perimeter of the map to indicate potential points to launch an 
+//      AirDrop.  A spline path will automatically start a follow_path
+//      and a script_origin will work as usual.  Is is OK to mix
+//      script_origins and splinepaths as the start points for an Airdrop.
+//      Give the origins' for the axis a targetname 'axis_airdrop_point' 
+//      and the origins' for the allies a targetname 'allies_airdrop_point'
+//      When an airdrop is requested, an origin is choosen at random.
+//      When using splinepaths, make sure they pass over ALL the possible
+//      drop points.
+//
+// During execution, the '$team' field of any medic tent can be used to 
+// instantly change the team the tent belongs too.  Valid 'team' fields
+// are "allies" and "axis" (choosen because they coincide with player.dmteam)
+//
+// To Run the automated script, include the line 'exec global/mp_medic_tent.scr' 
+// at the beginning of your script (after level waittill spawn).  
+// All the medic tents will be found,  enumerated to the console 
+// and initialized to to a enabled state. 
+//
+// See the global variables defined in main to change medic_tent properties.
+//
+
+
+end // Medic Tents are back burnered to the Expansion Pack
+
+//----------------------------------------------------------------------------
+main:
+//--------------------------
+
+	// This function finds all $medic_tent ents and processes them	
+	// set these vars during runtime (after the global script is executed)
+	// to modify medic_tent properties.
+
+	// health points per unit time
+	level.medicTentHealAmount = .10                                    
+	
+	// initial time to wait before tent starts to heal an occupant
+	level.medicTentHealDelay  = 3.0
+	
+	// unit time between healing
+	level.medicTentHealSpeed  = 1.5
+	
+	// allied flying plane model
+	level.alliesAirdropModel = "models/test/allies_airdrop_plane.hag"
+	
+	// allied destroyed plane model
+	level.alliesAirdropModelDestroyed = "models/test/allies_airdrop_plane.hag"
+	
+	// axis flying plane model
+	level.axisAirdropModel = "models/test/axis_airdrop_plane.hag"
+	
+	// axis destroyed plane model
+	level.axisAirdropModelDestroyed = "models/test/axis_airdrop_plane.hag"
+	
+	// exploding crate model (TODO : Find out what this needs to be)
+	//level.crateExplodeModel = // ?
+	
+	// number of hits before plane shot down
+	level.airdropMaxhealth = 3
+	
+	// plane speed
+	level.airdropPlaneSpeed = 700
+
+	// Model to use for the falling or parachuting crate
+	level.airdropCrateModel = "models/test/crate.hag"
+
+	// make the plane fly a curved path, instead of a straight line 
+	// (not perfected yet)
+	level.doFlyByCurve = 0
+
+	// Find all of the medic tent areas
+	dprintln ("Found " + $medic_tent.size + " medic tents")
+	for (local.i=1; local.i <= $medic_tent.size; local.i++)
+		thread process_medic_tent $medic_tent[local.i]
+
+end
+
+
+//----------------------------------------------------------------------------
+toggle_medic_tent local.tent:
+//--------------------------
+
+	// Toglle the ownership of a tent (axis to allies and vice aersa)
+	if (!local.tent)
+		end
+		
+	if (local.tent.team == "allies")
+		local.tent.team = "axis"
+	else if (local.tent.team == "axis")
+		local.tent.team = "allies"
+	else
+	{
+		dprintln ("invalid value for tent team " + local.tent.team)
+		end
+	}
+	
+	//iprintln ("changing tent " + local.tent.set + " too " + local.tent.team)
+
+end
+
+
+//----------------------------------------------------------------------------
+find_medic_tent local.set:
+//--------------------------
+
+	// Use this function to return a specific instance of a medic_tent
+	// based on #set number
+	
+	for (local.i=1; local.i <= $medic_tent.size; local.i++)
+	{
+		if ($medic_tent[local.i].set == local.set)
+			end $medic_tent[local.i]
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+disable_medic_tent local.tent:
+//--------------------------
+
+	// This function disables the tent trigger and hides
+	// all of its ammo
+
+	if (local.tent == NIL || local.tent == NULL)
+		end
+
+	local.tent nottriggerable
+	
+	local.count = 0
+	for (local.i=0; local.i <= level.getmaxentnum; local.i++)
+	{
+		local.ammo = getentbyentnum local.i
+		
+		if (local.ammo != NIL && local.ammo != NULL && local.ammo.tent == local.tent)
+		{
+			local.count ++
+			local.ammo hide
+			//local.ammo notsolid
+			local.ammo nottriggerable
+		}
+	}
+	
+	//dprintln ("Disabled " + local.tent.team + " medic tent")
+
+end
+
+
+//----------------------------------------------------------------------------
+enable_medic_tent local.tent:
+//--------------------------
+
+	// This function enables the trigger and shows all
+	// the ammo.  Can also be used to replenish the tent.
+
+	if (local.tent == NIL || local.tent == NULL)
+		end
+
+	local.tent triggerable
+	
+	local.count = 0
+	for (local.i=0; local.i <= level.getmaxentnum; local.i++)
+	{
+		local.ammo = getentbyentnum local.i
+		
+		if (local.ammo != NIL && local.ammo != NULL && local.ammo.tent == local.tent)
+		{
+			local.count ++
+			local.ammo show
+			local.ammo triggerable
+		}
+	}
+	
+	//dprintln ("Enabled " + local.tent.team + " medic tent")
+
+end
+
+
+//----------------------------------------------------------------------------
+process_medic_tent local.tent:
+//--------------------------
+
+	// Look for valid usage
+	if (!local.tent)
+		end
+		
+	if (local.tent.set == NIL || local.tent.set == NULL) 
+	{
+		dprintln ("ERROR >>> medic tents need a #set field, thread killed")
+		end
+	}
+	
+	local.tent setthread medic_tent_trigger
+	
+	if (local.tent.team != "allies" && local.tent.team != "axis")
+		local.tent.team = "axis"
+	
+	local.set = local.tent.set
+	dprintln ("---- Processing " + local.tent.team + " Medic Tent " + local.set)
+
+	// Display debug info
+	dprintln ("found " + $allies_airdrop_point.size + " allies airdrop points")
+	dprintln ("found " + $axis_airdrop_point.size + " axis airdrop points")
+	
+	
+	// Process the medic tent
+
+	// Find the drop_point
+	for (local.i = 1; local.i <= $drop_point.size; local.i++)
+	{
+		local.pt = $drop_point[local.i]
+
+		if (local.pt.set == NIL || local.pt.set == NULL)
+		{
+			dprintln ("  ERROR >>> medic_tent : drop_point " + local.pt + " has no set field!")
+			local.pt remove
+		}
+		else
+		{
+			if (local.pt.set == local.set)
+			{
+				local.tent.dropPoint = $drop_point[local.i]
+				break
+			}
+		}		
+	}
+
+	if (local.tent.dropPoint == NIL || local.tent.dropPoint == NULL)
+	{
+		dprintln ("ERROR >>> proccess_medic_tent : failed to find a drop point for set " + local.set)
+		end
+	}
+			
+	local.found = 0
+	for (local.i = 0; local.i <= level.getmaxentnum; local.i++)
+	{
+		local.ent = getentbyentnum local.i
+		
+		if (local.ent != NIL && local.ent != NULL && local.ent != local.tent && (local.ent isinside local.tent))
+		{
+			//dprintln ("    found " + local.ent)
+			//iprintln ("class name = " + local.ent.classname)
+			if (local.ent.classname == "AmmoEntity" || local.ent.classname == "HealthEntity")
+			{
+				local.ent.set = local.set
+				local.ent.tent = local.tent
+				local.ent setthread ammo_trigger
+				//local.ent no_remove
+				local.ent set_respawn 0
+				
+				local.found ++
+			}
+			else
+				dprintln ("skipping entity with classname " + local.ent.classname)
+		}
+	}
+
+	dprintln ("   Found " + local.found + " pieces of ammo")
+
+	// Now all of the ammo inside each tent has been labled 
+	// to match the set num of the tent
+
+	// set the counters inside the trigger 
+	local.tent.max_ammo = local.found
+	local.tent.cur_ammo = local.found
+	local.tent.state    = 0 // tent is in the full and waiting state
+	
+end
+
+
+//----------------------------------------------------------------------------
+// PRIVATE
+
+
+//----------------------------------------------------------------------------
+medic_tent_trigger local.player:
+//--------------------------
+
+	// This func is called from a setthread in the trigger inside the 
+	// medic_tent. 'self' refers to the trigger
+	// 'player' is the player who caused the trigger event
+	
+	if (!self.team)
+	{
+		dprintln ("ERROR >>> medic_tent_trigger : trigger " + self + " does not have a team!")
+		end
+	}
+	
+	// if this is a single player map, then dont use .dmteam
+	if (!local.player)
+		end
+		
+	if (level.gametype > 0 && (local.player.dmteam != self.team))
+		end
+
+	self nottriggerable
+
+	// give the player health while he is inside the trigger
+	local.healing = 1
+	while (local.healing == 1)
+	{
+		local.healing = 0
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+			if (($player[local.i].health > 0) && ($player[local.i] isinside self))
+			{
+				local.healing = 1				
+				if (level.gametype == 0 || $player[local.i].dmteam == self.team)
+				{
+					$player[local.i].inTent = self
+					if ($player[local.i].enterTime == NIL || $player[local.i].enterTime == NULL)
+					{
+						//iprintln ("player " + local.i + " has entered the medic tent")
+						$player[local.i] iprint ("You have entered the medic tent")
+						$player[local.i].enterTime = level.time
+					}
+					else
+					{
+						if ((level.time - $player[local.i].enterTime) > level.medicTentHealDelay)
+						{
+							$player[local.i] iprint "Healing" 
+							// println ("Healing player " + local.i)
+							$player[local.i] heal level.medicTentHealAmount
+						}
+					}
+				}				
+			}
+			else
+				//if (level.gametype > 0 && $player[local.i].dmteam == self.team)
+				if ($player[local.i].inTent == self)
+					$player[local.i].enterTime = NULL
+		}
+
+		wait level.medicTentHealSpeed
+	}		
+
+	self triggerable
+end
+
+
+//----------------------------------------------------------------------------
+ammo_trigger local.player:
+//--------------------------
+
+	// This thread is called by setthread when the ammo is picked up
+	// make a deep copy of the ammo and hide it.
+	
+	self nottriggerable
+
+	local.copy        = spawn self.classname
+	local.copy.model  = self.model
+	local.copy.origin = self.origin
+	local.copy.angles = self.angles
+	local.copy.tent   = self.tent
+	local.copy setthread ammo_trigger
+	//local.copy no_remove
+	local.copy set_respawn 0
+	local.copy hide
+	local.copy nottriggerable
+	//local.copy notsolid
+	
+	self.tent.cur_ammo -= 1
+	if (self.tent.cur_ammo <= 0)
+		thread start_air_drop self.tent
+	
+	// If the ammo wasn't actually picked up (because the player is full)
+	// Then remove the ammo anyway.
+	wait 1.0
+	if (self)
+		self remove
+
+end
+
+
+//----------------------------------------------------------------------------
+// AIRDROP PROCEDURES
+//----------------------------------------------------------------------------
+
+
+//----------------------------------------------------------------------------
+start_air_drop local.tent:
+//--------------------------
+
+	// Initiate an air drop sequence for the tent
+	// The plane models are choosen based on the 'team' of the tent
+
+	if (!local.tent) //  || !(local.tent.team != "allies" && local.tent.team != "axis"))
+	{
+		dprintln " ERROR >>> start_air_drop : invalid tent, thread killed"
+		end
+	}
+	
+	if (local.tent.state == 1)
+		end // already has an airdrop underway
+
+	local.tent.state = 1
+
+	//iprintln ("An " + local.tent.team + " airdrop is underway!")
+	if (level.airdropDialogObject == NIL || level.airdropDialogObject == NULL)
+		level.airdropDialogObject = spawn script_object
+		
+	level.airdropDialogObject.origin = local.tent.origin
+
+	// Placeholder dialog
+	if (local.tent.team == "axis")
+		level.airdropDialogObject playsound axis_airdrop_underway
+	else
+		level.airdropDialogObject playsound allies_airdrop_underway
+
+	//iprintln ("An " + local.tent.team + " airdrop is underway!")
+
+	// Choose a random point to start the plane flying
+	if (local.tent.team == "allies")
+	{
+		local.pt = 1 + (randomint $allies_airdrop_point.size)
+		local.start_pt = $allies_airdrop_point[local.pt]
+		
+		//if ($allies_airdrop_point.size > 1)
+		//{	
+			// find an endpoint, not equal to local.pt
+		//	while (1)
+		//	{
+		//		local.pt2 = 1 + (randomint $allies_airdrop_point.size)
+		//		if (local.pt2 != local.pt)
+		//			break
+		//	}
+		//	local.end_pt  = $allies_airdrop_point[local.pt2]
+		//}
+		
+		local.model   = level.alliesAirdropModel
+		local.model_d = level.alliesAirdropModelDestroyed
+	}
+	else
+	{
+		local.pt = 1 + (randomint $axis_airdrop_point.size)
+		local.start_pt = $axis_airdrop_point[local.pt]
+		//if ($axis_airdrop_point.size > 1)
+		//{
+			//while (1)
+			//{
+			//	local.pt2 = 1 + (randomint $axis_airdrop_point.size)
+			//	if (local.pt2 != local.pt)
+			//		break
+			//}
+			//local.end_pt  = $axis_airdrop_point[local.pt2]
+		//}
+		local.model   = level.axisAirdropModel
+		local.model_d = level.axisAirdropModelDestroyed
+	}
+	
+	local.plane = spawn script_object model local.model
+	//local.plane = spawn script_model model local.model
+	local.crate = spawn script_model model level.airdropCrateModel
+	local.crate scale 3
+	local.crate hide
+	local.crate.landed = 0	
+	
+	thread do_air_drop local.plane local.crate local.model_d local.start_pt local.tent.dropPoint local.end_pt
+	
+	// monitor the crate
+	while (local.crate != NIL && local.crate != NULL)
+	{
+		if (local.crate.landed == 1)
+		{
+			waitthread enable_medic_tent local.tent
+			local.tent.cur_ammo = local.tent.max_ammo
+			local.crate remove
+			//dprintln ("The " + local.tent.team + " tent has been restocked")
+
+			break
+		}	
+
+		waitframe
+	}
+	
+	if (local.plane)
+		local.plane remove
+
+	local.tent.state = 0
+
+end
+
+
+//----------------------------------------------------------------------------
+do_air_drop local.plane local.crate local.dead_model local.path local.drop_target local.end_path:
+//--------------------------
+
+	if (local.plane == NIL || local.plane == NULL)
+	{
+		dprintln (" ERROR >>> air_drop : NULL plane")
+		end
+	}
+
+	if (local.drop_target == NIL || local.drop_target == NULL)
+	{
+		dprintln (" ERROR >>> air_drop : NULL drop_target!")
+		end
+	}
+	
+	if (local.path == NIL || local.path == NULL)
+	{
+		dprintln (" ERROR >>> Airdop : NULL Path ")
+		end
+	}
+	
+	// create variable to flag the crate dropping (to avoid dropping more than 1 crate)
+
+	// flight vars
+	//local.accel = 100
+	//local.looakahead = 256
+	//local.speed = 400
+
+	// init the plane	
+	local.plane.crate_dropped = 0
+	local.plane.speed = level.airdropPlaneSpeed
+	local.plane.health = level.airdropMaxhealth
+	local.plane solid
+	local.plane removeimmune bullet
+	local.plane takedamage
+	local.plane.collisionent = $glider_collide
+	local.trigger = spawn trigger_relay
+	
+	// start the monitor threads
+	local.plane thread check_plane_death local.dead_model local.crate                 // start the crash when dead
+	local.plane thread look_for_drop_point local.drop_target local.trigger        // look for when over drop point
+	local.plane thread try_slow_drop local.trigger local.drop_target local.crate	// Attempts to do a normal para drop	
+	
+	// Choose between interp. flight or flying a spline path
+	//iprintln ("choosing path classname " + local.path.classname)
+	
+	if (local.path.classname == "SplinePath")
+	{
+		local.plane loopsound plane4 1 1000
+		local.plane.origin = local.path.origin
+		//local.plane normalangles 1
+		local.plane speed 100
+		//local.plane flypath local.path 1000 500 512 // local.speed local.accel local.lookahead
+		local.plane followpath local.path //ignorevelocity
+		
+		local.plane waitmove
+	}
+	else
+		thread do_fly_by local.plane local.drop_target local.path level.airdropPlaneSpeed
+		
+	// This works but the plane does not roll through turns :( (maybe use a different class?)
+	//local.plane flypath local.path level.airdropPlaneSpeed local.accel local.lookahead
+	
+	// This works better but requires that the mapper explicitly
+	// sets the orient of each spline node, also the distance 
+	// between adjacent spline node seems to be a factor.
+	//local.plane followpath local.path 
+	//local.plane waitmove
+
+	// Do the flyby	the hard way
+	//if (!local.end_path || level.doFlyByCurve == 0)
+	//	thread do_fly_by local.plane local.drop_target local.path level.airdropPlaneSpeed
+	//else
+	//	thread do_fly_by_curve local.plane local.drop_target local.path local.end_path 20
+	
+end local.crate
+
+
+//----------------------------------------------------------------------------
+do_fly_by_curve local.plane local.drop_target local.start_path local.end_path local.flight_time:
+//--------------------------
+    
+    // this function makes the plane fly a curved flight path
+    // Not used yet because still stuff to work out
+   
+    // compute the proper position of the drop origin
+    
+    local.p0 = local.start_path.origin
+    local.p1 = local.drop_target.origin
+    local.p1[2] = (local.start_path.origin[2] + local.end_path.origin[2]) / 2
+    local.p2 = local.end_path.origin
+    local.p3 = local.p2 - local.p0
+    
+    local.P  = (0 0 0)
+
+	local.plane loopsound plane4 1 1000
+    local.start_time = level.time
+    
+    while (local.plane != NULL && ((level.time - local.start_time) < local.flight_time))
+    {
+		// compute t, t^2, t^3
+		local.t = (level.time - local.start_time) / local.flight_time
+        local.t2 = local.t*local.t
+        local.t3 = local.t2*local.t
+
+        // compute the curve
+        local.a = local.t3 * -4 + 8*local.t2 - 5*local.t + 1
+        local.b = local.t3 *  4 - 4*local.t2 +     local.t
+        local.c =                 local.t2 * -4 + 4*local.t
+        local.d = local.t3 * -4 + 6*local.t2 - 2*local.t
+
+        for (local.i=0; local.i<3; local.i++)
+            local.P[local.i] = local.p0[local.i]*local.a + local.p2[local.i]*local.b + local.p1[local.i]*local.c + local.p3[local.i]*local.d
+
+		local.plane.origin = local.P
+
+        // compute the orientation of the plane using the first derivative
+        local.a = local.t2 * -12 + 16 * local.t - 5
+        local.b = local.t2 *  12 -  8 * local.t + 1
+        local.c =                  local.t * -8 + 4
+		local.d = local.t2 * -12 + 12 * local.t - 2
+
+        for (local.i=0; local.i<3; local.i++)
+            local.P[local.i] = local.p0[local.i]*local.a + local.p2[local.i]*local.b + local.p1[local.i]*local.c + local.p3[local.i]*local.d
+
+		local.plane.angles = vector_toangles local.P
+
+		waitframe
+    }
+
+
+end
+
+
+//----------------------------------------------------------------------------
+do_fly_by local.plane local.drop_target local.start_path local.speed:
+//--------------------------
+
+	if (!local.plane || !local.drop_target || !local.start_path)
+	{
+		dprintln (" ERROR >>> air_drop : do_fly_by usage : thread do_fly_by plane drop_target path")
+		end
+	}
+	
+	local.v = vector_subtract local.drop_target local.start_path
+	local.v[2] = 0 // zero out the z component
+	local.v = vector_normalize local.v
+	local.v = vector_scale local.v local.speed
+	local.plane.origin = local.start_path.origin
+	local.t = level.time
+	
+	local.plane.angles = vector_toangles local.v
+	
+	local.plane loopsound plane4 1 1000
+
+	local.start_time = level.time
+
+	while (local.plane != NIL && local.plane != NULL && local.plane.crashing != 1)
+	{
+		local.dt = level.time - local.t
+		local.t = level.time
+		
+		local.velocity = local.v * local.dt
+		
+		if ((level.time - local.start_time) > 30)
+			break
+		
+		//if (!(sighttrace local.plane.origin (local.plane.origin + local.velocity) 1))
+		//	break
+			
+		local.o = local.plane.origin + local.velocity
+		local.plane.origin = local.o
+		
+		waitframe
+	}
+	
+	//dprintln "Fly By Done"
+
+end
+
+//----------------------------------------------------------------------------
+look_for_drop_point local.target local.trigger:
+//--------------------------
+
+	// Continually monitor the plane's position.  
+	// When the plane is over the target, activate the trigger.
+
+	if (!local.target)
+		end
+	
+	while (self && self.health > 0)
+	{
+		local.dv = local.target.origin - self.origin
+		local.dv[2] = 0 // only concerned with distance in 2D
+		local.l  = vector_length local.dv
+		
+		if (local.l < 80)
+		{
+			trigger local.trigger
+			end
+		}
+		waitframe
+	}
+end
+
+//----------------------------------------------------------------------------
+check_plane_death local.dead_model local.crate:
+//--------------------------
+
+	// This thread waits for a plane to get shot down
+
+	while (self && self.health > 0)
+	{
+		self waittill damage
+		//dprintln ("Plane Hit! health = " + self.health)
+		if (self.health > 1)
+			self.health -= 1
+		else
+			break
+	}
+	if (self)
+		self waitthread plane_crash local.dead_model local.crate
+	
+end
+
+//----------------------------------------------------------------------------
+plane_crash local.dead_model local.crate:
+//--------------------------
+
+	// Start the plane crash sequence
+	// Just spawn a damaged_model, and make fly irratically
+
+	//dprintln ("Crashing " + self)
+	self hide
+	self.crashing = 1
+	local.dead = spawn script_model model local.dead_model origin self.origin
+	local.dead.angles = self.angles
+	local.speed       = self.speed
+
+	// crash the plane
+	local.velocity = ((angles_toforward self.angles) * (self.speed * 2))
+	 
+	local.t = level.time
+
+	// TODO : pick a better crash angle (away from player?)
+	local.randroll  = (randomfloat 80) - 40
+	local.randpitch = (randomfloat 80) - 40
+	local.randyaw   = (randomfloat 80) - 40
+
+	local.randangspeed = (local.randroll local.randpitch local.randyaw)
+
+	// create a crate that will crash to the ground violently if not dropped yet
+	if (self.crate_dropped != 1)
+	{
+		self thread do_crash_drop local.crate
+	}
+
+	local.max_crash_time = 20.0 // if crash sequence excedes N seconds
+								// force terminate the sequence
+	
+	local.accel = 100  // Acceleration during crash
+	
+	local.start_t = level.time
+	
+	while (local.dead && ((level.time - local.start_t) < local.max_crash_time)) 
+	{
+		local.dt = level.time - local.t
+		local.t = level.time
+		
+		// check to see if the plane has hit the ground
+		//if (!(sighttrace local.dead.origin (local.dead.origin + local.velocity) 1))
+		//	break
+		
+		local.dead.origin += (local.velocity * local.dt)
+		local.ang = local.dead.angles
+		local.ang += (local.randangspeed * local.dt)
+		local.dead.angles = local.ang
+		local.velocity = ((angles_toforward local.dead.angles) * local.speed)
+		local.speed += local.accel
+
+		waitframe
+	}
+	
+	if (local.dead)
+		local.dead remove
+	
+end
+
+//----------------------------------------------------------------------------
+try_slow_drop local.trigger local.drop_target local.crate:
+//--------------------------
+
+	// This function will wait for 'delay' seconds, if the dropper is still
+	// alive, then the drop occurs.  The crate is dropped by parachute and
+	// safly lands on the ground.
+
+	if (local.crate == NIL || local.crate == NULL)
+	{
+		dprintln ("ERROR >>> try_slow_drop : self has no crate, thread killed")
+		end
+	}
+
+	local.chute_model = "models/test/parachute.hag"
+
+	local.trigger waittill trigger
+
+	if (!self || self.crate_dropped == 1)
+		end
+	
+	//dprintln "The crate is parachuting"
+	
+	self.crate_dropped = 1
+	
+	local.crate show
+	local.crate.origin = self.origin
+	//local.crate = spawn script_model model local.crate_model origin self.origin
+	//local.crate scale 3
+	
+	local.chute = spawn script_model model local.chute_model
+	local.chute notsolid
+	
+	local.chute glue local.crate
+	local.crate.chute = local.chute
+	
+	// This way works OK, but could look a little better
+	//local.crate waitthread crate_fall (0 0 0) (0 0 -5) 0
+	
+	local.crate thread wait_for_crate_damage
+	local.thread = parm.previousthread
+	local.crate waitthread parachute_drop local.drop_target.origin 0
+	//if (local.thread)
+	//	local.thread delete
+
+	if (local.crate)
+	{
+		local.crate droptofloor
+		local.chute unglue
+		local.crate.chute = NULL
+	}
+	
+	// now make the chute drift into the ground
+	local.t = level.time
+	local.dz = -100 // vertical velocity
+	local.dax = (randomfloat 180) - 90 // anglular x change
+	local.day = (randomfloat 180) - 90 
+	local.daz = (randomfloat 180) - 90 
+	local.da = (local.dax local.day local.daz)
+	local.minz = local.chute.origin[2] - 1000
+	
+	while (local.chute != NIL && local.chute != NULL && local.chute.origin[2] > local.minz)
+	{
+		local.dt = level.time - local.t
+		local.t = level.time
+		local.o = local.chute.origin
+		local.o += ((0 0 local.dz) * local.dt)
+		local.a = local.chute.angles
+		local.a += local.da * local.dt
+		local.chute.origin = local.o
+		local.chute.angles = local.a
+		  
+		waitframe
+	}
+
+	//dprintln "Chute Gone"
+	local.chute remove
+end
+
+//----------------------------------------------------------------------------
+do_crash_drop local.crate:
+//--------------------------
+
+	// This routine spawns a crate at self and makes the crate
+	// drop to the ground and explode into alot of pieces, with
+	// ammo and crap spewing everywhere
+
+	//local.crate_model = "models/static/snow_crate.tik"
+	if (self == NIL || self == NULL)
+	{
+		dprintln ("ERROR >>> do_crash_drop : invalid self")
+		end
+	}
+	
+	if (local.crate == NIL || local.crate == NULL)
+	{
+		dprintln ("ERROR >>> do_crash_drop : Invalid crate")
+		end
+	}
+	
+	self.crate_dropped = 1
+	//dprintln "The crate is crashing"
+	//local.crate = spawn script_model model local.crate_model origin self.origin
+	//local.crate = self.crate
+	local.crate show
+	local.crate.origin = self.origin
+	//local.crate scale 2
+	 
+	// The crate falls out of the plane w/out the parachute, so the crate's initial
+	// velocity is in the direction of the plane, with the same speed as the plane
+	local.start_v = ((angles_toforward self.angles) * self.speed)
+	local.crate thread wait_for_crate_damage
+	local.thread = parm.previousthread
+	local.crate waitthread crate_fall local.start_v (0 0 -20) 1
+	if (local.thread)
+		local.thread delete
+	  
+	if (!local.crate)
+		end
+		
+	// explode the crate and spawn a bunch of crap around the drop place
+	local.o = local.crate.origin
+	
+	// TODO : Could do a sight trace here to find the ground?
+	//local.o[2] = level.groundz
+	
+	// spawn the crate break apart anim
+	
+	// TODO : Find the correct model for exploding crates
+	// Right now this causes MOHPA to crash
+	/*
+	local.debris = spawn script_object model level.crateExplodeModel origin local.o
+	local.debris.angle = local.crate.angle
+	local.debris anim start
+
+	// cause damage of 100 within 100 radius
+	radiusdamage local.debris.origin 100 100 1
+	*/
+	
+	thread spew_ammo local.o
+	
+	wait 0.5
+	local.crate remove
+	
+end
+	
+//----------------------------------------------------------------------------
+spew_ammo local.origin:
+//--------------------------
+
+	// This function spews ammo (or whatever is generated by 'spawn_random_object')
+	// from local.origin in a random direction with random speed
+
+	local.num_items = (randomint 5) + 5
+	
+	for (local.i = 0; local.i < local.num_items; local.i++)
+	{
+		// Make the item fly out 
+		local.zang = randomfloat 360
+		local.v = angles_toforward (0 local.zang 0)
+		local.v[2] = 0.8
+		local.speed = (randomfloat 200) + 100
+		local.v = local.v * local.speed
+	  
+		local.obj = waitthread spawn_random_object local.origin
+		local.obj thread toss_ammo local.v
+		waitframe
+	}
+
+end
+
+//----------------------------------------------------------------------------
+toss_ammo local.v:
+//--------------------------
+
+	// This function simply applies gravity to self when initial velocity
+	// is 'v'.  The thread stops when the object back at its original z level.
+
+	self notsolid
+	 
+	local.t = level.time
+	local.g = -30
+	local.ax = (randomfloat 1000) - 500
+	local.ay = (randomfloat 1000) - 500
+	local.az = (randomfloat 1000) - 500
+	local.da = (local.ax local.ay local.az)
+	//local.groundz = self.origin[2]
+	
+	while (self) // && (local.v[2] > 0 || self.origin[2] > local.groundz))
+	{
+		local.dt = level.time - local.t
+		local.t = level.time
+		local.o = self.origin
+		local.velocity = (local.v * local.dt)
+		
+		if (local.v[2] < 0 && !(sighttrace local.o (local.o + local.velocity) 1))
+			break
+			
+		local.o = vector_add local.o local.velocity
+		local.v[2] += local.g
+		self.origin = local.o
+		 
+		local.a = self.angles
+		local.a += (local.da * local.dt)
+		self.angles = local.a
+		waitframe
+	}
+
+	//dprintln "Toss Done"
+	local.o = self.origin
+	//local.o[2] = level.groundz
+	self.origin = local.o
+	self droptofloor
+	wait 1.0
+	self solid
+	
+end
+
+//----------------------------------------------------------------------------
+spawn_random_object local.origin:
+//--------------------------
+
+	// this funtion spawns an ammo pack or health pasck at random
+	// adding items to this function is ok
+
+	local.rand = randomint 8
+
+	//dprintln ("spawning object " + local.rand)
+	switch (local.rand)
+	{
+	case 0:
+		local.spawned = spawn item_ammobox_grenade model "items/item_grenade_ammobox.tik" origin local.origin
+		break;
+	case 1:
+		local.spawned = spawn item_ammobox_heavy model "items/item_heavy_ammobox.tik" origin local.origin
+		break;
+	case 2:
+		local.spawned = spawn item_ammobox_mg model "items/item_mg_ammobox.tik" origin local.origin
+		break
+	case 3:
+		local.spawned = spawn item_ammobox_pistol model "items/item_pistol_ammobox.tik" origin local.origin
+		break
+	case 4:
+		local.spawned = spawn item_ammobox_rifle model "items/item_rifle_ammobox.tik" origin local.origin
+		break
+	case 5:
+		local.spawned = spawn item_health_100 model "items/item_100_healthbox.tik"
+		break
+	case 6:
+		local.spawned = spawn item_health_50 model "items/item_50_healthbox.tik"
+		break
+	case 7:
+		local.spawned = spawn item_health_25 model "items/item_25_healthbox.tik"
+		break
+	}
+	local.spawned.origin = local.origin
+	local.spawned set_respawn 0
+
+end local.spawned
+
+//----------------------------------------------------------------------------
+crate_fall local.startv local.dropaccel:
+//--------------------------
+
+	// This function just makes the crate fall to the ground
+	// with constant accel by syncing to frame rate
+	// use radiusdamage flag set to 1 to make crate kill whom every it falls upon
+
+	//dprintln ("Crate Falling!!!")
+	local.dropv = local.startv // fall velocity  
+	local.t = level.time
+	
+	// give the crate some random spin
+	local.dax = (randomfloat 180) - 90 // anglular x change
+	local.day = (randomfloat 180) - 90 
+	local.daz = (randomfloat 180) - 90 
+	local.da = (local.dax local.day local.daz)
+	
+	while (self) // .origin[2] > level.groundz)
+	{
+		local.dt = level.time - local.t
+		local.t = level.time
+		
+		local.velocity = local.dropv * local.dt
+		
+		if (!(sighttrace self.origin (self.origin + local.velocity) 1))
+			break
+		
+		self.origin += local.velocity   // sync to frame rate
+		local.dropv += local.dropaccel
+		self.angles += (local.da * local.dt)
+		  
+		waitframe  
+	}
+	
+	// fix origin of crate (ugly)
+	//local.temp = self.origin
+	//local.temp[2] = level.groundz
+	//self.origin = local.temp
+	if (self)
+		self droptofloor
+
+end
+
+
+//----------------------------------------------------------------------------
+wait_for_crate_damage:
+//--------------------------
+
+	//if (level.crateExplodeModel == NIL || level.crateExplodeModel == NULL)
+	//	end
+
+	//self.health = 100
+
+	dprintln "Waiting for crate damage"
+	self waittill damage	
+	dprintln "crate damaged"
+	
+	thread spew_ammo self.origin
+	if (level.crateExplodeModel != NIL && level.crateExplodeModel != NULL)
+	{
+		local.debris = spawn script_object model level.crateExplodeModel origin self.origin
+		local.debris.angle = self.angle
+		local.debris anim start
+		wait 0.4
+		local.debris remove
+	}
+	self remove
+
+end
+
+
+//----------------------------------------------------------------------------
+parachute_drop local.lzpos local.dontScaleChute:
+//--------------------------
+
+	// This function makes 'self' fall with a pendulum-like swinging motion (thanks DS)
+	
+	//dprintln "Doing parachute"
+	local.yaw = self.angles[1]
+	local.swayDir = (angles_toforward ( 0 local.yaw 0 ))
+	local.lastTime = level.time
+	local.zVel = (randomint 50) + 160
+	if (level.chuteFallingScale)
+	local.zVel = local.zVel * level.chuteFallingScale
+	local.pvNorm = vector_subtract local.lzpos self.origin
+	local.pvNorm = vector_normalize local.pvNorm
+	local.pv = vector_scale local.pvNorm local.zVel
+	 
+	local.d = -400  // dist from origin to pivot pt 
+	local.angAcc = 5
+	local.angVel = 0  
+	local.angle = -10 // approx half of angle extrema (double integral of acc over time integral of acc to reach 10)
+	local.newPos = self.origin + ( 0 0 -local.d )
+	
+	if (local.dontScaleChute == 1)
+		local.chuteScaleDuration = 0
+	else
+		local.chuteScaleDuration = 3.0
+		
+	local.chuteScaleStart = level.time
+	while (self != NULL)
+	{
+		local.adjPv = local.pv
+		local.chuteScaleT = level.time - local.chuteScaleStart
+		if (local.chuteScaleT < local.chuteScaleDuration) 
+		{
+			local.chuteScaleT = local.chuteScaleT/local.chuteScaleDuration
+			local.chuteScaleT = local.chuteScaleT*local.chuteScaleT   
+			self.chute scale local.chuteScaleT
+			   
+			// adjust falling velocity for chute not being open
+			local.pvScale = local.zVel - ((1.0 - local.chuteScaleT)*500)
+			local.adjPv = vector_scale local.pvNorm local.pvScale
+		}
+		    
+		local.dTime = level.time - local.lastTime
+		local.lastTime = level.time
+		  
+		local.newPos = local.newPos + (vector_scale local.adjPv local.dTime)
+		
+		//if (!(sighttrace self.origin local.newPos 1))
+		//	break
+		if (self.origin[2] < local.lzpos[2])
+			break
+		
+		self.origin = local.newPos
+		if ((local.angVel > 10 && local.angAcc > 0) || (local.angVel < -10 && local.angAcc < 0))
+			local.angAcc = -1.0*local.angAcc
+	
+		local.angVel += local.dTime*local.angAcc
+		local.angle += local.angVel*local.dTime
+		local.swayY = local.d*(sin local.angle)   
+		local.dX = local.swayY*local.swayDir[0]
+		local.dY = local.swayY*local.swayDir[1]
+		local.dZ = local.d*(cos local.angle)  
+		  
+		local.rotNewPos = local.newPos + ( local.dX local.dY local.dZ )
+		  
+		self.origin = local.rotNewPos
+		//dprintln "acc = " local.angAcc ", vel = " local.angVel ", pos = " local.angle
+		self.angles = ( 0 local.yaw -local.angle )
+		waitframe
+	}
+	
+	if (self)
+		self.landed = 1
+		
+	//dprintln "parachute drop done"
+
+end

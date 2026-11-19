@@ -1,0 +1,71 @@
+//
+// mp_ballistics.scr
+//
+// used for 
+//
+
+main:
+end
+
+
+fire_with_angle local.angles local.muzzleSpeed local.gravity local.armDelayTime local.noCollideEntities:
+	local.velocity = vector_scale ( angles_toforward local.angles ) local.muzzleSpeed
+	self waitthread fire_with_velocity local.velocity local.gravity local.armDelayTime local.noCollideEntities
+end
+
+
+fire_in_direction local.direction local.muzzleSpeed local.gravity local.armDelayTime local.noCollideEntities:
+	local.velocity = vector_scale ( vector_normalize local.direction ) local.muzzleSpeed
+	self waitthread fire_with_velocity local.velocity local.gravity local.armDelayTime local.noCollideEntities
+end
+
+
+fire_with_velocity local.velocity local.gravity local.armDelayTime local.noCollideEntities:
+	local.angles = vector_toangles local.velocity
+	self.angles = local.angles
+	self.v = local.velocity
+	
+	iprintln self.angles
+	
+	if (local.armDelayTime == NIL || local.armDelayTime == NULL)
+		local.armDelayTime = 0
+	if (local.gravity == NIL || local.gravity == NULL)
+		local.gravity = 800
+	if (local.noCollideEntities == NIL || local.noCollideEntities == NULL)
+		local.noCollideEntities = 1
+	
+//	dprintln ("armDelayTime = " + local.armDelayTime)
+	self.gravityVector = ( 0 0 -local.gravity )
+	
+	local.t = level.time
+	local.startTime = local.t
+	while (self != NIL && self != NULL) {
+		local.dt = level.time - local.t
+		local.t = level.time
+		
+		// if the ballistic has been armed then check if it's hit something
+		if (local.t > local.startTime + local.armDelayTime) {
+			local.startTrace = self.origin
+			local.endTrace = local.startTrace + self.v * local.dt
+			
+			local.trace = self trace local.startTrace local.endTrace local.noCollideEntities
+			if (local.trace != local.endTrace) {
+//				dprintln "ballistic trajectory finished"
+				end local.trace
+			}
+		}
+		
+		// update the position
+		self.origin = self.origin + (vector_scale self.v local.dt)
+		// update the velocity
+		local.gravityVector = vector_scale self.gravityVector local.dt
+		self.v = self.v + local.gravityVector
+		// update the angles
+		self.angles = vector_toangles self.v
+		
+		waitframe
+	}
+end
+
+
+	

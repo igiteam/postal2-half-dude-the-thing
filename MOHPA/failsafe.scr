@@ -1,0 +1,169 @@
+// ------------------------------------------------------------
+//	failsafe.scr
+//
+//	Attempts to move actor away from actor that we are currently inside.
+//
+// ------------------------------------------------------------
+
+
+// ------------------------------------------------------------
+Failsafe:
+// ------------------------------------------------------------
+
+
+	local.failsafepos = self.origin
+
+
+	local.collision = self waitthread CheckLeft
+
+	while ( local.collision==0 )
+	{
+		self waitthread GoLeft
+
+		local.delta		= vector_subtract self.origin local.failsafepos
+		local.dist		= vector_length local.delta
+
+		if ( local.dist < 12 )
+			break
+
+		local.failsafepos	= self.origin
+		local.collision		= self waitthread CheckLeft
+	}
+
+	//dprintln "no left"
+
+
+	local.collision = self waitthread CheckRight
+
+	while ( local.collision==0)
+	{
+		self waitthread GoRight
+
+		local.delta		= vector_subtract self.origin local.failsafepos
+		local.dist		= vector_length local.delta
+
+		if ( local.dist < 12 )
+			break
+
+		local.failsafepos	= self.origin
+		local.collision		= self waitthread CheckRight
+	}
+
+	//dprintln "no right"
+
+
+	local.collision		= self waitthread CheckBack
+
+	while ( local.collision==0 )
+	{
+		self waitthread GoBackwards
+
+		local.delta		= vector_subtract self.origin local.failsafepos
+		local.dist		= vector_length local.delta
+
+		if ( local.dist < 12 )
+			break
+
+		local.failsafepos	= self.origin
+		local.collision		= self waitthread CheckBack
+	}
+
+	//dprintln "no backwards"
+
+	local.collision = self waitthread CheckForward
+
+	while ( local.collision==0 )
+	{
+		self waitthread GoForward
+
+		local.delta		= vector_subtract self.origin local.failsafepos
+		local.dist		= vector_length local.delta
+
+		if ( local.dist < 12 )
+			break
+		
+		local.failsafepos	= self.origin
+		local.collision		= self waitthread CheckForward
+	}
+
+	//dprintln "no forward"
+
+
+	// what to do?  Can't go any of the 4 directions...
+
+	println "Failsafe failing at position:" self.origin
+
+	self waitexec anim/idle.scr::SquadmateWait
+
+
+	end
+
+
+// ------------------------------------------------------------
+CheckLeft:
+// ------------------------------------------------------------
+
+	local.movepos = (self.leftvector * 60) + self.origin
+	local.collision = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+
+	end local.collision
+
+// ------------------------------------------------------------
+CheckRight:
+// ------------------------------------------------------------
+
+	local.movepos = (self.rightvector * 60) + self.origin
+	local.collision = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+
+	end local.collision
+
+// ------------------------------------------------------------
+CheckBack:
+// ------------------------------------------------------------
+
+	local.tempvec = ( -self.forwardvector[0] -self.forwardvector[1] -self.forwardvector[2] )
+	local.movepos = (local.tempvec * 60) + self.origin
+	local.collision = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+
+	end local.collision
+
+// ------------------------------------------------------------
+CheckForward:
+// ------------------------------------------------------------
+
+	local.movepos = (self.forwardvector * 60) + self.origin
+	local.collision = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+
+	end local.collision
+
+// ------------------------------------------------------------
+GoBackwards:
+// ------------------------------------------------------------
+	self waitthread anim/opencombat.scr::WalkBackward
+
+	end
+
+// ------------------------------------------------------------
+GoForward:
+// ------------------------------------------------------------
+
+	self waitthread anim/opencombat.scr::WalkForward
+
+	end
+
+// ------------------------------------------------------------
+GoLeft:
+// ------------------------------------------------------------
+
+	self waitthread anim/opencombat.scr::StrafeLeft
+
+	end
+
+// ------------------------------------------------------------
+GoRight:
+// ------------------------------------------------------------
+
+	self waitthread anim/opencombat.scr::StrafeRight
+
+	end
+

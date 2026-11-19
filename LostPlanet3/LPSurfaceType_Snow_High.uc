@@ -1,0 +1,1 @@
+class LPSurfaceType_Snow_High extends SPPhysicalMaterialSurfaceType;

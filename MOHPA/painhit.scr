@@ -1,0 +1,156 @@
+// ----------------------------------------------------------------------------------------
+// PainHit
+//
+//		This differs from the regular pain.scr in that it will not play any extended pain animation...
+//	mainly being used by the bazooka guys
+//
+//  see pain.scr::HitLocationToString for enumeration on hit locations
+//
+// ----------------------------------------------------------------------------------------
+
+PainHitMain:
+	local.hitlocation = waitthread anim/pain.scr::HitLocationToString self.hitlocation
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	waitexec anim/pain.scr::painglobals local.hitlocation
+
+	// make sure we get out of posestyle "c" when we take pain.  (Messes up the footing.)
+	if ( self.posestyle!=NIL && self.posestyle==c )
+		self.posestyle	= a
+
+	if ( self.customhit!="" )
+	{
+		self waitthread CustomPain
+		end
+	}
+
+	switch (self.position)
+	{
+		case	prone:
+		case	pronewalk:
+			waitexec anim/pain.scr::PainProne
+			break
+		default:
+			// jsl-->1 size fits all now...
+			waitexec anim/painhit.scr::PainHitStand local.hitlocation self.hitdamage
+			break
+	}
+
+	end
+
+
+// ----------------------------------------------------------------------------------------
+CustomPain:
+// ----------------------------------------------------------------------------------------
+
+	local.anim = self.customhit
+	self customhit ""
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	end
+
+// ----------------------------------------------------------------------------------------
+PainHitStand local.hitlocation local.damage:
+// ----------------------------------------------------------------------------------------
+	if (local.hitlocation == NIL)
+		local.hitlocation = "general"
+	if (local.damage == NIL)
+		local.damage = 0
+
+//	dprintln "DAMAGEXXX: " self.hitdamage
+//	dprintln "DIRECTIOXXX: " self.hitdirection
+//	dprintln "LOCATIONXXX: " local.hitlocation
+
+
+	// if we've got a custom animation, use it!
+	if ( self.customidle!="" && self.customidle!=NIL)
+	{
+		self setmotionanim self.customhit
+		self waittill flaggedanimdone
+		end
+	}
+
+	self.blendtime = 0.25
+	switch(local.hitlocation)
+	{
+		// Stand Straight
+		case "uppertorso":
+		case "lowertorso":
+			if (local.damage > 50)
+			{
+				self setmotionanim (self getalias hit uppertorso) 1
+				self waittill flaggedanimdone
+			}
+			else
+			{
+				self setmotionanim (self getalias hit lowertorso) 1
+				self waittill flaggedanimdone
+			}
+			break
+
+		// headshot
+		case "helmet":
+		case "head":
+			self setmotionanim (self getalias hit head) 1
+			self waittill flaggedanimdone
+			break
+		
+		// Stand Right
+		case "rightupperarm":
+		case "rightlowerarm":
+			self setmotionanim (self getalias hit rarm) 1
+			self waittill flaggedanimdone
+			break
+					
+		// Stand Left
+		case "leftupperarm":
+		case "leftlowerarm":
+			self setmotionanim (self getalias hit larm) 1
+			self waittill flaggedanimdone
+			break
+		
+		// Stand Knees
+		case "rightupperleg:
+		case "rightlowerleg":
+		case "leftupperleg":
+		case "leftlowerleg":
+			self setmotionanim (self getalias hit leg) 1
+			self waittill flaggedanimdone
+			break
+		//SC for now, since we don't really have these two values flushed out, just play some animation
+		case "general":
+		case "none":
+			self setmotionanim (self getalias hit uppertorso) 1
+			self waittill flaggedanimdone
+			break
+		
+		default:
+			//dprintln "~~~~~~~~~~~~~~~~~~~~Painhitstand got hit in unknown location: " local.location
+			local.randnum = randomint 100
+			if (local.randnum < 25)
+			{
+				self setmotionanim (self getalias hit leg) 1
+				self waittill flaggedanimdone
+			}
+			else if (local.randnum < 50)
+			{
+				self setmotionanim (self getalias hit rarm) 1
+				self waittill flaggedanimdone
+			}
+			else if (local.randnum < 75)
+			{
+				self setmotionanim (self getalias hit larm) 1
+				self waittill flaggedanimdone
+			}
+			else
+			{
+				self setmotionanim (self getalias hit lowertorso) 1
+				self waittill flaggedanimdone
+			}
+			break
+	}
+
+end
+

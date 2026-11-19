@@ -1,0 +1,20 @@
+// ----------------------------------------------------------------------------
+//	radioman.scr
+//
+//	Used by the radioman to "call for help"
+//
+// ----------------------------------------------------------------------------
+
+DoCrouch:
+
+//	dprintln "~~~~~~~~~~~~~~~ waiting for crouch"
+	waitexec anim/crouch.scr::transition
+
+
+//
+//	dprintln "~~~~~~~~~~~~~~~ playing radio call"
+	self setmotionanim xxxxx_radioman_call
+	self waittill flaggedanimdone
+	self removeattachedmodel JO_prop										// RJ - New: to ensure that the radio prop gets removed.
+
+end

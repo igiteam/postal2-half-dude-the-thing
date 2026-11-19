@@ -1,0 +1,235 @@
+//----------------------------------------------------------------------------
+//	hand_signals.scr
+//
+//	This script handles displaying the hand signals on the HUD and firing the
+// animation.
+//
+//----------------------------------------------------------------------------
+
+// TODO I saw a nonpro bug where an anim didn't play when calling a bunch of
+// SetHandSignal commands within 1 sec of each other.
+
+//----------------------------------------------------------------------------
+main:
+//----------------------------------------------------------------------------
+
+	level.threadClearHandSignal	= NULL
+	level.threadChangeHandSignal = NULL
+	level.threadDoHandSignal = NULL
+	level.signal_delay		= 1
+	level.num_flashes		= 3
+	setcvar "ui_hand_signal" "0"
+
+end
+
+
+//----------------------------------------------------------------------------
+SetHandSignal local.signal local.wait local.num_flashes local.dontPlayAnim:		
+//
+// This is the only 'public' thread in this file, all others are for internal use only.
+// This wraps the internal ChangeHandSignal and before execing it, checks that it's
+// not already running
+//
+// local.signal			= the name of the hand signal to display
+// local.wait			= the delay before the hand signal is removed from the screen.
+// local.num_flashes	= number of times the signal will flash on the screen
+//----------------------------------------------------------------------------
+	
+	if( level.threadChangeHandSignal != NULL && level.threadChangeHandSignal != NIL )
+	{
+		level.threadChangeHandSignal delete	
+		level.threadChangeHandSignal = NULL
+
+		// i thought we would need this, but seems fine without
+		//waitthread ClearHandSignal
+	}
+
+	waitthread ChangeHandSignal local.signal local.wait local.num_flashes local.dontPlayAnim
+
+
+end
+
+
+//----------------------------------------------------------------------------
+ChangeHandSignal local.signal local.wait local.num_flashes local.dontPlayAnim:		
+//
+// Internal top-level function.  Calls the HUD icon and the animation
+//
+// local.signal			= the name of the hand signal to display
+// local.wait			= the delay before the hand signal is removed from the screen.
+// local.num_flashes	= number of times the signal will flash on the screen
+//----------------------------------------------------------------------------
+
+	level.threadChangeHandSignal = local
+
+
+	if( local.wait != NULL && local.wait != NIL )
+	{
+		level.signal_delay = local.wait
+	}
+
+	if( local.num_flashes != NULL && local.num_flashes != NIL )
+	{
+		level.num_flashes = local.num_flashes
+	}
+
+	if( local.dontPlayAnim == NULL || local.dontPlayAnim == NIL )
+	{
+		local.dontPlayAnim = 0
+	}
+
+	if( self != NIL && self != NULL && local.dontPlayAnim != 1 )
+	{	
+		if( self.classname == "Actor" )
+		{			
+			self thread DoHandSignalAnim local.signal
+		}
+		else if( self.classname == "Medic" )
+		{			
+			self thread DoHandSignalAnim local.signal
+		}
+	}
+
+	//do this loop to flash the hand signals...	
+	for( local.ctr = 0; local.ctr < level.num_flashes; local.ctr++ )
+	{
+		wait 1
+		waitthread DoHandSignal local.signal		
+	}
+
+	//reset the signal vars
+	level.signal_delay		= 1
+	level.num_flashes		= 3
+
+	level.threadChangeHandSignal = NULL
+
+end
+
+//----------------------------------------------------------------------------
+PutUpSignal local.signal:
+//----------------------------------------------------------------------------
+
+	switch( local.signal )
+	{
+		case "halt":			
+			setcvar "ui_hand_signal" "1"
+			break
+
+		case "assemble":			
+			setcvar "ui_hand_signal" "2"
+			break
+
+		case "moveout":
+		case "moveoutstand":			
+			setcvar "ui_hand_signal" "3"
+			break
+
+		case "flankleft":
+			setcvar "ui_hand_signal" "4"
+			break
+
+		case "flankright":
+			setcvar "ui_hand_signal" "5"
+			break
+
+		case "advance":
+			setcvar "ui_hand_signal" "6"
+			break
+
+		case "cover":
+			setcvar "ui_hand_signal" "7"
+			break
+
+		case "doubletime":
+			setcvar "ui_hand_signal" "8"
+			break
+
+		case "commencefire":
+			setcvar "ui_hand_signal" "9"
+			break
+
+		case "fallback":
+			setcvar "ui_hand_signal" "10"
+			break
+
+		case "camp_ea_medic":
+			//dprintln "Flashing MEDIC icon"
+			setcvar "ui_medic_called" "1"
+			break
+		default:
+			//dprintln "Doing DEFAULT hand signal"
+			setcvar "ui_hand_signal" "0"
+			break;
+	}
+
+
+	end
+
+
+//----------------------------------------------------------------------------
+DoHandSignal local.signal:
+//
+// This function will do the HUD icon display.
+//----------------------------------------------------------------------------
+	level.threadDoHandSignal = local
+
+
+	if( level.threadClearHandSignal != NULL && level.threadClearHandSignal != NIL )
+	{ 
+		level.threadClearHandSignal delete	
+	}
+
+	level.threadClearHandSignal = NULL
+
+	waitthread PutUpSignal local.signal
+
+	if ( level.signal_delay < 0 )
+		end
+
+	
+	wait level.signal_delay
+
+	thread ClearHandSignal
+
+	level.threadDoHandSignal = NULL
+
+end
+
+
+
+//----------------------------------------------------------------------------
+DoHandSignalAnim local.signal:
+//
+// This will play an animation on a character if a self is passed
+//----------------------------------------------------------------------------
+
+	self anim ( self getalias signal local.signal )
+	self waittill animdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+ClearHandSignal:
+//
+// This function should only be called by this script and not outside of it
+//----------------------------------------------------------------------------
+
+	level.threadClearHandSignal = local 
+	
+	//clear the hand signal
+	setcvar "ui_hand_signal" "0"
+
+	// Clear medic cvar
+	setcvar "ui_medic_called" "0"
+
+	if( level.threadDoHandSignal != NULL && level.threadDoHandSignal != NIL )
+	{
+			level.threadDoHandSignal delete
+			level.threadDoHandSignal = NULL
+	}
+
+	level.threadClearHandSignal = NULL
+
+end

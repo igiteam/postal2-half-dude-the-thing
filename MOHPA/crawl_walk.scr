@@ -1,0 +1,29 @@
+//-------------
+// Crawl walk
+//-------------
+// Crawl.  If not crouching/prone, be sure to crouch/prone first.
+
+//dprintln "Entering crawl_walk.scr"
+
+//=================================================
+//=================================================
+start:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	// make sure we're prone
+	waitexec anim/prone.scr
+	
+	self endactionanim
+
+	
+	self.position = pronewalk
+	
+	
+	while (1)
+	{
+		waitexec anim/motionblend.scr::PlayAnim walk
+	}
+
+end

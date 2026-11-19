@@ -1,0 +1,1 @@
+class LPUIAction_ConsoleCommand extends SPUIAction_ConsoleCommand;

@@ -1,0 +1,1 @@
+class MorphWeightSequence extends Object;

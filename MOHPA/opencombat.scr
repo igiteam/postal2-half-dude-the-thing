@@ -1,0 +1,470 @@
+// --------------------------------------------------------------
+// opencombat.scr
+// --------------------------------------------------------------
+
+main:
+
+
+end
+
+
+// --------------------------------------------------------------
+Init:
+// --------------------------------------------------------------
+
+	self waitexec anim/turret.scr::AttackSay
+	self waitexec anim/cover.scr::SetupAimTime
+
+
+	end
+
+// --------------------------------------------------------------
+CommonAttack:
+// --------------------------------------------------------------
+
+	waitexec anim/opencombat.scr::CheckIntervalDir
+
+	waitexec anim/aim.scr::Aim
+	wait self.aimtime
+
+	waitthread anim/cover.scr::WaitTillCanShoot
+
+	if (self.team != "american")
+	{
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}
+
+	self waitexec anim/shoot.scr::Shoot
+
+	end
+
+
+// --------------------------------------------------------------
+StandAttack:
+// --------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread StandUp
+
+	while ( isAlive self )
+	{
+		self waitthread CommonAttack
+		self interrupt_point
+	}
+
+	end
+
+
+// --------------------------------------------------------------
+CrouchAttack:
+// --------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread Crouch
+
+	while ( isAlive self )
+	{
+		self waitthread CommonAttack
+		self interrupt_point
+	}
+
+
+
+	end
+
+// --------------------------------------------------------------
+ProneAttack:
+// --------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread Prone
+
+	while ( isAlive self )
+	{
+		self waitthread CommonAttack
+		self interrupt_point
+	}
+
+	end
+
+
+// --------------------------------------------------------------
+StandUp:
+// --------------------------------------------------------------
+	self waitthread anim/stand.scr::transition
+
+	end
+
+// --------------------------------------------------------------
+Crouch:
+// --------------------------------------------------------------
+
+	self waitthread anim/crouch.scr::transition
+
+	end
+
+// --------------------------------------------------------------
+Prone:
+// --------------------------------------------------------------
+
+	self waitthread anim/prone.scr::transition
+
+	end
+
+
+// --------------------------------------------------------------
+Search:
+// --------------------------------------------------------------
+
+	self waitthread Init
+
+	local.random		= randomint 2000
+	local.standuptime	= level.inttime + 2000 + local.random
+
+	while ( isAlive self )
+	{
+		waitexec anim/opencombat.scr::CheckIntervalDir
+		
+		if ( isAlive self )
+		{
+			self setmotionanim (self getalias search)
+			self waittill flaggedanimdone
+			self interrupt_point
+
+			// if we've been searching long enough, try standing up...
+			if (  level.inttime > local.standuptime )
+			{
+				self waitexec anim/stand.scr::transition
+			}
+		}
+	}
+
+	end
+
+// --------------------------------------------------------------
+Suppress:
+// --------------------------------------------------------------
+
+	self waitthread Init
+	
+	self waitthread anim/aim.scr::Aim
+
+	while ( isAlive self )
+	{
+		waitexec anim/opencombat.scr::CheckIntervalDir
+		self waitthread anim/cover.scr::WaitTillCanShoot
+		self waitthread anim/shoot.scr::Shoot
+	}
+
+	end
+
+
+// --------------------------------------------------------------
+Reload:
+// --------------------------------------------------------------
+
+	self waitthread Init
+//	self waitthread anim/reload.scr::DoReload
+
+	waitexec anim/opencombat.scr::CheckIntervalDir
+
+	self setmotionanim (self getalias reload)
+	self waittill flaggedanimdone
+
+
+	end
+
+
+// --------------------------------------------------------------
+Backpedal:
+//
+// --------------------------------------------------------------
+	self waitthread Init
+
+	// make sure we stand up.
+	self waitthread GetOffGround
+
+	// run and shoot...
+	self waitexec anim/run.scr::Shoot
+
+	end
+
+// --------------------------------------------------------------
+RunAway:
+// --------------------------------------------------------------
+	self waitthread Init
+
+	// make sure we stand up.
+	self waitexec anim/stand.scr::transition
+
+	// runaway means run to cover...
+	self waitexec anim/run.scr::Cover
+
+	end
+
+//----------------------------------------------------------------------------
+GetOffGround:
+//----------------------------------------------------------------------------
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		self waitexec anim/crouch.scr::transition
+		break
+	}
+
+	end
+
+//----------------------------------------------------------------------------
+StrafeLeft:
+//----------------------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self waitthread AimMove "walk" "left" 
+
+
+	end
+
+//----------------------------------------------------------------------------
+StrafeRight:
+//----------------------------------------------------------------------------
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self waitthread AimMove "walk" "right" 
+
+	end
+
+
+//----------------------------------------------------------------------------
+WalkForward:
+//----------------------------------------------------------------------------
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self waitthread AimMove "walk" "forward" 
+
+	end
+
+//----------------------------------------------------------------------------
+WalkBackward:
+//----------------------------------------------------------------------------
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self waitthread anim/crouch.scr::transition
+
+	self waitthread AimMove "walk" "back" 
+
+
+	end
+
+//----------------------------------------------------------------------------
+DodgeRight:
+//----------------------------------------------------------------------------
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self setmotionanim (self getalias dodge "" "" right)
+	self waittill flaggedanimdone
+
+	end
+
+//----------------------------------------------------------------------------
+DodgeLeft:
+//----------------------------------------------------------------------------
+	self waitthread Init
+	self waitthread GetOffGround
+
+	self setmotionanim (self getalias dodge "" "" left)
+	self waittill flaggedanimdone
+
+	end
+
+//----------------------------------------------------------------------------
+AimMove local.action local.direction:
+//----------------------------------------------------------------------------
+
+	local.animname = self getalias local.action "" "" "" "a"
+
+//		dprintln "aimmove:" local.direction
+
+	switch (local.direction)
+	{
+		case "forward":
+			self setlocomotionblend 1.0 0.0
+			break
+		case "back":
+			self setlocomotionblend -1.0 0.0
+			break
+		case "left":
+			self setlocomotionblend 0.0 1.0
+			break
+		case "right":
+			self setlocomotionblend 0.0 -1.0
+			break
+		case "":
+		default:
+			// don't set blend
+			println "opencombat.scr::AimMove unknown direction:" local.direction
+			break
+	}
+
+	self setmotionanim local.animname
+	self waittill flaggedanimdone
+
+
+	end
+
+//----------------------------------------------------------------------------
+SquadmateWait:
+//----------------------------------------------------------------------------
+
+	self waitthread Init
+
+	while ( isAlive self )
+	{
+		self waitthread CommonAttack
+		waitexec anim/aim.scr::Aim
+
+		local.waittime = randomfloat 1
+		local.waittime += 0.1
+		wait local.waittime
+	}
+
+	end
+
+// ------------------------------------------------------------
+CheckIntervalDir local.say:
+//
+//		If we need to move away from a squadmate, do it...
+// ------------------------------------------------------------
+
+	if (local.say==NIL)
+		local.say = 1
+
+	local.intervaldir = self.intervaldir
+
+	if (local.intervaldir != (0 0 0))
+	{
+		self.debugstring = "interval"
+
+		//thread DPrintln "Moving to interval dir: " self.intervaldir
+
+		local.stoodup = 0
+		local.spawnedshootthread = 0
+		self weaponcommand mainhand attachtohand mainhand
+
+		while (local.intervaldir != (0 0 0))
+		{
+			self.debugstring = "intervalattack"
+
+			//check to see if we can move
+			local.movepos = (self.intervaldir * 93) + self.origin
+			self.collideresult = 0
+			local.movetoresult = self canmoveto local.movepos
+			if (local.movetoresult == 1)
+			{
+				self.collideresult = self sighttrace self.origin local.movepos 1 ( -16 -16 16) ( 16 16 96)
+			}
+
+			if (self.collideresult > 0)
+			{
+				if ( local.say==1 )
+				{									
+					//6 is squad chatter priority will not always play
+					self aid_hldsprd 6
+				}
+
+				self.movingtointervaldir = 1
+
+				if (local.stoodup == 0)
+				{
+					self waitthread StandUp
+					local.stoodup = 1
+				}
+
+
+///				if (local.spawnedshootthread == 0)
+///				{
+///					thread CheckIntervalDirShoot
+///					self.shootthread = parm.previousthread
+///					local.spawnedshootthread = 1
+///				}
+
+				self.blendtime = 0.20
+
+				// Determine interval dir in model space (i.e. x axis is forward, y is left).
+				local.costheta = self.forwardvector * self.intervaldir
+				local.sintheta = self.leftvector * self.intervaldir
+
+				//sanity checks
+				if (local.costheta < -1.0)
+				{
+					println "CheckIntervalDir: costheta is less than -1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.costheta = -1.0
+				}
+				if (local.costheta > 1.0)
+				{
+					println "CheckIntervalDir: costheta is more than 1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.costheta = 1.0
+				}
+				if (local.sintheta < -1.0)
+				{
+					println "CheckIntervalDir: sintheta is less than -1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.sintheta = -1.0
+				}
+				if (local.sintheta > 1.0)
+				{
+					println "CheckIntervalDir: sintheta is more than 1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.sintheta = 1.0
+				}
+
+				if (local.costheta >= 0.707)
+				{
+					self.lastmovement = "walk_forward"
+				}
+				else if (local.costheta <= -0.707)
+				{
+					self.lastmovement = "walk_backward"
+				}
+				else
+				{
+					if (local.sintheta >= 0.707)
+					{
+						self.lastmovement = "strafe_left"
+					}
+					else if (local.sintheta <= -0.707)
+					{
+						self.lastmovement = "strafe_right"
+					}
+				}
+
+				self setanim (self getalias walk "" "" "") 0 1
+				self setlocomotionblend local.costheta local.sintheta interval
+				self.movedtointervaldir = 1
+				wait 0.2
+			}
+			else
+			{
+				//thread DPrintln "Could not move to interval dir!"
+				break
+			}
+
+			local.intervaldir = self.intervaldir
+		}
+	}
+
+
+	end

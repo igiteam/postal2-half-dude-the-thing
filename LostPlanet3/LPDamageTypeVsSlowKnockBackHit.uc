@@ -1,0 +1,1 @@
+class LPDamageTypeVsSlowKnockBackHit extends LPDamageTypeVSBump;

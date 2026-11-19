@@ -1,0 +1,3 @@
+{ "testai" "testai" }
+{ "NPCS: Allies 1(1) Axis 1(1)" "NPCS: Allies 1(1) Axis 1(1)" }
+{ "NPCS: Allies 1(1) Axis 0(0)" "NPCS: Allies 1(1) Axis 0(0)" }

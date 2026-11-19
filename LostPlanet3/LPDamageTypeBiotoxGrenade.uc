@@ -1,0 +1,1 @@
+class LPDamageTypeBiotoxGrenade extends LPDamageTypeToxicCloud;

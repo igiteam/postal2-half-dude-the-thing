@@ -1,0 +1,221 @@
+// ---------------------------------------------------------------
+//	motionblend.scr
+//
+//	all blended-locomotion animations go through here..
+//
+// ---------------------------------------------------------------
+
+
+
+// ---------------------------------------------------------------
+Start local.action local.shootwhilemoving local.shootpct:
+// ---------------------------------------------------------------
+
+// jsl-->This is somewhat obsolete... shooting in motion is done in code now...
+
+	waitexec anim/motionblend.scr::LoopAnim local.action
+end
+
+// ---------------------------------------------------------------
+PlayAlias local.alias:
+// ---------------------------------------------------------------
+
+	self setanim local.alias 0 1
+	self waitthread SetLocomotionBlend
+	wait 0.20
+
+	end
+
+// ---------------------------------------------------------------
+Trip:
+// ---------------------------------------------------------------
+
+	println "Dude is trippin:" self.targetname " / " self.actorname
+
+	level.lasttrip	= level.inttime
+	self.lasttrip	= level.inttime
+	self.fragile	= 10
+
+	self setmotionanim (self getalias trip)
+	self waittill flaggedanimdone
+
+	self.fragile	= 0
+
+	end
+
+// ---------------------------------------------------------------
+CheckForTrip local.alias:
+// ---------------------------------------------------------------
+
+	if ( self.customrunalias && self.customrunalias!="" )
+		end 0
+
+	if ( self.customrun && self.customrun!="" )
+		end 0
+
+	switch ( self.position )
+	{
+	case	crouchrun:
+	case	run:
+		break
+	default:
+		// only trip when crouch running or running.
+		end 0
+	}
+
+
+	// only bad guys trip
+	if ( self.team=="american" )
+		end 0
+
+	// only guys with machine guns trip
+	if ( self.weapongroup!="machinegun" && self.weapongroup!="rifle" )
+		end 0
+
+	// init some variables if needed
+	if ( self.lasttripcheck==NIL )
+		self.lasttripcheck	= level.inttime
+
+	if ( self.lasttrip==NIL )
+		self.lasttrip		= 0
+
+	if ( level.lasttrip==NIL )
+		level.lasttrip = 0
+
+		// don't have 2 guys trip within 3 seconds of each other.
+	if ( level.inttime - level.lasttrip < 3000 )
+		end 0
+
+		// if this guy has tripped within the last 10 seconds, don't go any further.
+	if ( self.lasttrip>0 && level.inttime - self.lasttrip < 10000 )
+		end 0
+
+		// only check every so often..
+	if ( level.inttime - self.lasttripcheck < 1000 )
+		end 0
+
+	//	make not of this check...
+	self.lasttripcheck	= level.inttime
+
+	// don't do it if we're too close to our goal.
+	if ( self.currpathdist < 200 )
+		end 0
+
+
+	local.random = randomint 100
+
+		// for now, crank this up...
+	if ( local.random > 85 )
+		end 0
+
+	// ask the AI if we're in a good place to trip...
+	if ( self.cantrip )
+	{
+		self waitthread Trip
+		end 1
+	}
+
+	end 0
+
+// ---------------------------------------------------------------
+LoopAlias local.alias:
+// ---------------------------------------------------------------
+
+	// set our looping animation
+	self setanim local.alias 0 1
+
+	//
+	// loop here to update the locomotion blend..
+	//
+	while ( 1 )
+	{
+		local.tripped = self waitthread CheckForTrip local.alias
+		if ( local.tripped==1 )
+		{
+			self setanim local.alias 0 1
+		}
+		self waitthread SetLocomotionBlend
+		wait 0.20
+	}
+
+
+	end
+
+
+// ---------------------------------------------------------------
+LoopAnim local.action local.mood local.user:
+// ---------------------------------------------------------------
+	if ( local.mood==NIL )
+		local.mood	= ""
+
+	if ( local.user==NIL )
+		local.user	= ""
+
+	local.alias = self getalias local.action local.user "" "" local.mood
+
+	self waitthread LoopAlias local.alias
+
+	end
+
+
+// ---------------------------------------------------------------
+PlayAnim local.action local.mood:
+// ---------------------------------------------------------------
+
+	if ( local.mood==NIL )
+		local.mood	= ""
+
+	local.alias = self getalias local.action "" "" "" local.mood
+	self waitthread CheckForTrip local.alias
+	self setanim local.alias 0 1
+	self waitthread SetLocomotionBlend
+	wait 0.20
+
+end
+
+
+// ---------------------------------------------------------------
+SetLocomotionBlend:
+// ---------------------------------------------------------------
+
+	if (self.movedir != (0.0 0.0 0.0))
+	{
+		// Determine move dir in model space (i.e. x axis is forward, y is left).
+		local.costheta = self.forwardvector * self.movedir
+		local.sintheta = self.leftvector * self.movedir
+
+		//sanity checks
+		if (local.costheta < -1.0)
+		{
+			println "motionblend: costheta is less than -1, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.costheta = -1.0
+		}
+		if (local.costheta > 1.0)
+		{
+			println "motionblend: costheta is more than 1, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.costheta = 1.0
+		}
+		if (local.sintheta < -1.0)
+		{
+			println "motionblend: sintheta is less than -1, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.sintheta = -1.0
+		}
+		if (local.sintheta > 1.0)
+		{
+			println "motionblend: sintheta is more than 1, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.sintheta = 1.0
+		}
+
+		self setlocomotionblend local.costheta local.sintheta  movedir
+	}
+
+	end
+

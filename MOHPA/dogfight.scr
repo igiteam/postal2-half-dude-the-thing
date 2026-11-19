@@ -1,0 +1,302 @@
+// dogfight.scr
+
+// do ambient dog fights between planes
+
+// To Use : Provide a trigger multiple targetname 'dogfight_trigger'
+//      that targets a script origin that designates the 'home base' of the planes
+//      the script origin targets an array of planes to use for the dogfight.
+// NW - 4-28-04:
+// added parameters to controle dogfight behavior
+// NW - 6-19-04
+// added ability to remove planes (TODO: fly planes off map before removing them)
+
+main:
+
+	if (!$dogfight_trigger)
+		end
+	if ( int(getcvar (dm_noeffects))== 1 )
+		end
+	$dogfight_trigger thread init_dogfight
+
+end
+
+//----------------------------------------------------------------------------
+remove_dogfight:
+//----------------------------------------------------------------------------
+	self.plane1 remove
+	self.plane2 remove
+end
+
+//----------------------------------------------------------------------------
+spawn_dogfight:
+//----------------------------------------------------------------------------
+if ( int(getcvar (dm_noeffects))== 1 )
+	end
+	dprintln "spawning a dogfight at " self.origin
+
+	// self is the 'home base' of the dogfight
+	local.plane1 = spawn "models/vehicles/zero.hag"
+	local.plane2 = spawn "models/vehicles/p400.hag"
+	
+	local.plane1 svflags "+nofarplane"
+	local.plane2 svflags "+nofarplane"
+	local.plane1 svflags "+broadcast"
+	local.plane2 svflags "+broadcast"
+	
+	// NW - we need a way to reference these to clean up the dogfight
+	// at this location after we're done with them.
+	self.plane1 = local.plane1
+	self.plane2 = local.plane2
+	
+	
+	local.randx = (randomint 1000) - 500
+	local.randy = (randomint 1000) - 500
+	
+	local.plane1.origin = ( local.randx local.randy self.origin[2] )
+	
+	local.randx = (randomint 1000) - 500
+	local.randy = (randomint 1000) - 500
+
+	local.plane2.origin = ( local.randx local.randy self.origin[2] )
+	
+	local.plane1 home self.origin
+	local.plane2 home self.origin
+	local.plane1.leash = 2000
+	local.plane1.altleast = 5000
+	local.plane2.leash = 2000
+	local.plane2.altleast = 5000
+	local.plane1 show
+	local.plane2 show
+	
+	local.plane1.target = local.plane2
+	local.plane1 attack local.plane2
+	local.plane2 evade local.plane1
+	
+	local.plane1.health = 1000
+	local.plane2.health = 1000
+
+end
+
+
+
+//----------------------------------------------------------------------------
+init_dogfight:
+//----------------------------------------------------------------------------
+if ( int(getcvar (dm_noeffects))== 1 )
+	end
+	self waittill trigger
+
+	local.home_array = exec global/makearray.scr $(self.target)
+	
+	local.home_array thread do_dogfight
+
+end
+	
+
+//----------------------------------------------------------------------------
+do_dogfight local.leash local.altleash local.speed:
+//  Description: Given that self is an array of script origins which serve as
+//               a home base to the dogfighting planes, this starts up the fight
+//               based on the paramaters given. 
+//  Params:
+//    local.leash: max length the planes will travel from it's "home base"
+//    local.altleash: max height the planes will travel from the (0,0,x) plane
+//    local.speed: speed of the aircraft
+//----------------------------------------------------------------------------
+	
+	if( !self )			
+		end
+	
+	if( self.axis_plane == NIL || self.axis_plane == NULL || self.allied_plane == NIL || self.allied_plane == NULL )
+			end
+			
+	local.axis = $(self.axis_plane)
+	local.allied = $(self.allied_plane)		
+			
+	// if the plane does not have a target make it target it's home_base
+	//if (local.axis.target != local.allied && local.allied.target != local.axis)
+	//	local.axis.target = local.allied
+		
+	
+	if ( int(getcvar (dm_cull_map_ambience))== 1 )
+	{	
+		local.axis remove
+		local.allied remove
+		end	
+	}
+	
+	local.axis   svflags "+nofarplane"
+	local.axis   svflags "+broadcast"
+	local.allied svflags "+nofarplane"		
+	local.axis   svflags "+broadcast"
+	
+	local.axis target ""
+	local.allied target local.axis
+	
+	// planes will not go below 1000 units now
+	// this is also a performance improvement
+	local.axis artificial_terrain_altitude 1000
+	local.allied artificial_terrain_altitude 1000
+					
+	//Setting defaults if paramaters undefined
+	if (local.speed == NIL || local.speed == NULL)
+		local.speed = 2200	
+	
+	// let the planes fly all over the map
+	if (local.leash == NIL || local.leash == NULL)
+		local.leash = 8000
+		
+	// make the planes fly closer to the ground
+	if (local.altleash == NIL || local.altleash == NULL)
+		local.altleash = 500
+	
+	local.axis thread axis_init self local.leash local.altleash local.speed
+	local.allied thread allies_init self local.leash local.altleash local.speed
+
+end
+
+//----------------------------------------------------------------------------
+axis_init local.home local.leash local.altleash local.speed:
+//----------------------------------------------------------------------------
+	
+
+	dprintln "-- AXIS INIT " self " at " local.home
+
+	if( self == NIL || self == NULL )
+	    	end
+
+	// make sure the plane can shoot
+	self unlockturrets
+	self allow_shooting
+
+	//Apply the needed values to each plane
+	
+	//sets the scale, the zero is smaller than the 
+	//hellcat so setting the hellcat to 0.75 and the 
+	//zero to 1.0 makes them about the same size
+	
+	//I'm making them both smaller so that we can bring them closer to the ground, but make
+	//them appear to be farther away.
+	self scale .8		
+	
+	self home local.home.origin	//sets the plane to its origin
+		
+	// Some good values for the Zero
+	self maxyawrate 15		//sets the rate of turn (0 – 360)
+	self maxpitchrate 40		//sets the rate of climb (0 – 360)
+	self maxrollrate 60		//sets the rate of roll (0 – 360)
+	//self maxroll 80	//sets the max angle the plane will role to
+	
+	self speed local.speed 	//sets the planes speed to the above variable
+
+	self waitthread plane_init local.leash local.altleash
+
+end
+
+
+//----------------------------------------------------------------------------
+allies_init local.home local.leash local.altleash local.speed:
+//----------------------------------------------------------------------------
+
+
+	dprintln "-- ALLIES INIT " self " at " local.home
+
+	if( self == NIL || self == NULL )
+	    	end
+
+	// make sure the plane can shoot
+	self unlockturrets
+	self allow_shooting
+
+	//Apply the needed values to each plane
+	self scale .8
+
+	self home local.home.origin
+
+	//I dumbed down the values here so the planes are not so erradic
+	//this should prevent the player from being distracted 	
+	self maxyawrate 15
+	self maxpitchrate 30
+	self maxrollrate 50
+	
+	self speed local.speed
+		
+	self waitthread plane_init local.leash local.altleash
+
+end
+
+
+
+//----------------------------------------------------------------------------
+plane_init local.leash local.altleash:
+//----------------------------------------------------------------------------
+	
+	dprintln "plane init: self is: " self
+	
+	if( self == NIL || self == NULL )
+	    	end
+	
+	//*** sets the distance the planes will travel from there home
+	self leash local.leash	
+	
+	//*** sets the maximum altitude that a plane will travel
+	self altleash local.altleash
+	
+	// we don't want plane wreckage littering the map
+	self removeondeath 1
+		
+	self anim idle		// start the prop spinning
+	
+	//Sets the plane to chase if it has a target and it's target to evade.  If the plane has no target then do nothing.
+	if (self.target != NIL && self.target != NULL && self.target != "")
+	{				
+		self attack self.target	     //sets the chaser to target the evader
+		self aggressive_dogfighter 1 //make him tail the bad dude
+		self.target evade self	     //sets the evader to evade the chaser
+		self nodamage		     //this means planes will be around longer to provide ambience
+		self.target nodamage         //same as above
+	}
+	else
+		dprintln "------ plane_init : " self " has no target! "	
+	
+	self thread watch_altitude
+	
+end
+
+
+// may need a similar function in the future if planes are still getting stuck in terrain
+//----------------------------------------------------------------------------
+watch_altitude :
+//----------------------------------------------------------------------------
+	
+	local.lastOrigin = self.origin
+	
+	while(self.isAlive)
+	{	
+		
+		wait 2
+					
+		// this didn't work-------------------------------------
+		//local.addVect = vector_add local.lastOrigin self.origin
+		//local.distTraveled = vector_length(local.addVect)
+		
+		//iprintln "traveled this far: " local.distTraveled		
+		// if the plane gets stuck it's origin will be in the same general area
+		// move the plane to a safe spot and let it continue fighting if it does 
+		// get stuck
+		//if( local.distTraveled < 1 )
+		//	self.origin = $dogfight1.origin
+		
+		//local.lastOrigin = self.origin	
+		//---------------------------------------------------------
+		
+		if( ( self.origin[0] < (local.lastOrigin[0] + 1) ) && ( self.origin[0] > (local.lastOrigin[0] - 1) ) )
+			self.origin = $home_base[1].origin
+		
+		local.lastOrigin = self.origin
+		
+	}
+	
+	iprintln "leaving watch altitude"
+
+end

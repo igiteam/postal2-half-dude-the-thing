@@ -1,0 +1,1 @@
+class LPDamageTypePackHunterClaw extends LPDamageTypePackHunterMelee;

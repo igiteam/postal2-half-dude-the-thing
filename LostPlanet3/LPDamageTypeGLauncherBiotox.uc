@@ -1,0 +1,1 @@
+class LPDamageTypeGLauncherBiotox extends LPDamageTypeToxicCloud;

@@ -1,0 +1,19 @@
+// --------------------------------------------------------------------------------
+// Cause an Earthquake
+//
+// --------------------------------------------------------------------------------
+
+start local.duration local.magnitude local.no_rampup local.no_rampdown local.origin local.cutoff_distance:
+
+	// Check for a valid origin
+	if (local.origin == NIL || local.origin == "")
+		local.origin = (0 0 0)
+
+	// Check for cutoff distance
+	if (local.cutoff_distance == NIL || local.cutoff_distance == "")
+		local.cutoff_distance = 512
+
+	// Shake it
+	earthquake local.duration local.magnitude local.no_rampup local.no_rampdown local.origin local.cutoff_distance
+
+end

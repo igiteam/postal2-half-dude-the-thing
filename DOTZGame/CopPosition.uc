@@ -1,0 +1,2 @@
+class CopPosition extends DefensePosition;
+

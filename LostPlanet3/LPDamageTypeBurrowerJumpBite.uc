@@ -1,0 +1,1 @@
+class LPDamageTypeBurrowerJumpBite extends LPDamageTypeBurrowerMelee;

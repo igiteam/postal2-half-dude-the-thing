@@ -1,0 +1,1 @@
+class LPDamageTypeDNATag extends LPDamageTypeBallistic;

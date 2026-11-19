@@ -1,0 +1,1 @@
+class LPDamageTypeVSKnockedOutOfBlockByBoss extends LPDamageType;

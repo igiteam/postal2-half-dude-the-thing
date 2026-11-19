@@ -1,0 +1,1 @@
+class DOTZProjectileBase extends AdvancedProjectile;

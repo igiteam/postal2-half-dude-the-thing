@@ -1,0 +1,1 @@
+class LPPhatPawnBlockageType_NoBlockage extends LPPhatPawnBlockageType;

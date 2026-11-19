@@ -1,0 +1,213 @@
+// mp_retrieve_item.scr //////////////////////////////////////////////////////
+//
+// Description:
+//
+// This script can be used on objectives where an item must be retrieved. In
+// order for this script to work correctly you must provide it with a trigger,
+// an object to be retrieved, and an attacking team; all other parameters are 
+// optional. 
+// This script was designed in a minimal fashion. The map scripter is left the 
+// responsibility of targeting other objective items once the item in this script
+// is retrieved, as well as the responsibility of notifying other players that 
+// this object was retrieved.
+// 
+// Example usage:
+//
+//
+//	// init the objective before it is the current objective
+//	$documents_trigger waitthread global\mp_retrieve_item.scr::init $enemy_documents "allies" 8 maps/my_maps/mp_mymap_inv.scr::documents_retrieved_callback
+//
+//	//once the retrievable is the current objective activate it
+//	$documents_trigger waitthread global\mp_retrieve_item.scr::activate
+//
+// Version History:
+//
+//		7-23-04		First pass	scosgrave
+//
+//
+
+
+//----------------------------------------------------------------------------
+init local.retrievable local.attackingTeam local.retrievalTime local.retrievedCallback local.removeItem local.useSlot local.defendedCallback local.LookAt:
+//----------------------------------------------------------------------------
+
+	// self is the trigger the player must be in to obtain 
+	// this item
+
+	// a trigger is required
+	if( self == NIL || self == NULL )
+		end
+	
+	// by default, do not remove the item
+	if( local.removeItem == NIL || local.removeItem == NULL )
+		local.removeItem = 0
+		
+	// a retrievable object is required, unless the item is not removable
+	if( local.removeItem && (local.retrievable == NULL || local.retrievable == NIL) )
+		end
+	
+	// we cannot assume an attacking team
+	if( local.attackingTeam == NULL || local.attackingTeam == NIL || local.attackingTeam == "" )
+		end
+
+	// defualt to 5 seconds to retrieve a doc if no time is specified, or the time is less than 1 second
+	if( local.retrievalTime == NULL || local.retrievalTime == NIL || local.retrievalTime < 1 )
+		local.retrievalTime = 5
+
+			
+	// make the default useslot dynamite
+	if( local.useSlot == NIL || local.useSlot == NULL || local.useSlot == "" )
+		local.useSlot = none
+
+	self nottriggerable
+	self setthread monitor_retrieval
+	self.target = local.retrievable
+	self.retrieved = 0
+	self.attackingTeam = local.attackingTeam
+	self.retrievalTime = local.retrievalTime
+	self.callback = local.retrievedCallback	
+	self.defendedCallback = local.defendedCallback	
+	self.removeMe = local.removeItem
+	self.useSlot = local.useSlot
+	self.attackCallBackCalled = 0
+	
+	//if we have an object we have to be looking at, set it here
+	if (local.LookAt != NULL && local.LookAt != NIL)
+	{
+		self.LookAt = local.LookAt
+	}
+	
+	//otherwise we just have to be looking at the switchTrigger
+	else
+	{
+		self.LookAt = self
+	}	
+						
+end
+
+
+//----------------------------------------------------------------------------
+activate:
+//----------------------------------------------------------------------------
+	
+	self.objectiveStatus = waitthread global/mp_objective_status.scr::item_retrieval_initialize self
+
+	self triggerable
+
+end
+
+//-------------------
+set_look_at local.lookAt:
+//-------------------
+	if(self == NULL || self == NIL)
+		end
+
+	//if we have an object we have to be looking at, set it here
+	if (local.LookAt != NULL && local.LookAt != NIL)
+	{
+		self.LookAt = local.LookAt
+	}
+	
+	//otherwise we just have to be looking at the switchTrigger
+	else
+	{
+		self.LookAt = self
+	}
+end
+
+
+//-------------------
+set_attacked_callback local.attacked_callback:
+//-------------------
+	if(self == NULL || self == NIL)
+		end
+
+	//if we have an object we have to be looking at, set it here
+	if (local.attacked_callback != NULL && local.attacked_callback != NIL)
+	{
+		self.attacked_callback = local.attacked_callback
+		self.attackCallBackCalled = 0
+	}
+end
+
+
+//--------------------
+monitor_retrieval local.player:
+//--------------------
+	// self is the trigger surrounding the object being retrieved
+	
+	if(local.player.using == 1)
+		end
+
+	if (local.player.dmteam == self.attackingTeam) 
+	{
+		if ((local.player compareuseslot self.useSlot) < 0)
+			end
+			
+		if (self.useSlot != "none")	
+			local.player useslot self.useSlot
+			
+		local.player.using = 1
+		// While the player is still in the trigger volume
+		while ((self != NULL) && (local.player != NULL) && (IsAlive local.player) && (local.player isinside self) && (local.player canseenoents self.LookAt 45)) 
+		{
+			local.time = self.retrievalTime
+			local.time = int(local.time) // DScott, stopwatch time must be integral to be in sync w/HUD
+			if (local.player.useheld && !self.inuse && (local.player canseenoents self.LookAt 45))
+			{					
+				local.player stopwatch local.time 3 progress_dyn_plant
+				local.player hovericon planting
+				self.inuse = 1
+				self.objectiveStatus waitthread global/mp_objective_status.scr::item_retrieval_start_countdown local.time
+				while (local.player.useheld && local.player isinside self && isalive local.player && !(local.player.incapacitated) && (local.player canseenoents self.LookAt 45))
+				{
+					if (local.time<=0)
+					{						
+						if( self.removeMe )												
+							self.target hide						
+						
+						self nottriggerable
+						//self.target disable_draw_on_radar
+						self.retrieved = 1
+						local.player.using = 0
+						if( self.useSlot == "radio" )
+							self.objectiveStatus waitthread global/mp_objective_status.scr::item_retrieval_notify_successful_radio
+						else
+							self.objectiveStatus waitthread global/mp_objective_status.scr::item_retrieval_notify_successful_steal
+						if( self.callback )
+							thread self.callback
+							
+						local.player removeuseslot self.useSlot
+						local.player hovericon none
+						local.player stopwatch 0 3 progress_dyn_plant
+						local.player.retrieving =0
+						end
+					}
+					else
+					{
+						if(self.attackCallBackCalled == 0 && self.attacked_callback != NIL && self.attacked_callback != NULL)
+						{
+							thread self.attacked_callback	
+							self.attackCallBackCalled = 1
+						}
+					}
+										
+					wait 0.1
+					local.time = local.time - 0.1
+				}				
+				self.inuse = 0
+				local.player hovericon none
+				local.player stopwatch 0 3 progress_dyn_plant
+				if( self.defendedCallback )
+				{
+					thread self.defendedCallback
+					self.attackCallBackCalled = 0 //reset our attacked flag so it'll get fired next time it is attacked
+				}
+				self.objectiveStatus waitthread global/mp_objective_status.scr::item_retrieval_notify_failed_attempt
+			}
+			wait 0.1
+		}
+		local.player removeuseslot self.useSlot
+		local.player.using = 0
+	}
+end

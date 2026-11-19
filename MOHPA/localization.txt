@@ -1,0 +1,232 @@
+{ "" "MISSING TRANSLATION" }
+{ "Unknown Key" "Unknown Key" }
+{ "Key Not Found" "Key Not Found" }
+{ "Out of Range" "Out of Range" }
+{ "Tab" "Tab" }
+{ "Enter" "Enter" }
+{ "Esc" "Esc" }
+{ "Space" "Space" }
+{ "Backspace" "Backspace" }
+{ "UPARROW" "UPARROW" }
+{ "DOWNARROW" "DOWNARROW" }
+{ "LEFTARROW" "LEFTARROW" }
+{ "RIGHTARROW" "RIGHTARROW" }
+{ "Left Alt" "Left Alt" }
+{ "Left Ctrl" "Left Ctrl" }
+{ "Left Shift" "Left Shift" }
+{ "Right Alt" "Right Alt" }
+{ "Right Ctrl" "Right Ctrl" }
+{ "Right Shift" "Right Shift" }
+{ "Command" "Command" }
+{ "CapsLock" "CapsLock" }
+{ "Ins" "Ins" }
+{ "Del" "Del" }
+{ "PgDn" "PgDn" }
+{ "PgUp" "PgUp" }
+{ "Home" "Home" }
+{ "End" "End" }
+{ "Mouse1" "Mouse1" }
+{ "Mouse2" "Mouse2" }
+{ "Mouse3" "Mouse3" }
+{ "Mouse4" "Mouse4" }
+{ "Mouse5" "Mouse5" }
+{ "WheelUp" "WheelUp" }
+{ "WheelDown" "WheelDown" }
+{ "Joy1" "Joy1" }
+{ "Joy2" "Joy2" }
+{ "Joy3" "Joy3" }
+{ "Joy4" "Joy4" }
+{ "Joy5" "Joy5" }
+{ "Joy6" "Joy6" }
+{ "Joy7" "Joy7" }
+{ "Joy8" "Joy8" }
+{ "Joy9" "Joy9" }
+{ "Joy10" "Joy10" }
+{ "Joy11" "Joy11" }
+{ "Joy12" "Joy12" }
+{ "Joy13" "Joy13" }
+{ "Joy14" "Joy14" }
+{ "Joy15" "Joy15" }
+{ "Joy16" "Joy16" }
+{ "Joy17" "Joy17" }
+{ "Joy18" "Joy18" }
+{ "Joy19" "Joy19" }
+{ "Joy20" "Joy20" }
+{ "Joy21" "Joy21" }
+{ "Joy22" "Joy22" }
+{ "Joy23" "Joy23" }
+{ "Joy24" "Joy24" }
+{ "Joy25" "Joy25" }
+{ "Joy26" "Joy26" }
+{ "Joy27" "Joy27" }
+{ "Joy28" "Joy28" }
+{ "Joy29" "Joy29" }
+{ "Joy30" "Joy30" }
+{ "Joy31" "Joy31" }
+{ "Joy32" "Joy32" }
+{ "Aux1" "Aux1" }
+{ "Aux2" "Aux2" }
+{ "Aux3" "Aux3" }
+{ "Aux4" "Aux4" }
+{ "Aux5" "Aux5" }
+{ "Aux6" "Aux6" }
+{ "Aux7" "Aux7" }
+{ "Aux8" "Aux8" }
+{ "Aux9" "Aux9" }
+{ "Aux10" "Aux10" }
+{ "Aux11" "Aux11" }
+{ "Aux12" "Aux12" }
+{ "Aux13" "Aux13" }
+{ "Aux14" "Aux14" }
+{ "Aux15" "Aux15" }
+{ "Aux16" "Aux16" }
+{ "keypad 7" "keypad 7" }
+{ "keypad 8" "keypad 8" }
+{ "keypad 9" "keypad 9" }
+{ "keypad 4" "keypad 4" }
+{ "keypad 5" "keypad 5" }
+{ "keypad 6" "keypad 6" }
+{ "keypad 1" "keypad 1" }
+{ "keypad 2" "keypad 2" }
+{ "keypad 3" "keypad 3" }
+{ "keypad Enter" "keypad Enter" }
+{ "keypad 0" "keypad 0" }
+{ "keypad ." "keypad ." }
+{ "keypad /" "keypad /" }
+{ "keypad -" "keypad -" }
+{ "keypad +" "keypad +" }
+{ "NumLock" "NumLock" }
+{ "keypad *" "keypad *" }
+{ "keypad =" "keypad =" }
+{ "Pause" "Pause" }
+{ "LWIN_KEY" "LWIN_KEY" }
+{ "RWIN_KEY" "RWIN_KEY" }
+{ "MENU_KEY" "MENU_KEY" }
+{ "Ready" "Ready" }
+{ "F1" "F1" }
+{ "F2" "F2" }
+{ "F3" "F3" }
+{ "F4" "F4" }
+{ "F5" "F5" }
+{ "F6" "F6" }
+{ "F7" "F7" }
+{ "F8" "F8" }
+{ "F9" "F9" }
+{ "F10" "F10" }
+{ "F11" "F11" }
+{ "F12" "F12" }
+{ "Ah geez Frank, what kinda' fix are ya'll Raiders' gettin' us into here" "Ah geez Frank, what kinda' fix are ya'll Raiders' gettin' us into here" }
+{ "Hey, you can't shoot 'em all from two hundred yards Will." "Hey, you can't shoot 'em all from two hundred yards Will." }
+{ "Sometimes you gotta get up close n'dance" "Sometimes you gotta get up close n'dance" }
+{ "Just stick close to me and you'll be alright" "Just stick close to me and you'll be alright" }
+{ "Staff Sargeant!" "Staff Sargeant!" }
+{ "Aye Sir!." "Aye Sir!." }
+{ "Get Able squad in the raft." "Get Able squad in the raft." }
+{ "I'll take Baker ashore and meet you on the beach." "I'll take Baker ashore and meet you on the beach." }
+{ "Wilco Sir.  Okay, Everyone in!  Tommy, you first." "Wilco Sir.  Okay, Everyone in!  Tommy, you first." }
+{ "LISTEN UP BOOT - THIS IS YOUR FIRST ACTION," "LISTEN UP BOOT - THIS IS YOUR FIRST ACTION," }
+{ "SO THE MOST IMPORTANT THING YOU NEED TO REMEMBER" "SO THE MOST IMPORTANT THING YOU NEED TO REMEMBER" }
+{ "IS TO KEEP QUIET AND LISTEN." "IS TO KEEP QUIET AND LISTEN." }
+{ "What the hell did we bring a rookie for?" "What the hell did we bring a rookie for?" }
+{ "WHAT DID I JUST SAY?  THE C.O. WILL BRIEF US ON THE BEACH -" "WHAT DID I JUST SAY?  THE C.O. WILL BRIEF US ON THE BEACH -" }
+{ "NOW KEEP YOUR EYES ON THE SHORE." "NOW KEEP YOUR EYES ON THE SHORE." }
+{ "Frank, Get your boat concealed and rally on me" "Frank, Get your boat concealed and rally on me" }
+{ "Aye Sir." "Aye Sir." }
+{ "Jimmy, hide the raft and rejoin the platoon." "Jimmy, hide the raft and rejoin the platoon." }
+{ "Yes sir." "Yes sir." }
+{ "Double Time - Let's Move!" "Double Time - Let's Move!" }
+{ "Alright boys, let's pick up the pace!" "Alright boys, let's pick up the pace!" }
+{ "Tommy - You're on point." "Tommy - You're on point." }
+{ "One of your squadmates has been killed in action." "One of your squadmates has been killed in action." }
+{ "The Allied Spawn Point has been Destroyed!" "The Allied Spawn Point has been Destroyed!" }
+{ "The Allied Team Can No Longer Respawn!" "The Allied Team Can No Longer Respawn!" }
+{ "The Axis Spawn Point has been Destroyed!" "The Axis Spawn Point has been Destroyed!" }
+{ "The Axis Team Can No Longer Respawn!" "The Axis Team Can No Longer Respawn!" }
+{ "The Axis Control Switch 1!" "The Axis Control Switch 1!" }
+{ "The Allies Control Switch 1!" "The Allies Control Switch 1!" }
+{ "The Axis Control Switch 2!" "The Axis Control Switch 2!" }
+{ "The Allies Control Switch 2!" "The Allies Control Switch 2!" }
+{ "The Axis Control Switch 3!" "The Axis Control Switch 3!" }
+{ "The Allies Control Switch 3!" "The Allies Control Switch 3!" }
+{ "The Allied ? has been destroyed!" "The Allied ? has been destroyed!" }
+{ "The Allied Team can no longer respawn!" "The Allied Team can no longer respawn!" }
+{ "The Axis ? has been destroyed!" "The Axis ? has been destroyed!" }
+{ "The Axis Team can no longer respawn!" "The Axis Team can no longer respawn!" }
+{ "FAKE BUNKER ATTACK ****************" "FAKE BUNKER ATTACK ****************" }
+{ "Radio Operator Gag Started" "Radio Operator Gag Started" }
+{ "Spawn Radio Operator" "Spawn Radio Operator" }
+{ "Vote Failed" "Vote Failed" }
+{ "Vote Passed" "Vote Passed" }
+{ "(spectator)" "(spectator)" }
+{ "(dead)" "(dead)" }
+{ "(team)" "(team)" }
+{ "(private)" "(private)" }
+{ "Starting" "Starting" }
+{ "QuickSave" "QuickSave" }
+{ "Your hard drive is full, unable to save game." "Your hard drive is full, unable to save game." }
+{ "Error" "Error" }
+{ "Mission Objectives:" "Mission Objectives:" }
+{ "Waiting For Players" "Waiting For Players" }
+{ "Time Left:" "Time Left:" }
+{ "Press Fire(&&&) to join the battle!" "Press Fire(&&&) to join the battle!" }
+{ "Press Jump(&&&) or Duck(&&&) to follow a different player." "Press Jump(&&&) or Duck(&&&) to follow a different player." }
+{ "Press Use(&&&) to enter free spectate mode." "Press Use(&&&) to enter free spectate mode." }
+{ "Press Use(&&&) to enter player following spectate mode." "Press Use(&&&) to enter player following spectate mode." }
+{ "Vote Running" "Vote Running" }
+{ "Time" "Time" }
+{ "Yes" "Yes" }
+{ "No" "No" }
+{ "Undecided" "Undecided" }
+{ "Vote now, it's your patriotic duty!" "Vote now, it's your patriotic duty!" }
+{ "To vote Yes, press F1. To vote No, press F2." "To vote Yes, press F1. To vote No, press F2." }
+{ "Spectators" "Spectators" }
+{ "Allies" "Allies" }
+{ "Axis" "Axis" }
+{ "Wins" "Wins" }
+{ "Players" "Players" }
+{ "Not Bound" "Not Bound" }
+{ "Quick Chat (Press Enter to send) : Messaging to All" "Quick Chat (Press Enter to send) : Messaging to All" }
+{ "Quick Chat (Press Enter to send) : Messaging to Team" "Quick Chat (Press Enter to send) : Messaging to Team" }
+{ "Quick Chat (Press Enter to send) : Messaging to Client" "Quick Chat (Press Enter to send) : Messaging to Client" }
+{ "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to All" "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to All" }
+{ "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to Team" "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to Team" }
+{ "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to Client" "Chat Window (Enter to send/close) (all|team|private to change mode) : Messaging to Client" }
+{ "Server Name" "Server Name" }
+{ "Map" "Map" }
+{ "GameType" "GameType" }
+{ "Ping" "Ping" }
+{ "Mission" "Mission" }
+{ "Elapsed Time" "Elapsed Time" }
+{ "Date & Time Logged" "Date & Time Logged" }
+{ "Select a Map" "Select a Map" }
+{ "Select Your Axis Player Model" "Select Your Axis Player Model" }
+{ "Select Your Allied Player Model" "Select Your Allied Player Model" }
+{ "Gametype" "Gametype" }
+{ "IP" "IP" }
+{ "Another user is playing the Pacific Assault Demo" "Another user is playing the Pacific Assault Demo" }
+{ "Another user is playing Pacific Assault" "Another user is playing Pacific Assault" }
+
+{ "Single Player" "Single Player" }
+{ "Multiplayer" "Multiplayer" }
+{ "Options" "Options" }
+{ "Intelligence" "Intelligence" }
+{ "Quit" "Quit" }
+{ "New Game" "New Game" }
+{ "Continue Game" "Continue Game" }
+{ "Load Game" "Load Game" }
+{ "Statistics" "Statistics" }
+{ "Medals" "Medals" }
+{ "Heroic Moments" "Heroic Moments" }
+{ "Maplist" "Maplist" }
+{ "B A C K" "B A C K" }
+
+{ "Start Server" "Start Server"}
+{ "Join Server" "Join Server"}
+{ "Video" "Video" }
+{ "Audio" "Audio" }
+{ "Controls" "Controls" }
+{ "Advanced" "Advanced" }
+{ "Are you sure you wish to quit?" "Are you sure you wish to quit?" }
+{ "Movies" "Movies" }
+{ "Interviews" "Interviews" }
+{ "Credits" "Credits" }

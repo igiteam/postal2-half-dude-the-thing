@@ -1,0 +1,288 @@
+//----------------------------------------------------------------------------- 
+// 
+//  global/sound0.txt 
+// 
+//  Sounds located in this file are typically being used as loop sounds where we 
+//  need 1 or 2 things that we don't get with 'loopsound':
+//     1. to guarantee that when we start the sound it starts at the beginning of the asset
+//	   2. to guarantee that we don't respatialize certain loop sounds that are playing in the level
+// 
+// WARNING!! (5/04) Please note that the term milliseconds is wrong here, 
+//    1 second is a value of 100000
+// 	  e.g. loopend 500000  seems to mean loop at the end of 5 secs
+//
+//
+// Possible Keys:
+// --------------
+// sound <filename> (The start of every definition)
+// mindist <defaultmindist> (specifies the default minimum distance at which this sound is played
+// maxdist <defaultmaxdist> (does not work)
+// volume <defaultvolume> (specifies the default volume)
+// pitch <defaultpitch> (specifies the default pitch)
+// loopstart <startofloop> (specifies the time in ms which is the start of the loop)
+// loopend <endofloop> (specifies the time in ms which is the end of the loop), -1 means EOF
+// maxnumber <int> 
+// maxfactor <int>
+// localsound (specifies this sound as a local sound
+// defaultmindist <int> (specifies the default minimum distance for all sounds)
+// defaultmaxdist <int> (does nothing)
+// defaultvolume <float> (specifies the default volume for all sounds) 
+//
+// Sample Formatting:
+// ------------------
+// sound "blah"
+// 	localsound
+// 	volume 1
+//	mindist 1000
+//
+//
+//	!USE TABS!
+//
+// **********************************************************************************
+// **********************************************************************************
+// **********************************************************************************
+//
+// YOU MUST:
+// dwc: EXAMPLE OF USING 3 SOUNDS FOR A RISING, LOOPING, DECAYING BLEND
+// Make sure your sound in ubersound is playing on CHAN_WEAPON.
+// Make sure that in ubersound, your file is set to 'loaded', not 'streamed' 
+// CAVEAT: These are not the same type loop sounds as used with S_StopLoopSound()
+//
+// -----------------------------------------------------------------------------
+//SoundTest:
+// -----------------------------------------------------------------------------
+//
+//	local.ent = $jeep
+//
+//	dprintln "play first sound"
+//	local.ent playsound air_raid_bell_start wait
+//	local.ent waittill sounddone 
+//
+//	// play and stop the sound on channel 6.  i'm not sure why. 
+//	// yet another weird feature of our game.
+//	dprintln "ok, loop now"
+//	local.ent playsound air_raid_bell_loop 6
+//	wait 4
+//
+//	dprintln "kill the loop and play decay"
+//	local.ent stopsound 6
+//	local.ent playsound air_raid_bell_end
+//
+//end
+
+
+
+sound "sound/environment/raininside.wav"
+	localsound
+
+sound "sound/environment/rainoutside.wav"
+	localsound
+
+sound "sound/music/streamed_action_11.wav"
+	localsound
+
+sound "sound/music/streamed_m5.wav"
+	localsound
+
+sound "sound/music/action_11.wav"
+	localsound
+
+sound "sound/music/m5.wav"
+	localsound
+
+sound "sound/weapons/weapons_mohpa/Attacks/Machine_gun_loop.wav"
+	loopstart 0
+	loopend -1
+	
+sound "sound/weapons/fire/7mm_zero_snd_fireloop04.wav"
+	loopstart 0
+	loopend -1
+		
+sound "sound/LevelSpecificEvents/5_1/air_raid_bell_loop.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fire/wildcat_fire_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fire/dauntless_fire_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fire/12mm_aircobra_snd_fireloop.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/Attacks/thompson_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/Attacks/50Cal_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/Attacks/Mdl92Heavy_lp.wav"
+	loopstart 0
+	loopend -1
+	
+sound "sound/weapons/weapons_mohpa/Attacks/type100_snd_fire_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/FIRES/BAR/BAR_PlayerLoop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/FIRES/BAR/BAR_PlayerLoop_mono1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/FIRES/BAR/BAR_NPC_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/weapons_mohpa/FIRES/30Cal/Wpn_30Cal_ST_Loop1.wav"
+	loopstart 0
+	loopend -1	
+
+sound "sound/weapons/weapons_mohpa/FIRES/30Cal/Wpn_30Cal_mono_Loop1.wav"
+	loopstart 0
+	loopend -1	
+
+sound "sound/amb/Fire_med_LP1.wav"
+	loopstart 0
+	loopend -1
+	
+sound "sound/amb/amb_waterfall_lp.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/amb/amb_WtrOvrRoc_lrg.wav"
+	loopstart 0
+	loopend -1	
+	
+sound "sound/amb/amb_WtrOvrRoc_med.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/amb/amb_WtrOvrRoc_sml.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/LevelSpecificEvents/5_1/amb_icemachine_gen_LP.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/amb/amb_leaves_wind.wav"
+	localsound
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/BAR/Wpn_BAR_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/BAR/Wpn_BAR_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Type100/Wpn_Type100_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Type100/Wpn_Type100_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/30Cal/Wpn_30Cal_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/30Cal/Wpn_30Cal_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+
+sound "sound/weapons/fires_new/50Cal/Wpn_50Cal_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+
+sound "sound/weapons/fires_new/Reising/Wpn_ReisingLMG_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+
+sound "sound/weapons/fires_new/Reising/Wpn_ReisingLMG_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+
+sound "sound/weapons/fires_new/Model92/Wpn_Model92_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model92/Wpn_Model92_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model92/Wpn_Model96LMG_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model92/Wpn_Model96LMG_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model96/Wpn_Model92_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model96/Wpn_Model92_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model96/Wpn_Model96LMG_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Model96/Wpn_Model96LMG_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Thompson/Wpn_Thompson_ST_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/weapons/fires_new/Thompson/Wpn_Thompson_M_Loop1.wav"
+	loopstart 0
+	loopend -1
+
+sound "sound/amb/SoldiersRun.wav"
+	loopstart 0
+	loopend -1
+
+//========================================================
+//                                           max channels
+//                                           |     time factor
+//                                           |     |    distance factor
+//                                           |     |    | max channels on low end machine
+//                                           |     |    | |	
+audiotypepriority   "auto"                  16  -900  100 10 
+audiotypepriority   "body"                   5  -800  100 3 
+audiotypepriority   "item"                   5  -800  100 3
+// 10.12 weapon_idle is now used for weapon decay sounds.
+// please don't change this for MOHPA.  check with Dan Chisholm or Anthony Ku.
+audiotypepriority   "weapon_idle"            8     0  300 5 
+audiotypepriority   "voice"                  5  -900  100 3 
+audiotypepriority   "local"                 10  -400  100 5 
+audiotypepriority   "weapon"                 7	   0  300 5 
+audiotypepriority   "dialog_secondary"       16  -700 100 6
+audiotypepriority   "dialog"                 16  -400 100 6
+audiotypepriority   "menu"                   5  -800  100 3
+audiotypepriority   "whizbys"                4  -900  100 3
+audiotypepriority   "bullet_impacts"         4  -900  100 3
+audiotypepriority   "plane_flybys"          17   600  600 17
+audiotypepriority   "weapon_npc"             6  -600  100 4
+

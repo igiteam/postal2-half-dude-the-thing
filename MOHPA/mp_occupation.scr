@@ -1,0 +1,289 @@
+//
+// mp_occupation.scr
+// 
+// This script is used to monitor the occuption objective (where the
+// invading player needs to occupy a trigger for a set amount of time
+// to win the objective). The setup is as follows:
+//
+// - Create a trigger_multiple with a setthread that either calls the
+//   "occupation" routine, or calls another routine which in turn calls
+//   the "occupation" routine (with the trigger being the self in the
+//   thread call).
+// - before the objective is to be used, call the init method to
+//   initialize the zone.
+//
+
+//-----------------------------------------------------------------------------
+init local.team local.timer local.zonename local.callback local.dialog local.exclusive local.disableSiren local.occupiedCallback:
+//------------------
+
+	// .team - the team that should be occupying the room
+	// .timer - how long the occupiers need to be in the room
+	// .zonename - the name of the room being occupied (ie: Axis HQ)
+	// .callback - the routine to be called when the room has been occupied for the entire duration
+	// .dialog - the sound to play after the objetive is reached
+	// .exclusive - marks occupation to be exclusive. (defenders in zone reset occupation clock)
+	// .disableSiren - disables the siren associated with occupation
+	
+	// this gives the trigger a soundmaker
+	self thread global/mp_ambience.scr::sound occupy_alarm_sound 0
+	self.soundmaker stoploopsound
+
+	self.lock = -1
+
+	self.team = local.team
+	self.timer = local.timer * 10
+	self.zonename = local.zonename
+	self.callback = local.callback
+	self.occupiedCallback = local.occupiedCallback
+	if (local.dialog == NIL)
+		self.dialog = NULL
+	else
+		self.dialog = local.dialog
+	if (local.exclusive == NIL || local.exclusive == NULL)
+		self.exclusive = 0
+	else
+		self.exclusive = local.exclusive
+	if (local.disableSiren == NIL || local.disableSiren == NULL)
+		self.disableSiren = 0
+	else
+		self.disableSiren = local.disableSiren
+	self.countdown = -1 // not threatened
+	if (self.showObjectiveStatus == NIL || self.showObjectiveStatus == NULL)
+		self.showObjectiveStatus = 1
+		
+	if (self.showObjectiveStatus == 1)
+		self.objectiveStatus = waitthread global/mp_objective_status.scr::occupation_initialize self
+
+end
+
+
+//-----------------------------------------------------------------------------
+occupation local.player:
+//------------------
+
+	// Determine if the correct player (invader) has entered the space,
+	// and if so start up objective status on everybodies screen and monitor
+	// the space until either the time runs out, or all the invaders are
+	// flushed from the space.
+
+	if (self.lock == level.time)
+		end
+	self.lock = level.time
+		
+	self nottriggerable
+
+	local.occupied = NULL
+	local.defenderHere = 0
+
+	// Because the engine only ever considers one player every 5th of
+	// a second to start a thread on with triggers, it could be that
+	// a defender is hogging the trigger for himself. So we need to 
+	// loop through every player and see if an attacker is in the
+	// trigger ourselves.
+
+	for(local.j = 1; local.j <= $player.size; local.j++)
+	{
+		local.player = $player[local.j]
+
+		if (local.player.isspectator)
+			continue
+
+		if (local.player.incapacitated)
+			continue
+
+		if (!(Isalive local.player))
+			continue
+
+		if (!(local.player isinside self))
+			continue
+
+		if (local.player.dmteam == self.team)
+		{
+			local.occupied = local.player
+			if (self.exclusive == 0)
+				break
+		}
+		else if (self.exclusive)
+		{
+			local.defenderHere = 1
+		}
+	}
+
+	// We're an exclusive trigger and a defender is present or
+	// no attackers are present... stop processing.
+	if (local.defenderHere != 0 || local.occupied == NULL)
+	{
+		self triggerable
+		end
+	}
+
+	local.player = local.occupied
+
+	// tell players the area is now occupied
+	thread notify_of_occupation local.player
+	
+	if (self.occupiedCallback != NULL && self.occupiedCallback != NIL)
+		thread self.occupiedCallback
+
+	// Start up the siren, if we have one	
+	if (!self.disableSiren)
+	{
+		if( self.volume != NULL && self.volume != NIL  )
+		{
+			if( self.min_distance != NULL && self.min_distance != NIL )
+			{
+				if( self.max_distance != NULL && self.max_distance != NIL )				
+					self.soundmaker loopsound occupy_alarm_sound self.volume self.min_distance self.max_distance				
+				else
+					self.soundmaker loopsound occupy_alarm_sound self.volume self.min_distance
+			}
+			else
+				self.soundmaker loopsound occupy_alarm_sound self.volume
+		}
+		else
+			self.soundmaker loopsound occupy_alarm_sound						
+	}
+
+	// Count down self.timer tenths of a second. We'll need to be inside the
+	// area the whole time, and if we're exclusive, no enemy must breach the
+	// area... otherwise we're toast and we should reset.
+
+	self.countdown = self.timer
+	local.soundmaker = self.soundmaker
+	
+	while (self.countdown > 0)
+	{
+		if (self == NIL || self == NULL)
+		{
+			if (local.soundmaker != NIL && local.soundmaker != NULL)
+				local.soundmaker stoploopsound
+			end
+		}
+	
+		local.attackerPresent = 0
+		local.defenderPresent = 0
+	
+		for (local.j = 1; local.j <= $player.size; local.j++)
+		{
+			local.player = $player[local.j]
+			
+			if (local.player.incapacitated != 0)
+				continue
+
+			if (local.player.isspectator == 1)
+				continue
+
+			if (local.player isinside self && Isalive local.player)
+			{
+				if (local.player.dmteam == self.team)
+				{
+					local.attackerPresent = 1
+					if (self.exclusive == 0)
+						break
+				}
+				else
+				{
+					local.defenderPresent = 1
+					if (self.exclusive != 0)
+						break
+				}
+			}
+		}
+		
+		if (local.attackerPresent == 0)
+		{
+			self.countdown = -1 // to indicate that it's not threatened anymore
+			if (!self.disableSiren)
+				self.soundmaker stoploopsound
+			thread notify_failed_attempt
+			self triggerable
+			end
+		}
+
+		if (self.exclusive != 0 && local.defenderPresent)
+		{
+			self.countdown = -1 // to indicate that it's not threatened anymore
+			if (!self.disableSiren)
+				self.soundmaker stoploopsound
+			thread notify_failed_attempt
+			self triggerable
+			end
+		}
+	
+		self.countdown--
+	
+		wait 0.1
+	}
+
+	// SUCCESS! Stop the alarm, announce that we've taken the place, call any callbacks that
+	// need to be notified. Then clean ourselves up...
+	
+	if (!self.disableSiren)
+		self.soundmaker stoploopsound
+	self thread self.callback
+	thread notify_successful_attempt
+	
+	wait 1
+	if (self.dialog != NULL)
+		self.soundmaker playsound self.dialog
+	
+	wait 5
+	self.soundmaker remove
+	self remove
+end
+
+
+//------------------
+notify_of_occupation local.player:
+//------------------
+
+	local.timeLeft = self.timer * .1
+	
+	local.bigtextMsg = "INVADER:OccupationOccupied"
+	//local.bigtextMsg = local.player.netname + " has occupied the " + self.zonename
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg local.player.netname_noloc self.zonename
+	
+	local.time = "~" + int(local.timeLeft)
+	local.bigtextMsg = "INVADER:OccupationControlTime"
+	//local.bigtextMsg = "The " + self.zonename + " will be taken over in " + int(local.timeLeft) + " seconds!"
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.zonename local.time
+	
+	self.objectiveStatus waitthread global/mp_objective_status.scr::occupation_occupied 
+end
+
+
+//------------------
+notify_failed_attempt:
+//------------------
+
+	local.bigtextMsg = "INVADER:OccupationTheyFailed"
+	//local.bigtextMsg = "The enemy failed to take over the " + self.zonename
+	if( self.team == "axis" )			
+		thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.zonename // tell allies
+	else
+		thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.zonename // tell axis
+	
+	local.bigtextMsg = "INVADER:OccupationWeFailed"
+	//local.bigtextMsg = "Your team failed to take over the " + self.zonename
+	if( self.team == "axis" )			
+		thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.zonename
+	else
+		thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.zonename	
+
+	self.objectiveStatus waitthread global/mp_objective_status.scr::occupation_notify_failed_attempt
+end
+
+
+//------------------
+notify_successful_attempt:
+//------------------
+
+	//local.bigtextMsg = "INVADER:OccupationSuccess"
+	//local.bigtextMsg = "The " + self.zonename + " has been taken over!" 
+	//thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.zonename
+
+	self.objectiveStatus waitthread global/mp_objective_status.scr::occupation_notify_successful_attempt
+end
+
+

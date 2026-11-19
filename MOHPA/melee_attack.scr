@@ -1,0 +1,42 @@
+// -----------------------------------------------------------------------------
+//	melee_attack.scr
+//
+//	Keeps doing melee attack on the enemy until the enemy goes away or
+//  he moves out of range.  Script then exits and the "animation" ends
+//
+// -----------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+//	local.distance = self.distancetoenemy
+
+	self weaponcommand mainhand attachtohand mainhand
+//jsl-->	self setmotionanim (self.weapongroup + "_stand_alert_legs")
+//	self setmotionanim (self getalias idle legs)
+////	self waitexec anim/aim.scr::Aim
+
+	if ( self.usingbayonet == 1 )
+	{
+		waitexec anim/bayonet_attack.scr
+		end
+	}
+	else if( self.usingsword == 1 )
+	{
+		waitexec anim/sword_attack.scr
+		end
+	}
+
+	// Note: local.distance returns 0 if I don't have an enemy
+	// while ( (local.distance > 0) && (local.distance < self.reallyshortrange) )
+	{
+		waitexec anim/turret.scr::AttackDoMelee
+		local.distance = self.distancetoenemy
+		self.lastmovement = "stand"
+		self interrupt_point
+	}
+
+
+	end
+
+

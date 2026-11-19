@@ -1,0 +1,1 @@
+class LPAmbientSoundSplineBase extends Object;

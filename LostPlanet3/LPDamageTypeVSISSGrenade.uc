@@ -1,0 +1,1 @@
+class LPDamageTypeVSISSGrenade extends LPDamageTypeVSISSExplosion;

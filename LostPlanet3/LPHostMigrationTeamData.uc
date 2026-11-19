@@ -1,0 +1,1 @@
+class LPHostMigrationTeamData extends SPHostMigrationTeamData;

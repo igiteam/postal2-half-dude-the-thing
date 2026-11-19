@@ -1,0 +1,1 @@
+class LPAICmd_BeetleAttackVS extends LPAICmd_BeetleAttackBase within LPAIControllerBaseBeetle;

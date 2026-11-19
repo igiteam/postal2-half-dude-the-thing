@@ -1,0 +1,10 @@
+// -----------------------------------------------------------------------------
+//	sword_attack.scr
+//
+//
+//  Performs one full cycle of the sword animation.  Script then exits and the "animation" ends
+//
+// -----------------------------------------------------------------------------
+
+	waitexec anim/banzai.scr::BanzaiAttack
+	end

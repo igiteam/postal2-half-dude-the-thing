@@ -1,0 +1,114 @@
+// --------------------------------------------------------------------------------
+// global/mp_sunflare.scr
+//
+// This overrides settings placed in worldspawn for a particular level
+// --------------------------------------------------------------------------------
+
+main:
+
+	if ( level.sunflare_script_run == 1 )
+	{
+		println "ENDING EARLY NARNAR"
+		end
+	}
+	level.sunflare_script_run = 1
+
+level waittill spawn
+
+	// Level-based load-out decision
+	// MJG: note that all 'case' strings must be in lowercase to match properly
+	local.script = tolower level.script
+	println "*********** MP Sunflare Loadout for: " local.script
+
+	switch ( local.script )
+	{
+//////// Airfield
+	case "maps/dm/mp_airfield_inv.scr":
+
+		setcvar r_flare_size 4000
+		setcvar r_flare_fade 6
+		setcvar r_flare_occlusion_scale 10
+
+		break
+				
+//////// Bataan
+	case "maps/dm/mp_Bataan_INV.scr":
+            
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 5
+
+		break
+					
+//////// Bridge
+	case "maps/dm/mp_bridge_inv.scr":
+
+		setcvar r_flare_size 5000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 5
+
+		break
+		
+//////// Gavutu
+	case "maps/dm/mp_gavutu_inv.scr":
+
+		setcvar r_flare_size 4000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 5
+
+		break
+			
+//////// Gifu
+	case "maps/dm/mp_gifu_inv.scr":
+
+		setcvar r_flare_size 3500
+		setcvar r_flare_fade 6
+		setcvar r_flare_occlusion_scale 20
+
+		break
+
+//////// Matanikau
+	case "maps/dm/mp_matanikau_inv.scr":
+
+		setcvar r_flare_size 7000
+		setcvar r_flare_fade 6
+		setcvar r_flare_occlusion_scale 3
+
+		break		
+
+//////// Wake Island
+	case "maps/dm/mp_wakeisland_inv.scr":
+
+		setcvar r_flare_size 2500
+		setcvar r_flare_fade 6
+		setcvar r_flare_occlusion_scale 10
+
+		break
+		
+//////// Bougainville
+	case "maps/dm/mp_bougainville_inv.scr":
+
+		setcvar r_flare_size 2000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 8
+
+		break
+
+//////// Corregidor
+	case "maps/dm/mp_corregidor_inv.scr":
+
+		setcvar r_flare_size 2000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 8
+
+		break
+	
+	default:
+		println "SUNFLARE ERROR: no such map"
+		break
+	
+	}
+end
+
+
+// -----------------------------------------------------

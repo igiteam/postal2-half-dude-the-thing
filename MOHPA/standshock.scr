@@ -1,0 +1,33 @@
+// --------------------------------------------------------------
+// standshock.scr
+//
+//	"Geez, you scared the crap out of me!"
+// --------------------------------------------------------------
+
+Start:
+	//println "Entering standshock.scr"
+	waitexec "anim/default_inithandler.scr"
+
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+	if (self.team == "german")
+	{
+//		self thread anim/SayManager.scr::SayManager ("den_morphonly_panic_" + self.voicetype) 5
+	}
+	else
+	{
+//		self thread anim/SayManager.scr::SayManager ("dfr_morphonly_panic_" + self.voicetype) 5
+	}
+
+	self.blendtime = 0.25
+
+	//need to take into account current position here... will do it later...
+	self waitthread anim/stand.scr::transition
+
+	self setmotionanim (self getalias react shock stand)
+	self waittill flaggedanimdone
+
+
+
+end

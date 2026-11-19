@@ -1,0 +1,2222 @@
+//
+// mp_vehicles.scr
+//
+// Initialization:
+//	- Every vehicle that is to travel along a rail path should be
+//	  named "mpvehicle".
+//	- Each vehicle should have a "$pathName" set to the first node in
+//	  its travel path (where it will spawn).
+//      - after "level waittil spawn" a thread should:
+//	  "exec global/mp_vehicles.scr"
+//
+// Other uses:
+// 1) global/mp_vehicles.scr::MendPathBreak <breakpoint>
+//	If the vehicle's path is broken (because there's a barrier in
+//	the way that needs to be removed) then this is the call to
+//	make. When setting up the map initially the node chain should
+//	break where the vehicle will have to stop because of a
+//	barrier. This is accomplished by placing the
+//	"$vehiclePathBreakPoint" tag on the node that starts the break
+//	(the value of this attribute is the <breakpoint> that's given
+//	to this routine). When this routine is called then the path is
+//	repaired and the vehicle can continue on down the chain of
+//	nodes.
+//
+// 2) global/mp_vehicles.scr::PlayerTracking_Thread
+//
+// 3) global/mp_vehicles.scr::SetAltRespawnNode <vehicle> <node>
+//	If you want a vehicle to spawn at a new node after some
+//	condition is met, then this is the call to make.
+//
+
+//-----------------------------------------------------------------------------
+main:
+//------------------
+
+	// Initialize all the vehicles in the map and their path nodes.
+
+	level waittill spawn
+	if (!level.numRailVehicles)
+		level.numRailVehicles = 0
+	if ($mpvehicle)
+	{
+		level.vehicleExplosiveModel = mp_common/manmade/us_demolitionpack_nologic.hag
+		thread PlayerTracking_Thread
+
+		local.vsize = $mpvehicle.size
+		local.varray = waitexec global/makearray.scr $mpvehicle
+		for (local.i=1; local.i<=local.vsize; local.i++)
+			waitthread start_init_vehicle local.varray[local.i]
+	}
+
+end
+
+
+//------------------
+start_init_vehicle local.vehicle:
+//------------------
+
+	switch (local.vehicle.model)
+	{
+	case models/vehicles/jeep.hag:
+	case models/vehicles/jeep/jeep.hag:
+	
+		//dprintln "initializing jeep"
+		
+		// explicitly set the neccessary vars
+		local.vehicle.isScriptModel = 0
+		local.vehicle.autoDrive = 0
+		local.vehicle.hasDriverSlot = 1
+		local.vehicle.hasPassengerSlot = 1
+		local.vehicle.driverNodeObjectName = NULL
+		local.vehicle.driverUseAttach = 1
+		local.vehicle.driverCanDismount = 1
+		//local.vehicle.driverViewYawLimit = 135
+		//local.vehicle.driverViewPitchLimit = 65
+		local.vehicle.ejectDriverAtPathBreak = 0
+		local.vehicle.rejectDriverAfterEject = 0
+		local.vehicle.numTurretSlots = 1
+		local.vehicle.allowDrivingFromTurret = 0
+		local.vehicle.turretDismountDist = 100
+		local.vehicle.dismountVector = (0 100 0)
+		local.vehicle.canReverse = 1
+		local.vehicle.bodyType = "jeep"
+		local.vehicle.slotRadius = 150		//64
+		local.vehicle.dynaChargeSlotRadius = 100
+		local.vehicle.grossSlotRadius = 512			//256
+		local.vehicle.minSlotFacingAngle = 45
+		local.vehicle.forwardSpeed = 200
+		local.vehicle.reverseSpeed = 75
+		local.vehicle.accel = 75
+		local.vehicle.reachDistance = 256
+		local.vehicle.lookAhead = 256
+		local.vehicle.canRespawn = 1
+		local.vehicle.respawnTime = 20			//60 * 2		// ??
+		local.vehicle.damageHindersMobility = 1
+		local.vehicle.hasDynaChargeSlot = 1
+		local.vehicle.dynaChargeSlotDist = 50
+		local.vehicle.driverInvulnerable = 0
+		local.vehicle.armorScale = 1.0
+		local.vehicle.initHealth = 1000
+		
+		
+	break // end init for jeep.hag
+	
+	default:
+		
+		dprintln "Unknown vehicle " local.vehicle.model
+		end
+		
+	break
+	}
+
+	waitthread init_vehicle local.vehicle
+	thread vehicle_thread local.vehicle
+
+end
+
+
+//------------------
+vehicle_thread local.vehicle:
+//------------------
+
+	if (local.vehicle.freeDrive == 1)
+		end
+
+	while (1)
+	{
+		waitthread vehicle_check_for_driver local.vehicle
+		
+		while (local.vehicle.isDead ||
+			!local.vehicle.canBeDriven || !local.vehicle.driver ||
+			(!local.vehicle.autoDrive && ((abs local.vehicle.driver.forwardmove) < 0.5)))
+		{
+			waitthread vehicle_check_for_driver local.vehicle
+			if (local.vehicle.pathRefresh)
+			{
+				waitthread ClearPathDir local.vehicle.initPath
+				waitthread vehicle_recheck_nodes local.vehicle
+				local.vehicle.pathRefresh = 0
+			}
+			waitframe
+		}
+
+		waitthread vehicle_driving_thread local.vehicle
+
+		waitframe
+	}
+end
+
+		
+//------------------
+vehicle_driving_thread local.vehicle:
+//------------------
+
+	if ((local.vehicle.autoDrive || (local.vehicle.driver.forwardmove >= 0.5)) &&
+	    local.vehicle.forwardNode)
+	{
+		waitthread vehicle_driving_forward_thread local.vehicle
+	}
+	else if (local.vehicle.canReverse && 
+		 (local.vehicle.driver.forwardmove <= -0.5) &&
+		 local.vehicle.reverseNode)
+	{
+		waitthread vehicle_driving_backwards_thread local.vehicle
+	}
+end
+
+
+//------------------
+vehicle_driving_backwards_thread local.vehicle:
+//------------------
+
+	thread vehicle_drive local.vehicle 1
+	waitframe
+
+	while (!local.vehicle.isDead &&
+	       local.vehicle.canBeDriven && 
+	       local.vehicle.driver &&
+	       local.vehicle.driving &&
+	       (local.vehicle.driver.forwardmove <= -0.5))
+	{
+		waitthread vehicle_check_for_driver local.vehicle
+		if (local.vehicle.pathRefresh)
+		{
+			waitthread ClearPathDir local.vehicle.initPath
+			thread vehicle_drive local.vehicle 1
+			local.vehicle.pathRefresh = 0
+		}
+		waitframe
+	}
+
+	if (!local.vehicle.canBeDriven || 
+            !local.vehicle.driver ||
+	    (local.vehicle.driver.forwardmove > -0.5))
+	{
+		waitthread vehicle_stop_driving local.vehicle
+	}
+
+	while (!local.vehicle.isDead &&
+	       local.vehicle.canBeDriven && 
+	       local.vehicle.driver &&
+	       local.vehicle.driver.forwardmove <= -0.5)
+	{
+		waitthread vehicle_check_for_driver local.vehicle
+		if (local.vehicle.pathRefresh)
+		{
+			waitthread ClearPathDir local.vehicle.initPath
+			waitthread vehicle_recheck_nodes local.vehicle
+			local.vehicle.pathRefresh = 0
+		}
+		waitframe
+	}
+end
+
+//------------------
+vehicle_driving_forward_thread local.vehicle:
+//------------------
+
+	thread vehicle_drive local.vehicle 0
+	waitframe
+
+	while (!local.vehicle.isDead &&
+	       local.vehicle.canBeDriven && 
+	       local.vehicle.driver &&
+	       local.vehicle.driving &&
+	       (local.vehicle.autoDrive || (local.vehicle.driver.forwardmove >= 0.5)))
+	{
+		waitthread vehicle_check_for_driver local.vehicle
+		if (local.vehicle.pathRefresh)
+		{
+			waitthread ClearPathDir local.vehicle.initPath
+			thread vehicle_drive local.vehicle 0
+			local.vehicle.pathRefresh = 0
+		}
+		waitframe
+	}
+
+	if (!local.vehicle.canBeDriven || 
+            !local.vehicle.driver ||
+	    (!local.vehicle.autoDrive && (local.vehicle.driver.forwardmove < 0.5)))
+	{
+		waitthread vehicle_stop_driving local.vehicle
+	}
+
+	while (!local.vehicle.isDead &&
+	       local.vehicle.canBeDriven && 
+	       local.vehicle.driver &&
+	       !local.vehicle.autoDrive &&
+	       (local.vehicle.driver.forwardmove >= 0.5))
+	{
+		waitthread vehicle_check_for_driver local.vehicle
+		if (local.vehicle.pathRefresh)
+		{
+			waitthread ClearPathDir local.vehicle.initPath
+			waitthread vehicle_recheck_nodes local.vehicle
+			local.vehicle.pathRefresh = 0
+		}
+		waitframe
+	}
+end
+
+
+//------------------
+init_vehicle local.vehicle:
+//------------------
+
+	if (local.vehicle.team != "allies" && local.vehicle.team != "axis")
+		local.vehicle.team = "allies"
+	
+	// show the player a tutorial message when they approach this vehicle
+	local.vehicle settutorial use_vehicle 600
+	
+	//dprintln "vehicle team is " local.vehicle.team
+	
+	if (local.vehicle.newTargetName != NIL)
+		local.vehicle.targetname = local.vehicle.newTargetName
+
+	local.vehicle.autoDrive_save = local.vehicle.autoDrive
+	local.vehicle.driverCanDismount_save = local.vehicle.driverCanDismount
+	local.vehicle.damageHindersMobility_save = local.vehicle.damageHindersMobility
+
+	if (!level.numRailVehicles)
+		level.numRailVehicles = 0
+	level.numRailVehicles++
+	level.railVehicle[level.numRailVehicles] = local.vehicle
+
+	local.vehicle.initOrigin = local.vehicle.origin
+	local.vehicle.initAngles = local.vehicle.angles
+
+	local.vehicle immune crush
+//	local.vehicle immune bullet
+//	local.vehicle immune fast_bullet
+	local.vehicle immune fire
+	local.vehicle immune shotgun
+	local.vehicle immune bash
+	local.vehicle immune impale
+	local.vehicle immune suicide
+	local.vehicle immune falling
+
+	if (local.vehicle.initHealth != NULL && local.vehicle.initHealth != NIL)
+		local.vehicle.health = local.vehicle.initHealth
+	else
+		local.vehicle.health = 1000
+	local.vehicle thread vehicle_damage_tracking_thread
+
+	if (!local.vehicle.isScriptModel)
+	{
+		local.vehicle undrivable
+//@		local.vehicle turretswitchable 0
+	}
+
+	local.vehicle.minSlotFacingAngleCos = (cos local.vehicle.minSlotFacingAngle)
+	local.vehicle.speedFactor = 1
+
+	local.path = $(local.vehicle.pathName)
+
+	if (local.path == NIL || local.path == NULL)
+		local.vehicle.freeDrive = 1
+	else
+	{
+		waitthread init_vehicle_path local.path (local.vehicle.autoDrive && !local.vehicle.canReverse && local.vehicle.ejectDriverAtPathBreak)
+
+		local.vehicle.initPath = local.path
+		local.vehicle.currPath = local.path
+		local.vehicle.currNode = NULL
+		local.vehicle.forwardNode = local.path
+		if (!local.path.prevBroken)
+			local.vehicle.reverseNode = $(local.path.prevNode)
+		else
+			local.vehicle.reverseNode = NULL
+		local.vehicle.altRespawnNode = NULL
+
+		local.vehicle.driving = 0
+		local.vehicle.drivingInReverse = 0
+		local.vehicle.reachedDest = 0
+	}
+	
+	local.vehicle.isDead = 0
+
+	if (local.vehicle.hasDriverSlot)
+	{
+		if (local.vehicle.driverNodeObjectName && $(local.vehicle.driverNodeObjectName))
+		{
+			local.vehicle.driverSlot = $(local.vehicle.driverNodeObjectName)
+			local.vehicle.driverDismountPos = ( 0 0 10 )
+		}
+		else
+		{
+			local.vehicle.driverSlot = spawn script_origin
+			local.seatpos = local.vehicle gettagposition "driver_enter"
+			local.seatpos[2] -= 45
+			local.vehicle.driverSlot.origin = local.seatpos
+			local.vehicle.driverDismountPos = ( -100 0 0 )
+		}
+		local.vehicle.driverSlot bind local.vehicle
+		local.vehicle.driver = NULL
+		local.vehicle.canBeDriven = 1
+		local.vehicle.rejectDriver = 0
+	}
+	else
+	{
+		local.vehicle.driverSlot = NULL
+		local.vehicle.driver = NULL
+		local.vehicle.canBeDriven = local.vehicle.allowDrivingFromTurret
+	}
+	
+	if (local.vehicle.hasPassengerSlot == 1)
+	{
+		local.vehicle.passengerSlot = spawn script_origin
+		local.seatpos = local.vehicle gettagposition "passenger_enter"
+		local.seatpos[2] -= 45
+		local.vehicle.passengerSlot.origin = local.seatpos
+		local.vehicle.passengerDismountPos = (100 0 0)
+	}
+	else		
+		local.vehicle.passengerSlot = NULL
+		
+	local.vehicle.passenger = NULL
+	// turret slots
+	for (local.i=1; local.i<=local.vehicle.numTurretSlots; local.i++)
+	{
+		local.vehicle.turret[local.i] = local.vehicle queryturretslotentity (local.i - 1)
+		local.vehicle.turret[local.i] overheat 4.5 2 1.5
+		local.vehicle.turret[local.i] nodamage
+		local.vehicle.turretDismountPos[local.i] = ( 0 -local.vehicle.turretDismountDist 0 )
+		local.vehicle.turretUser[local.i] = NULL
+	}
+
+	if (local.vehicle.hasDynaChargeSlot)
+	{
+		local.vehicle.dynaChargeSlot = spawn script_model model level.vehicleExplosiveModel
+		local.vehicle.dynaChargeSlot.origin = waitthread get_transformed_vector local.vehicle.angles ( local.vehicle.dynaChargeSlotDist 0 40 )
+		local.vehicle.dynaChargeSlot.origin = local.vehicle.origin + local.vehicle.dynaChargeSlot.origin
+		thread poor_mans_bind local.vehicle.dynaChargeSlot local.vehicle
+		if (local.vehicle.team == "allies")
+			local.vehicle.dynaChargeSlot visibleteamonly 2
+		else
+			local.vehicle.dynaChargeSlot visibleteamonly 1
+		local.vehicle.dynaChargeSlot notsolid
+
+		local.vehicle.dynaChargePlanted = 0
+	}
+	else
+	{
+		local.vehicle.dynaChargeSlot = NULL
+		local.vehicle.dynaChargePlanted = 0
+	}
+
+end
+
+
+
+//------------------
+vehicle_damage_tracking_thread:
+//------------------
+
+	//dprintln "in damage tracking thread ..."
+
+	local.initHealth = self.health
+
+	local.smokeHealthPoint = 0.5 * self.health
+	//local.immobileHealthPoint = 0.2 * self.health
+
+	local.HEALTH_OFFSET = 10000
+	self.health = self.health + local.HEALTH_OFFSET
+	local.smokeHealthPoint = local.smokeHealthPoint + local.HEALTH_OFFSET
+	//local.immobileHealthPoint = local.immobileHealthPoint + local.HEALTH_OFFSET
+
+	self.smoke = NULL
+
+	self.dockHealthLevel = 0
+
+	local.prevHealth = self.health
+	while (self != NULL)
+	{
+		if (self.dockHealthLevel)
+		{
+			if (self.health >= local.smokeHealthPoint)
+				self.health = local.smokeHealthPoint - 1
+			else if (self.health > local.HEALTH_OFFSET)
+				self.health = local.HEALTH_OFFSET - 1
+
+			self.dockHealthLevel = 0
+		}
+
+		if (self.health <= local.HEALTH_OFFSET)
+		{
+			self nodamage
+
+			// kill everyone attached to my slots
+
+			if (self.driver) {
+				dprintln "made it here"
+				self.driver show
+				self.driver takedamage
+				self.driver solid
+				self detachdriverslot 0
+				self.driver hurt 100000
+				self.driver damage $world 55000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+			}
+
+			// turret slots
+			for (local.i=1; local.i<=self.numTurretSlots; local.i++)
+			{
+				if (self.turretUser[local.i])
+					self.turretUser[local.i] damage $world 55000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+			}
+
+			// death
+
+			self.isDead = 1
+			if (self.hasDynaChargeSlot)
+				self.dynaChargeSlot hide
+
+			self thread vehicle_death
+
+			if (self.canRespawn && (self.respawnTime > 0))
+			{
+				wait self.respawnTime
+				self waitthread vehicle_undeath
+				self.health = local.initHealth + local.HEALTH_OFFSET
+				self takedamage
+				self.autoDrive = self.autoDrive_save
+				self.damageHindersMobility = self.damageHindersMobility_save
+				waitthread reset_vehicle_path self.initPath
+				if (self.altRespawnNode)
+				{
+					self.currNode = self.altRespawnNode
+					self.origin = self.altRespawnNode.origin
+					if (self.currNode.nextNode)
+						self.angles = (vector_toangles ($(self.currNode.nextNode).origin - self.currNode.origin))
+					else
+						self.angles = (0 0 0)
+
+					if (self.currNode.nextIsBroken)
+						self.forwardNode = NULL
+					else
+						self.forwardNode = $(self.currNode.nextNode)
+
+					if (self.currNode.prevIsBroken)
+						self.reverseNode = NULL
+					else
+						self.reverseNode = $(self.currNode.prevNode)
+				}
+				else
+				{
+					self.origin = self.initOrigin
+					self.angles = self.initAngles
+					self.currPath = self.initPath
+					self.currNode = NULL
+					self.forwardNode = self.initPath
+					if (self.initPath && !self.initPath.prevBroken)
+						self.reverseNode = $(self.initPath.prevNode)
+					else
+						self.reverseNode = NULL
+				}
+				waitthread ClearPathDir self.initPath
+				self.canBeDriven = 1
+				self.speedFactor = 1
+				if (self.hasDynaChargeSlot)
+				{
+					self.dynaChargeSlot show
+					self.dynaChargeSlot altmodel_id 0 // model items/pulse_explosive.tik
+					if (self.team == "allies")
+						self.dynaChargeSlot visibleteamonly 2
+					else
+						self.dynaChargeSlot visibleteamonly 1
+					self.dynaChargePlanted = 0
+				}
+				self.isDead = 0
+
+				if (self.respawnCallback != NIL && self.respawnCallback != NULL)
+					self thread self.respawnCallback
+			}
+			else
+			{
+				break
+			}
+		}
+		else
+		{
+			if ((local.prevHealth >= local.smokeHealthPoint) &&
+				(self.health < local.smokeHealthPoint))
+			{
+				if (self.damageHindersMobility)
+				{
+					self.speedFactor = 0.8
+					if (self.driving)
+					{
+						// do the modifydrive thing, to adjust the speed
+
+						if (self.drivingInReverse)
+						{
+							self modifydrive (self.speedFactor * -self.reverseSpeed) (self.speedFactor * self.accel) self.lookAhead
+						}
+						else
+						{
+							if (local.vehicle.isScriptModel)
+								self modifyflypath (self.speedFactor * self.forwardSpeed) (self.speedFactor * self.accel) self.lookAhead
+							else
+								self modifydrive (self.speedFactor * self.forwardSpeed) (self.speedFactor * self.accel) self.lookAhead
+						}
+					}
+				}
+
+				if (!self.smoke)
+				{
+					self.smoke = spawn script_model "models/emitters/linger_smoke.tik"
+					self.smoke notsolid
+					self.smoke anim start
+					self.smoke.origin = (self.origin + (0 0 160))
+					self.smoke glue self
+				}
+
+				self playsound tank_hurt
+			}
+		}
+
+		local.prevHealth = self.health
+
+		waitframe
+	}
+
+end
+
+
+
+//////////////////////////////////////////////
+
+
+
+//------------------
+vehicle_maintain_driver_angles local.vehicle:
+//------------------
+
+	local.driver = local.vehicle.driver
+	if (!local.driver)
+		end
+
+	local.vehicle.lastAngles = local.vehicle.angles
+	while (local.vehicle != NULL && local.vehicle.driver == local.driver)
+	{
+		local.dy = local.vehicle.angles[1] - local.vehicle.lastAngles[1]
+		local.dp = local.vehicle.angles[0] - local.vehicle.lastAngles[0]
+
+		local.driver.viewangles = ( (local.driver.viewangles[0] + local.dp) (local.driver.viewangles[1] + local.dy) local.driver.viewangles[2] )
+
+		local.vehicle.lastAngles = local.vehicle.angles
+
+		waitframe
+	}
+
+end
+
+
+//------------------
+vehicle_maintain_passenger_angles local.vehicle:
+//------------------
+
+	local.passenger = local.vehicle.passenger
+	if (!local.driver)
+		end
+
+	local.vehicle.lastPAngles = local.vehicle.angles
+	while (local.vehicle.passenger == local.passenger)
+	{
+		local.dy = local.vehicle.angles[1] - local.vehicle.lastAngles[1]
+		local.dp = local.vehicle.angles[0] - local.vehicle.lastAngles[0]
+
+		local.passenger.viewangles = ( (local.passenger.viewangles[0] + local.dp) (local.passenger.viewangles[1] + local.dy) local.passenger.viewangles[2] )
+
+		local.vehicle.lastPAngles = local.vehicle.angles
+
+		waitframe
+	}
+
+end
+
+
+//------------------
+vehicle_recheck_nodes local.vehicle:
+//------------------
+
+	if (local.vehicle.currNode)
+	{
+		if (local.vehicle.currNode.prevNode && !local.vehicle.currNode.prevBroken)
+			local.vehicle.reverseNode = $(local.vehicle.currNode.prevNode)
+		else
+			local.vehicle.reverseNode = NULL
+
+		if (local.vehicle.currNode.nextNode && !local.vehicle.currNode.nextBroken)
+			local.vehicle.forwardNode = $(local.vehicle.currNode.nextNode)
+		else
+			local.vehicle.forwardNode = NULL
+	}
+	else if (local.vehicle.forwardNode)
+	{
+		if (local.vehicle.forwardNode.prevNode && !local.vehicle.forwardNode.prevBroken)
+			local.vehicle.reverseNode = $(local.vehicle.forwardNode.prevNode)
+		else
+			local.vehicle.reverseNode = NULL
+	}
+	else if (local.vehicle.reverseNode)
+	{
+		if (local.vehicle.reverseNode.nextNode && !local.vehicle.reverseNode.nextBroken)
+			local.vehicle.forwardNode = $(local.vehicle.reverseNode.nextNode)
+		else
+			local.vehicle.forwardNode = NULL
+	}
+
+end
+
+
+
+//------------------
+vehicle_stop_driving local.vehicle:
+//------------------
+
+	if (!local.vehicle.driving)
+		end
+
+	local.vehicle.driving = 0
+	if (local.vehicle.isScriptModel)
+	{
+		local.vehicle endpath
+		local.vehicle stop
+	}
+	else
+	{
+		local.vehicle stop
+	}
+	local.lastDestNode = waitthread get_path_nth_node local.vehicle.currPath local.vehicle
+
+	local.vehicle.currNode = NULL	// we are in between nodes
+
+	if (local.lastDestNode == NULL)
+		dprintln ( "ERROR: last dest node is NULL" )
+	else {
+		if (local.lastDestNode.nextBroken == NULL)
+			dprintln ( "ERROR: last dest node #" + local.lastDestNode.entnum + "'s next broken is NULL" )
+	}
+
+	if (local.vehicle.drivingInReverse)
+	{
+		if (local.lastDestNode.nextNode == NULL)
+			dprintln ( "ERROR: last dest node #" + local.lastDestNode.entnum + "'s next node is NULL" )
+
+		local.vehicle.reverseNode = local.lastDestNode
+
+		if (!local.lastDestNode.nextBroken)
+			local.vehicle.forwardNode = $(local.lastDestNode.nextNode)
+		else
+			local.vehicle.forwardNode = NULL
+	}
+	else
+	{
+		if (local.lastDestNode.prevNode == NULL)
+			dprintln ( "ERROR: last dest node #" + local.lastDestNode.entnum + "'s prev node is NULL" )
+
+		local.vehicle.forwardNode = local.lastDestNode
+
+		if (!local.lastDestNode.prevBroken)
+			local.vehicle.reverseNode = $(local.lastDestNode.prevNode)
+		else
+			local.vehicle.reverseNode = NULL
+	}
+
+	waitframe
+
+end
+
+
+//------------------
+vehicle_reach_path_break local.vehicle:
+//------------------
+
+	if (!local.vehicle.driving)
+		end
+
+	local.vehicle.driving = 0
+	if (local.vehicle.isScriptModel)
+	{
+		local.vehicle endpath
+		local.vehicle stop
+	}
+	else
+	{
+		local.vehicle stop
+	}
+	local.vehicle.currNode = waitthread get_path_last_node local.vehicle.currPath
+
+	if (!local.vehicle.drivingInReverse)
+	{
+		if (local.vehicle.currNode.nextAutoWayPoint)
+		{
+			local.vehicle.currNode.nextBroken = 0
+			if (local.vehicle.currNode.nextNode)
+				$(local.vehicle.currNode.nextNode).prevBroken = 0
+
+			local.nawp = $(local.vehicle.currNode.nextAutoWayPoint)
+			local.nawp.nextBroken = 1
+			if (local.nawp.nextNode)
+				$(local.nawp.nextNode).prevBroken = 1
+			waitthread ClearPathDir local.vehicle.initPath
+		}
+		else if (local.vehicle.currNode.autoDrive != NIL)
+		{
+			local.vehicle.currNode.prevBroken = 1
+			if (local.vehicle.currNode.prevNode)
+				$(local.vehicle.currNode.prevNode).nextBroken = 1
+
+			local.vehicle.currNode.nextBroken = 0
+			if (local.vehicle.currNode.nextNode)
+				$(local.vehicle.currNode.nextNode).prevBroken = 0
+
+			local.vehicle.autoDrive = local.vehicle.currNode.autoDrive
+			if (local.vehicle.currNode.autoDrive)
+			{
+				local.vehicle.driverCanDismount = 0
+			}
+			else
+			{
+				local.vehicle.driverCanDismount = local.vehicle.driverCanDismount_save
+			}
+
+			if (local.vehicle.currNode.damageHindersMobility != NIL)
+				local.vehicle.damageHindersMobility = local.vehicle.currNode.damageHindersMobility
+
+			waitthread ClearPathDir local.vehicle.initPath
+		}
+	}
+
+	if (!local.vehicle.currNode.prevBroken)
+		local.vehicle.reverseNode = $(local.vehicle.currNode.prevNode)
+	else
+		local.vehicle.reverseNode = NULL
+	if (!local.vehicle.currNode.nextBroken)
+		local.vehicle.forwardNode = $(local.vehicle.currNode.nextNode)
+	else
+		local.vehicle.forwardNode = NULL
+
+	if (local.vehicle.ejectDriverAtPathBreak && local.vehicle.driver)
+	{
+		local.vehicle.driver.ejectFromVehicle = 1
+		if (local.vehicle.rejectDriverAfterEject)
+			local.vehicle.rejectDriver = 1
+	}
+
+	waitframe
+
+end
+
+
+//------------------
+vehicle_drive local.vehicle local.reverse:
+//------------------
+
+	if (local.vehicle.driving)
+	{
+		waitthread vehicle_stop_driving local.vehicle
+	}
+
+	local.vehicle.reachedDest = 0
+
+	if (local.reverse)
+	{
+		waitthread reverse_path local.vehicle.initPath
+		local.vehicle.currPath = local.vehicle.reverseNode
+		//dprintln "Driving on " local.vehicle.currPath
+		local.vehicle unlock
+		local.vehicle drive local.vehicle.currPath // (local.vehicle.speedFactor * -local.vehicle.reverseSpeed) (local.vehicle.speedFactor * local.vehicle.accel) local.vehicle.reachDistance local.vehicle.lookAhead
+		local.vehicle lock
+		local.vehicle.drivingInReverse = 1
+	}
+	else
+	{
+		waitthread forward_path local.vehicle.initPath
+		local.vehicle.currPath = local.vehicle.forwardNode
+		if (local.vehicle.isScriptModel)
+			local.vehicle flypath local.vehicle.currPath (local.vehicle.speedFactor * local.vehicle.forwardSpeed) (local.vehicle.speedFactor * local.vehicle.accel) local.vehicle.lookAhead		//local.vehicle.reachDistance
+		else
+		{
+			//dprintln "Driving on " local.vehicle.currPath
+			local.vehicle unlock
+			local.vehicle drive local.vehicle.currPath //(local.vehicle.speedFactor * local.vehicle.forwardSpeed) (local.vehicle.speedFactor * local.vehicle.accel) local.vehicle.reachDistance local.vehicle.lookAhead
+			local.vehicle lock
+		}
+		local.vehicle.drivingInReverse = 0
+	}
+	local.vehicle.driving = 1
+
+	if (local.vehicle.isScriptModel)
+	{
+		local.vehicle waitmove
+	}
+	else
+	{
+		waitframe
+		local.vehicle waittill drive
+	}
+
+	if (local.vehicle.driving && local.vehicle.driver && local.vehicle.canBeDriven)
+	{
+		waitthread vehicle_reach_path_break local.vehicle
+		local.vehicle.reachedDest = 1
+	}
+
+end
+
+
+//------------------
+vehicle_check_for_driver local.vehicle:
+//------------------
+
+	if (local.vehicle.hasDriverSlot || (local.vehicle.numTurretSlots <= 0) ||
+			!local.vehicle.allowDrivingFromTurret)
+		end
+
+	local.vehicle.driver = NULL
+	for (local.i=1; local.i<=local.vehicle.numTurretSlots; local.i++)
+	{
+		if (local.vehicle.turretUser[local.i])
+		{
+			local.vehicle.driver = local.vehicle.turretUser[local.i]
+			break
+		}
+	}
+
+	//dprintln "vehicle_check_for_driver -> driver = " local.vehicle.driver
+
+end
+
+
+
+//------------------
+init_vehicle_path local.path local.autoWayPointsOkay:
+//------------------
+
+	//dprintln "Initializing path " local.path
+
+	local.path.isForward = 0
+	local.path.isReverse = 0
+
+	local.node = local.path
+	local.prevNode = NULL
+
+	local.backToStart = 0
+	local.prevWasBroken = 0
+
+	while (local.node)
+	{
+		if (local.prevNode)
+		{
+			local.node.prevNode = local.prevNode
+			local.node.prevBroken = local.prevWasBroken
+		}
+		else
+		{
+			local.node.prevNode = NULL
+			local.node.prevBroken = 1
+		}
+		local.node.prevBroken_save = local.node.prevBroken
+		local.prevNode = local.node
+		local.prevWasBroken = 0
+
+		if (local.backToStart)
+			break
+
+		local.nextIsBroken = 0
+
+		// old names, compatibility
+		if (local.node.vehiclePathBreakPoint != NIL)
+			local.node.namedBreakage = local.node.vehiclePathBreakPoint
+		if (local.node.initPathBroken != NIL)
+			local.node.initBroken = local.node.initPathBroken
+
+		if (local.node.namedBreakage)
+		{
+			level.vehiclePathBreakPointPath[local.node.namedBreakage] = local.path
+			if (local.node.initBroken)
+			{
+				level.vehiclePathBreakPointBroken[local.node.namedBreakage] = 1
+				local.nextIsBroken = 1
+				local.prevWasBroken = 1
+			}
+			else
+			{
+				level.vehiclePathBreakPointBroken[local.node.namedBreakage] = 0
+			}
+			level.vehiclePathBreakNode[local.node.namedBreakage] = local.node
+		}
+		else if (local.node.nextAutoWayPoint)
+		{
+			if (local.autoWayPointsOkay && $(local.node.nextAutoWayPoint))
+			{
+				if ((local.node.initBroken == NIL) || (local.node.initBroken != 0))
+				{
+					local.nextIsBroken = 1
+					local.prevWasBroken = 1
+				}
+			}
+			else
+			{
+				local.node.nextAutoWayPoint = NULL
+			}
+		}
+		else if (local.node.autoDrive != NIL)
+		{
+			local.nextIsBroken = 1
+			local.prevWasBroken = 1
+		}
+
+
+		if (local.node.target)
+		{
+			local.node.nextNode = local.node.target
+			local.node.nextBroken = local.nextIsBroken
+			local.node.nextBroken_save = local.node.nextBroken
+			local.node = $(local.node.nextNode)
+		}
+		else
+		{
+			local.node.nextNode = NULL
+			local.node.nextBroken = 1
+			local.node.nextBroken_save = local.node.nextBroken
+			local.node = NULL
+		}
+
+		if (local.node == local.path)
+			local.backToStart = 1
+	}
+
+end
+
+
+//------------------
+reset_vehicle_path local.path:
+//------------------
+
+	if (local.path == NIL || local.path == NULL)
+		end
+
+	local.path.isForward = 0
+	local.path.isReverse = 0
+
+	local.node = local.path
+	while (1)
+	{
+		local.node.prevBroken = local.node.prevBroken_save
+		local.node.nextBroken = local.node.nextBroken_save
+
+		if (local.node.nextNode)
+		{
+			local.node = $(local.node.nextNode)
+			if (local.node == local.path)
+				break
+		}
+		else
+		{
+			break
+		}
+	}
+
+end
+
+
+//------------------
+forward_path local.path:
+//------------------
+
+	if (local.path.isForward)
+		end
+
+	local.node = local.path
+	while (1)
+	{
+		if (local.node.nextNode)
+		{
+			if (!local.node.nextBroken)
+				local.node.target = local.node.nextNode
+			else
+				local.node.target = ""
+			local.node = $(local.node.nextNode)
+			if (local.node == local.path)
+				break
+		}
+		else
+		{
+			local.node.target = ""
+			break
+		}
+	}
+
+	local.path.isForward = 1
+	local.path.isReverse = 0
+
+end
+
+
+//------------------
+reverse_path local.path:
+//------------------
+
+	if (local.path.isReverse)
+		end
+
+	local.node = local.path
+	while (1)
+	{
+		if (local.node.prevNode)
+		{
+			if (!local.node.prevBroken)
+				local.node.target = local.node.prevNode
+			else
+				local.node.target = ""
+		}
+		else
+		{
+			local.node.target = ""
+		}
+
+		if (local.node.nextNode)
+		{
+			local.node = $(local.node.nextNode)
+			if (local.node == local.path)
+				break
+		}
+		else
+		{
+			break
+		}
+	}
+
+	local.path.isReverse = 1
+	local.path.isForward = 0
+
+end
+
+ClearPathDir local.path:
+
+	local.path.isForward = 0
+	local.path.isReverse = 0
+
+end
+
+
+//-----------------------------------------------------------------------------
+MendPathBreak local.breakName:
+//------------------
+
+	// If the vehicle's path is broken (because there's a barrier
+	// in the way that needs to be removed) then this is the call
+	// to make. When setting up the map initially the node chain
+	// should break where the vehicle will have to stop because of
+	// a barrier. This is accomplished by placing the
+	// "$vehiclePathBreakPoint" tag on the node that starts the
+	// break (the value of this attribute is the local.breakName
+	// that's given to this routine). When this routine is called
+	// then the path is repaired and the vehicle can continue on
+	// down the chain of nodes.
+	//
+
+	if (!level.vehiclePathBreakPointBroken[local.breakName])
+		end		// already mended
+
+	local.path = level.vehiclePathBreakPointPath[local.breakName]
+	local.breakNode = level.vehiclePathBreakNode[local.breakName]
+
+
+	level.vehiclePathBreakPointBroken[local.breakName] = 0
+	local.breakNode.nextBroken = 0
+	local.breakNode.nextBroken_save = 0
+	$(local.breakNode.nextNode).prevBroken = 0
+	$(local.breakNode.nextNode).prevBroken_save = 0
+
+
+	// re-drive any vehicle on this path
+
+	for (local.i=1; local.i<=level.numRailVehicles; local.i++)
+	{
+		local.vehicle = level.railVehicle[local.i]
+
+		if (local.vehicle.initPath == local.path)
+		{
+			local.vehicle.pathRefresh = 1
+			break			// should only be one
+		}
+	}
+
+end
+
+
+
+//-----------------------------------------------------------------------------
+SetAltRespawnNode local.vehicle local.node:
+//------------------
+
+	local.vehicle.altRespawnNode = local.node
+
+end
+
+
+
+////////////////////////////////////////////
+// misc
+
+//------------------
+get_horizontal_transformed_vector local.angles local.vector:
+//------------------
+
+	local.angles = ( 0 local.angles[1] 0 )
+	local.xv = (angles_toleft local.angles) * local.vector[0]
+	local.yv = (angles_toforward local.angles) * local.vector[1]
+	local.zv = (angles_toup local.angles) * local.vector[2]
+
+	local.result = local.xv + local.yv + local.zv
+
+end local.result
+
+
+//------------------
+get_transformed_vector local.angles local.vector:
+//------------------
+
+	local.xv = (angles_toleft local.angles) * local.vector[0]
+	local.yv = (angles_toforward local.angles) * local.vector[1]
+	local.zv = (angles_toup local.angles) * local.vector[2]
+
+	local.result = local.xv + local.yv + local.zv
+
+end local.result
+
+
+//------------------
+get_path_nth_node local.path local.vehicle:
+//------------------
+
+	if (local.vehicle.lastdestnodeindex == NIL || local.vehicle.lastdestnodeindex == NULL)
+		local.vehicle.lastdestnodeindex = 1
+
+	local.index = local.vehicle.lastdestnodeindex
+
+	//iprintln "GetNthPathNode n = " local.index
+
+	local.node = local.path
+	for (local.index2 = 0; local.index2 < local.index; local.index2++)
+	{
+		if (local.node.target == NULL || local.node.target == "")
+			end local.node
+		local.node = local.node.target
+	}
+
+end local.node
+
+//------------------
+get_path_last_node local.path:
+//------------------
+
+	local.node = local.path
+	while (local.node.target && local.node.target != "")
+	{
+		local.node = $(local.node.target)
+		if (local.node == local.path)
+			break		// whatever
+	}
+
+end local.node
+
+
+//------------------
+poor_mans_bind local.bind_this local.to_that:
+//------------------
+
+	local.v = local.bind_this.origin - local.to_that.origin
+	local.xv = angles_toleft local.to_that.angles
+	local.yv = angles_toforward local.to_that.angles
+	local.zv = angles_toup local.to_that.angles
+	local.relPos = ( (vector_dot local.xv local.v) (vector_dot local.yv local.v) (vector_dot local.zv local.v) )
+	while (local.to_that)
+	{
+		local.bind_this.origin = waitthread get_transformed_vector local.to_that.angles local.relPos
+		local.bind_this.origin = local.bind_this.origin + local.to_that.origin
+		local.bind_this.angles = local.to_that.angles
+		waitframe
+	}
+
+end
+
+
+///////////////////////////////////////////////////////
+
+//------------------
+vehicle_death:
+//------------------
+
+	if (!self)
+		end
+
+	self show
+
+	switch (self.bodyType)
+	{
+		case "jeep":
+			self playsound explode_truck
+			exec global/earthquake.scr .2 4 0 0	
+			local.explosion1 = spawn script_model model models/fx/fx_truck_explosion.tik
+			local.explosion1.origin = self gettagposition "driver_enter"
+			local.explosion1.angles = self gettagangles "driver_enter"
+			local.explosion1 anim start
+			local.explosion1 notsolid
+
+			wait .4
+			if (!self)
+				end
+			
+			self playsound explode_truck
+			exec global/earthquake.scr .2 4 0 0	
+			local.explosion2 = spawn script_model model models/fx/fx_truck_explosion.tik
+			local.explosion2.origin = self gettagposition "passenger_enter"
+			local.explosion2.angles = self gettagangles "passenger_enter"
+			local.explosion2 anim start
+			local.explosion2 notsolid
+			self thread jeep_smoke 2048
+			break
+	}
+
+	if (self.collisionent)
+	{
+		for (local.i=1; local.i<=$player.size; local.i++)
+		{
+			if((isalive $player[local.i]) && !$player[local.i].isSpectator &&
+					($player[local.i] istouching self.collisionent))
+			{
+				$player[local.i] normal_damage 100
+			}
+		}
+
+		self.collisionent disconnect_paths
+	}
+
+	radiusdamage self.origin 200 200
+
+	local.angles = self.angles
+	local.origin = self.origin
+
+	local.collision = NULL
+	local.model = NULL
+
+	switch (self.bodyType)
+	{
+		case "jeep":
+			local.model = models/vehicles/jeep.hag 
+			break
+	}
+
+	self hide
+	for (local.i=1; local.i<=self.numTurretSlots; local.i++)
+	{
+		self.turret[local.i] hide
+	}
+	self notsolid
+
+	if (local.model)
+	{
+		self.damaged = thread spawn_damaged local.model local.angles local.origin	
+		self.damaged notsolid
+	}
+	else self.damaged = NULL
+
+	if (self.collisionent)
+	{
+		local.brushmodel = self.collisionent.brushmodel
+		self.damagedCollision = thread damaged_collision local.angles local.origin local.brushmodel
+		self.damagedCollision disconnect_paths
+	}
+	else self.damagedCollision = NULL
+
+	if(self.damaged)
+		self.damaged targetname (self.targetname + "damaged")
+	if(self.trigger)
+		self.damaged thread delete_if_i_disappear self.trigger
+	wait 10
+
+	if (local.explosion1)
+		local.explosion1 remove
+	if (local.explosion2)
+		local.explosion2 remove
+
+end
+
+
+//------------------
+spawn_damaged local.model local.angles local.origin:
+//------------------
+	local.damaged = spawn script_model model local.model
+	local.damaged.origin = local.origin
+	local.damaged.angles = local.angles
+end local.damaged
+
+
+//------------------
+damaged_collision local.angles local.origin local.brushmodel:
+//------------------
+	local.collision = spawn script_object model local.brushmodel
+	local.collision.origin = local.origin
+	local.collision.angles = local.angles
+end local.collision
+
+
+//------------------
+delete_if_i_disappear local.itemtodelete:
+//------------------
+
+	// Used to make sure the trigger hurt does not exist beyond
+	// the destroyed model
+	//
+
+	while (self)
+		wait 0.5
+	local.itemtodelete delete
+end
+
+
+//------------------
+jeep_smoke local.dist:
+//------------------
+
+	// Local.dist is the distance you want the player to get
+	// from the smoke before it deletes itself if not set
+	// defaults to 2048
+
+	if(local.dist == NIL || local.dist == NULL)
+		local.dist = 2048
+	if (!self.smoke)
+		self.smoke = spawn script_model "models/emitters/linger_smoke.tik"
+	if (self.smoke)
+	{
+		self.smoke notsolid
+		self.smoke anim start
+		local.place = self gettagposition "driver_enter"
+		self.smoke.origin = local.place
+		//self.smoke glue self
+		self.smoke thread delete_smoke local.dist
+	}
+end
+
+
+//------------------
+delete_smoke local.dist:
+//------------------
+	local.result = 0
+	local.count = 0
+	
+	if(local.dist == NIL || local.dist == NULL)
+		local.dist = 2048
+	
+	if!(self)
+		End
+	
+	local.distance = vector_length($player.origin-self.origin)
+
+	local.flag = 0
+	local.flag = vector_length($player.origin-self.origin) > local.dist 
+    
+	local.vObjDir	= vector_subtract self.origin $player.origin
+	local.vObjDir	= vector_normalize local.vObjDir
+	local.vForward  = angles_toforward ( $player.angles )
+	local.dot	= vector_dot local.vForward local.vObjDir
+	
+	if ( local.dot < 0.707 )
+		local.result = 1
+	else
+		local.result = 0
+
+	if(local.result == 1 && local.flag == 1)
+	{
+		if (self.sound != NIL && self.sound != NULL)
+			self.sound delete
+		self delete
+		local.count++
+		End
+	}
+
+	if(local.count != 1 || self != NIL) // this is giving me the infinite loop problem
+	{
+		wait 4.0	
+		goto delete_smoke local.dist
+	}
+end
+
+
+//------------------
+vehicle_undeath:
+//------------------
+
+	if (self.damaged)
+	{
+		self.damaged remove
+		self.damaged = NULL
+	}
+	if (self.damagedCollision)
+	{
+		self.damagedCollision remove
+		self.damagedCollision = NULL
+	}
+	if (self.smoke)
+	{
+		self.smoke remove
+		self.smoke = NULL
+	}
+	self show
+	for (local.i=1; local.i<=self.numTurretSlots; local.i++)
+	{
+		self.turret[local.i] show
+	}
+	self solid
+
+end
+
+
+//------------------
+vehicle_charge_planted local.vehicle local.player:
+//------------------
+
+	if (local.vehicle.dynaChargePlanted)
+		end
+
+	local.vehicle.dynaChargeSlot altmodel_id 1 // model items/explosive.tik
+	local.vehicle.dynaChargeSlot visibleteamonly 0
+
+	local.timeLeft = 10		//5
+	local.counter = 0
+	local.vehicle.dynaChargePlanted = 1
+	local.player stopwatch local.timeLeft
+	while ((local.timeLeft > 0) && local.vehicle.dynaChargePlanted)
+	{
+		wait 0.1
+		local.timeLeft -= 0.1
+		local.counter++
+		if ((local.counter % 5) == 0)
+			local.vehicle playsound bombtick
+	}
+	local.vehicle.dynaChargePlanted = 1		// so it can't be replanted immediately
+	local.player stopwatch 0
+	local.vehicle stopsound
+
+	if (local.timeLeft <= 0)
+	{
+		local.vehicle.dockHealthLevel = 1
+		local.vehicle playsound explode_truck
+		local.explosion1 = spawn script_model model models/fx/fx_truck_explosion.tik
+		local.explosion1.origin = local.vehicle.dynaChargeSlot.origin
+		local.explosion1.angles = ( 0 0 0 )
+		local.explosion1 anim start
+		local.explosion1 notsolid
+//		radiusdamage local.vehicle.dynaChargeSlot.origin 200 200
+		local.vehicle.dynaChargeSlot hide
+		wait 3
+		local.explosion1 delete
+	}
+
+	if (!local.vehicle.isDead)
+		local.vehicle.dynaChargeSlot show
+	local.vehicle.dynaChargeSlot altmodel_id 0 // model items/pulse_explosive.tik
+	if (local.vehicle.team == "allies")
+		local.vehicle.dynaChargeSlot visibleteamonly 2
+	else
+		local.vehicle.dynaChargeSlot visibleteamonly 1
+	local.vehicle.dynaChargePlanted = 0
+
+end
+
+
+/////////////////////////////////////
+// Player stuff
+
+//-----------------------------------------------------------------------------
+PlayerTracking_Thread:
+//------------------
+
+	while (1)
+	{
+		if $player
+		{
+			for (local.i=1; local.i<=$player.size; local.i++)
+			{
+				if (!$player[local.i].mpVehicleThread)
+				{
+					$player[local.i] thread track_single_player_thread
+				}
+			}
+		}
+
+		wait 1
+	}
+
+end
+
+
+//------------------
+track_single_player_thread:
+//------------------
+
+	// set up any inits
+	self.onVehicle = NULL
+	self.mpVehicleThread = local
+	self.ejectFromVehicle = 0
+	self.lastSetUse = NULL
+	self.chargeVehicle = NULL
+	self.disarmChargeVehicle = NULL
+	self.mountVehicle = NULL
+	self.vehicleProtectingSelf = NULL
+
+	// self thread player_use_slot_thread
+	
+	// maintain
+
+	while (self)
+	{
+		if ((isalive self) && !self.isSpectator)
+		{
+			waitthread track_single_living_player_thread
+		}
+		else
+		{
+			if (self.onVehicle)
+			{
+				waitthread player_dismount_vehicle_slot self 0
+			}
+			if (self.vehicleProtectingSelf != NULL)
+			{
+				waitthread player_end_protection_by_vehicle self.vehicleProtectingSelf
+			}
+		}
+
+		waitframe
+	}
+
+end
+
+
+
+//------------------
+track_single_living_player_thread:
+//------------------
+
+	if (self.onVehicle == NULL)
+	{
+		if (self.useheld)
+		{
+			self.chargeVehicle = waitthread player_can_plant_vehicle_charge self
+			self.disarmChargeVehicle = waitthread player_can_disarm_vehicle_charge self
+			self.mountVehicle = waitthread player_can_mount_vehicle self
+			
+			if (self.disarmChargeVehicle)
+			{
+				self.disarmChargeVehicle.dynaChargePlanted = 0
+			}
+			else if (self.mountVehicle)
+			{
+				waitthread player_mount_vehicle_slot self self.mountVehicle[3] self.mountVehicle[1] self.mountVehicle[2]
+
+				if (self.vehicleProtectingSelf == NULL)
+				{
+					waitthread player_protected_by_vehicle self.onVehicle
+				}
+			}
+			else if (self.chargeVehicle)
+			{
+				thread vehicle_charge_planted self.chargeVehicle self
+			}
+		//	self useslot "none"
+		//	self.lastSetUse = NULL
+
+			while (self.useheld)
+				waitframe
+		}
+	}
+	else
+	{
+		if (self.ejectFromVehicle ||
+		    (self.useheld && ((self.onVehicleSlotType != "driver") || 
+				      self.onVehicle.driverCanDismount)))
+		{
+			waitthread player_dismount_vehicle_slot self 1
+			self.ejectFromVehicle = 0
+
+			if (self.vehicleProtectingSelf != NULL)
+			{
+				waitthread player_end_protection_by_vehicle self.vehicleProtectingSelf
+			}
+			while (self.useheld)
+				waitframe
+		}
+	}
+end
+
+
+//------------------
+player_end_protection_by_vehicle local.vehicle:
+//------------------
+
+	// remove vehicle armor
+
+	if (isalive self)
+	{
+		self healthonly (self.health/local.vehicle.armorScale)
+	}
+
+	self max_health (self.max_health/local.vehicle.armorScale)
+	
+	if (local.vehicle.driverInvulnerable)
+	{
+		self takedamage
+		self show
+	}
+	self.vehicleProtectingSelf = NULL
+end
+
+
+//------------------
+player_protected_by_vehicle local.vehicle:
+//------------------
+
+	// add armor protection of the vehicle
+
+	self.vehicleProtectingSelf = self.onVehicle
+	self max_health (self.max_health*self.vehicleProtectingSelf.armorScale)
+	self healthonly (self.health*self.vehicleProtectingSelf.armorScale)
+
+	if (self.vehicleProtectingSelf.driverInvulnerable)
+	{
+		self nodamage
+		self hide
+	}
+end
+
+
+//------------------
+player_use_slot_thread:
+//------------------
+
+	while (self)
+	{
+		if ((isalive self) && !self.isSpectator)
+		{
+			if (self.onVehicle)
+			{
+				self.chargeVehicle = NULL
+				self.mountVehicle = NULL
+			}
+			else
+			{
+				self.chargeVehicle = waitthread player_can_plant_vehicle_charge self
+				self.mountVehicle = waitthread player_can_mount_vehicle self
+			}
+			if (self.mountVehicle)
+			{
+				if ((self.mountVehicle[1] == "driver") && (self.lastSetUse != "driver"))
+				{
+					self useslot "driver"
+					self.lastSetUse = "driver"
+				}
+				else if ((self.mountVehicle[1] == "turret") && (self.lastSetUse != "turret"))
+				{
+					self useslot "gunner"		// AW, should these be turret?
+					self.lastSetUse = "gunner"
+				}
+				else if ((self.mountVehicle[1] == "passenger") && (self.lastSetUse != "passenger"))
+				{
+					//dprintln "made it here!"
+					//self useslot "passenger"
+					//self.lastSetUse = "passenger"
+				}
+			}
+			else if (self.chargeVehicle)
+			{
+				if (self.lastSetUse != "dynamite")
+				{
+					self useslot "dynamite"
+					self.lastSetUse = "dynamite"
+				}
+			}
+			else
+			{
+				if (self.lastSetUse)
+				{
+					self useslot "none"
+					self.lastSetUse = NULL
+				}
+			}
+		}
+
+		wait 0.5
+	}
+
+end
+
+
+
+/////////////////////////////////////////////////////////////
+// Players getting in and out of vehicles
+
+//------------------
+put_player_in_vehicle_passenger local.player local.vehicle local.slotNum:
+//------------------
+
+	dprintln "Putting player in passenger slot"
+
+	waitframe
+	
+	if (local.vehicle.driverUseAttach)
+	{
+		local.vehicle unlock
+		local.vehicle attachpassengerslot local.slotNum local.player
+		local.vehicle lock
+	}
+	else
+	{
+		local.player nodamage
+		local.player notsolid
+		local.player physics_off
+		local.player glue local.vehicle.passengerSlot
+	}
+	
+	local.player.viewangles = ( local.vehicle.angles[0] local.vehicle.angles[1] 0 )
+	local.vehicle.passenger = local.player
+	thread vehicle_maintain_passenger_angles local.vehicle
+
+end
+
+
+//------------------
+remove_player_from_passenger_slot local.player local.vehicle local.slotNum local.normalDismount:
+//------------------
+
+	dprintln "Removing player from passenger slot"
+	
+	if (local.vehicle.driverUseAttach)
+	{
+		local.vehicle unlock
+		local.vehicle detachpassengerslot local.slotNum
+		local.vehicle lock
+		local.vehicle.passenger = NULL
+
+		waitframe
+
+		if (local.normalDismount)
+			local.player waitthread put_player_next_to_vehicle local.vehicle 1
+	}
+	else
+	{
+		local.player unglue
+		local.player safesolid
+		local.player physics_on
+		local.player takedamage
+
+		if (local.normalDismount)
+			local.player waitthread put_player_next_to_vehicle local.vehicle 1
+
+		local.vehicle.passenger = NULL
+	}
+end
+
+
+//------------------
+put_player_next_to_vehicle local.vehicle local.slot:
+//------------------
+
+	if (local.slot == 1) // Passenger
+	{
+		local.dismountPos = local.vehicle.passengerDismountPos
+		local.slotOrigin = local.vehicle.passengerSlot.origin
+	}
+	else if (local.slot == 2) // Driver
+	{
+		local.dismountPos = local.vehicle.driverDismountPos
+		local.slotOrigin = local.vehicle.driverSlot.origin
+	}
+
+	local.dismountPosRel = waitthread get_horizontal_transformed_vector local.vehicle.angles local.dismountPos
+	local.pos = local.slotOrigin + local.dismountPosRel
+	local.terrainHeight = terrain_height 0 local.pos[0] local.pos[1]
+	local.potential = ( local.pos[0] local.pos[1] local.terrainHeight )
+	local.scanUp = local.potential + ( 0 0 1 )
+	local.scanUp = trace local.scanUp ( local.scanUp + ( 0 0 512 ) )
+	local.scanDown = trace local.scanUp local.potential
+	self.origin = ( local.scanDown + ( 0 0 20 ) )
+
+	self.viewangles = ( 0 local.vehicle.angles[1] 0 )
+end
+
+
+//------------------
+put_player_in_driver_slot local.player local.vehicle:
+//------------------
+
+	dprintln "Putting player in driver slot"
+
+	waitframe
+
+	if (local.vehicle.driverUseAttach)
+	{
+		local.vehicle unlock
+		local.vehicle attachdriverslot 0 local.player
+		local.vehicle lock
+		if (local.vehicle.freeDrive == 1)
+			local.vehicle drivable
+		else
+		{
+		//	dprintln "driving ..."
+			local.vehicle drivable
+			local.vehicle autopilot 0
+		}
+	}
+	else
+	{
+		local.player nodamage
+		local.player notsolid
+	//	local.player physics_off
+		local.player glue local.vehicle.driverSlot
+	}
+
+	local.player.viewangles = ( local.vehicle.angles[0] local.vehicle.angles[1] 0 )
+	local.vehicle.driver = local.player
+	thread vehicle_maintain_driver_angles local.vehicle
+	local.vehicle SetParkingBrake 0
+
+end
+
+
+//------------------
+remove_player_from_driver_slot local.player local.vehicle local.normalDismount:
+//------------------
+
+//	dprintln "Removing player from driver slot"
+
+	if (local.vehicle.driverUseAttach)
+	{
+		local.vehicle unlock
+		local.vehicle detachdriverslot 0
+		local.vehicle lock
+		local.vehicle.driver = NULL
+		local.vehicle undrivable
+
+		waitframe
+
+		if (local.normalDismount)
+			local.player waitthread put_player_next_to_vehicle local.vehicle 2
+	}
+	else
+	{
+		local.player unglue
+		local.player solid
+		local.player physics_on
+		local.player takedamage
+		
+		if (local.normalDismount)
+			local.player waitthread put_player_next_to_vehicle local.vehicle 2
+
+		local.vehicle.driver = NULL
+	}
+
+	//dprintln "Setting Parking Brake"
+	
+	local.vehicle SetParkingBrake 1
+end
+
+
+//------------------
+put_player_in_vehicle_turret local.player local.vehicle local.turretNum:
+//------------------
+
+	//dprintln "Putting player in turret"
+
+	local.player forcelegsstate "STAND"
+	local.vehicle unlock
+	local.vehicle.turret[local.turretNum] unlock
+	local.vehicle attachturretslot (local.turretNum - 1) local.player
+	local.vehicle.turret[local.turretNum] lock
+	local.vehicle lock
+
+	local.vehicle.turretUser[local.turretNum] = local.player
+
+end
+
+
+//------------------
+remove_player_from_vehicle_turret local.player local.vehicle local.turretNum local.normalDismount:
+//------------------
+
+	//dprintln "Removing player from turret"
+
+	if ((isalive local.player) && (!self.isSpectator))
+	{
+		local.vehicle unlock
+		//local.vehicle.turret[local.turretNum] unlock
+		local.vehicle doUse local.player
+		local.outVec = angles_toforward local.vehicle.angles
+		local.outVec = local.outVec * -150
+		local.vehicle detachgunnerfromturretslot (local.turretNum-1) (local.vehicle.origin + local.outVec)
+		local.vehicle lock
+	}
+	//local.vehicle.turret[local.turretNum] lock
+
+	if (local.normalDismount)
+	{
+		if (local.vehicle.dismountVector)
+			local.dismountPosRel = waitthread get_horizontal_transformed_vector local.vehicle.angles local.vehicle.dismountVector
+		else
+			local.dismountPosRel = waitthread get_horizontal_transformed_vector local.vehicle.angles local.vehicle.turretDismountPos[local.turretNum]
+		local.player.origin = local.vehicle.turret[local.turretNum].origin + local.dismountPosRel
+		local.player.viewangles = ( 0 local.vehicle.angles[1] 0 )
+	}
+
+	local.vehicle.turretUser[local.turretNum] = NULL
+
+end
+
+
+
+//////////////////////////////////////
+// Slot Stuff
+
+//------------------
+get_slot_alignment local.playerEye local.playerAngles local.slotOrigin local.slotRadius local.slotMinFacingAngleCos:
+//------------------
+
+	local.zdiff = (local.slotOrigin[2] - local.playerEye[2])
+	if ((local.zdiff > ( 2 * local.slotRadius )) || (local.zdiff < ( -2 * local.slotRadius )))
+		end -1
+
+	local.eyeToSlot = ( (local.slotOrigin[0] - local.playerEye[0]) (local.slotOrigin[1] - local.playerEye[1]) 0 )
+
+	if (!(vector_within local.eyeToSlot ( 0 0 0 ) local.slotRadius))
+		end -1
+
+	local.eyeToSlotDist = (vector_length local.eyeToSlot)
+	local.eyeToSlotDir = local.eyeToSlot * (1 / local.eyeToSlotDist)
+	local.lookingDir = (angles_toforward local.playerAngles)
+
+	local.facingAngleCos = (vector_dot local.eyeToSlotDir local.lookingDir)
+
+	//if (local.facingAngleCos < local.slotMinFacingAngleCos)
+	//	end -1
+
+end local.eyeToSlotDist
+
+
+//------------------
+get_player_useable_vehicle_slot local.player local.vehicle:
+//------------------
+
+	local.ra[1] = "NONE"		// slot type
+	local.ra[2] = -1			// slot number
+	local.ra[3] = NULL			// vehicle
+
+	//local.playerEye = (local.player gettagposition "full_body")
+	local.playerEye = (local.player gettagposition "JO_eye_R")
+	//local.playerEye = local.player.origin + (0 0 100)
+	local.playerAngles = local.player.viewangles
+
+	if (!(vector_within local.playerEye local.vehicle.origin local.vehicle.grossSlotRadius))
+		end local.ra
+
+	local.bestSlotAlignment = 500000
+
+	// look for driver slots
+	if (local.vehicle.hasDriverSlot && !local.vehicle.driver && !local.vehicle.rejectDriver)
+	{
+		local.sa = waitthread get_slot_alignment local.playerEye local.playerAngles local.vehicle.driverSlot.origin local.vehicle.slotRadius local.vehicle.minSlotFacingAngleCos
+
+		if ((local.sa >= 0) && (local.sa < local.bestSlotAlignment))
+		{
+			local.bestSlotAlignment = local.sa
+			local.ra[1] = "driver"
+			local.ra[2] = 1
+			local.ra[3] = local.vehicle
+		}
+	}
+
+	// look for passenger slots
+	if (local.vehicle.hasPassengerSlot && !local.vehicle.passenger)
+	{
+		local.sa = waitthread get_slot_alignment local.playerEye local.playerAngles local.vehicle.passengerSlot.origin local.vehicle.slotRadius local.vehicle.minSlotFacingAngleCos
+	
+		if ((local.sa >= 0) && (local.sa < local.bestSlotAlignment))
+		{
+			local.bestSlotAlignment = local.sa
+			local.ra[1] = "passenger"
+			local.ra[2] = local.vehicle queryfreepassengerslot
+			local.ra[3] = local.vehicle
+		}
+	}	
+
+	for (local.i=1; local.i<=local.vehicle.numTurretSlots; local.i++)
+	{
+		if (!local.vehicle.turretUser[local.i])
+		{
+			local.sa = waitthread get_slot_alignment local.playerEye local.playerAngles local.vehicle.turret[local.i].origin local.vehicle.slotRadius local.vehicle.minSlotFacingAngleCos
+
+			if ((local.sa >= 0) && (local.sa < local.bestSlotAlignment))
+			{
+				local.bestSlotAlignment = local.sa
+				local.ra[1] = "turret"
+				local.ra[2] = local.i
+				local.ra[3] = local.vehicle
+			}
+		}
+	}
+
+end local.ra
+
+
+
+//------------------
+player_mount_vehicle_slot local.player local.vehicle local.slotType local.slotNumber:
+//------------------
+
+	if (local.player.onVehicle)
+		end
+
+	switch (local.slotType)
+	{
+		case "driver":
+			waitthread put_player_in_driver_slot local.player local.vehicle
+			break
+		case "turret":
+			waitthread put_player_in_vehicle_turret local.player local.vehicle local.slotNumber
+			break
+		case "passenger":
+			waitthread put_player_in_vehicle_passenger local.player local.vehicle local.slotNumber
+			break
+		default:
+			dprintln "player_mount_vehicle_slot : unknown slottype " local.slotType
+			end
+	}
+
+	local.player.onVehicle = local.vehicle
+	local.player.onVehicleSlotType = local.slotType
+	local.player.onVehicleSlotNum = local.slotNumber
+
+end
+
+
+//------------------
+player_dismount_vehicle_slot local.player local.normalDismount:
+//------------------
+
+	if (!local.player.onVehicle)
+		end
+
+	switch (local.player.onVehicleSlotType)
+	{
+		case "driver":
+			waitthread remove_player_from_driver_slot local.player local.player.onVehicle  local.normalDismount
+			break
+		case "turret":
+			waitthread remove_player_from_vehicle_turret local.player local.player.onVehicle local.player.onVehicleSlotNum  local.normalDismount
+			break
+		case "passenger":
+			waitthread remove_player_from_passenger_slot local.player local.player.onVehicle local.player.onVehicleSlotNum  local.normalDismount
+			break
+		default:
+			dprintln "player_dismount_vehicle_slot : unknown onVehicleSlotType " local.player.onVehicleSlotType
+			break
+	}
+
+	local.player.onVehicle = NULL
+	local.player.onVehicleSlotType = "NONE"
+	local.player.onVehicleSlotNum = -1
+
+end
+
+
+//------------------
+player_can_mount_vehicle local.player:
+//------------------
+
+	for (local.i=1; local.i<=level.numRailVehicles; local.i++)
+	{
+		local.vehicle = level.railVehicle[local.i]
+		if (local.vehicle && (isalive local.vehicle) &&
+			!local.vehicle.isDead &&
+			((local.player.dmteam == "freeforall") ||
+					(local.vehicle.team == local.player.dmteam)))
+		{
+			//dprintln "made it here"
+		
+			local.ra = waitthread get_player_useable_vehicle_slot local.player local.vehicle
+
+			// mount first one we are able to
+			if (local.ra[1] != "NONE")
+			{
+				end local.ra
+			}
+		}
+	}
+
+end NULL
+
+
+//------------------
+player_can_plant_vehicle_charge local.player:
+//------------------
+
+	//local.playerEye = (local.player gettagposition "full_body")
+	local.playerEye = (local.player gettagposition "JO_eye_R")
+	//local.playerEye = local.player.origin + (0 0 100)
+	local.playerAngles = local.player.viewangles
+
+	for (local.i=1; local.i<=level.numRailVehicles; local.i++)
+	{
+		local.vehicle = level.railVehicle[local.i]
+		if (local.vehicle && (isalive local.vehicle) &&
+			!local.vehicle.isDead &&
+			local.vehicle.hasDynaChargeSlot &&
+			!local.vehicle.dynaChargePlanted &&
+			((local.player.dmteam == "freeforall") ||
+					(local.vehicle.team != local.player.dmteam)) &&
+			(vector_within local.playerEye local.vehicle.origin local.vehicle.grossSlotRadius))
+		{
+			local.sa = waitthread get_slot_alignment local.playerEye local.playerAngles local.vehicle.dynaChargeSlot.origin local.vehicle.dynaChargeSlotRadius local.vehicle.minSlotFacingAngleCos
+			if (local.sa >= 0)
+				end local.vehicle
+		}
+	}
+
+end NULL
+
+
+//------------------
+player_can_disarm_vehicle_charge local.player:
+//------------------
+
+	//local.playerEye = (local.player gettagposition "full_body")
+	local.playerEye = (local.player gettagposition "JO_eye_R")
+	//local.playerEye = local.player.origin + (0 0 100)
+	local.playerAngles = local.player.viewangles
+
+	for (local.i=1; local.i<=level.numRailVehicles; local.i++)
+	{
+		local.vehicle = level.railVehicle[local.i]
+		if (local.vehicle && (isalive local.vehicle) &&
+			!local.vehicle.isDead &&
+			local.vehicle.hasDynaChargeSlot &&
+			local.vehicle.dynaChargePlanted &&
+			((local.player.dmteam == "freeforall") ||
+					(local.vehicle.team == local.player.dmteam)) &&
+			(vector_within local.playerEye local.vehicle.origin local.vehicle.grossSlotRadius))
+		{
+			local.sa = waitthread get_slot_alignment local.playerEye local.playerAngles local.vehicle.dynaChargeSlot.origin local.vehicle.dynaChargeSlotRadius local.vehicle.minSlotFacingAngleCos
+			if (local.sa >= 0)
+				end local.vehicle
+		}
+	}
+
+end NULL
+
+
+
+

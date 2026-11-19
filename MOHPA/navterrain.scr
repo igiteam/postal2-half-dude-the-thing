@@ -1,0 +1,183 @@
+// ------------------------------------------------------------------------
+//	navterrain.scr
+//
+//	Handles terrain navigation... (ie: jumping over, climbing under, etc...)
+// ------------------------------------------------------------------------
+
+
+// ------------------------------------------------------------------------
+main:
+// ------------------------------------------------------------------------
+
+
+end
+
+// ------------------------------------------------------------------------
+Init:
+// ------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+end
+
+// ------------------------------------------------------------------------
+JumpDownSmall:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	self setmotionanim xrsxx_navjumpdown_64
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navjumpdown 64)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+JumpDownMed:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	self setmotionanim xrsxx_navjumpdown_96
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navjumpdown 96)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+JumpDownLarge:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+//	self setmotionanim xrsxx_navjumpdown_128
+	self setmotionanim (self getalias navjumpdown 128)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+JumpUpSmall:
+// ------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navclimbup 40)
+	self waittill flaggedanimdone
+
+
+	end
+
+	// ------------------------------------------------------------------------
+JumpUpLarge:
+// ------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navclimbup 64)
+	self waittill flaggedanimdone
+
+
+	end
+
+// ------------------------------------------------------------------------
+JumpOverSmall:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	self setmotionanim xrsxx_navjumpover_32
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navjumpover 32)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+JumpOverMed:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	self setmotionanim xrsxx_navjumpover_40
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navjumpover 40)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+JumpOverLarge:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	self setmotionanim xrsxx_navjumpover_48
+	if ( self.team!="american" )
+	{
+		// want fragile enemies when doing nav anims.
+		self fragile 4
+	}
+	self setmotionanim (self getalias navjumpover 48)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+CrouchUnder:
+// ------------------------------------------------------------------------
+
+	self waitthread Init
+
+	// no animation yet!
+//	self setmotionanim (self getalias crouchunder 40)
+//	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------
+TunnelCrouch:
+// ------------------------------------------------------------------------
+	waitexec anim/crouch_run.scr
+end
+
+// ------------------------------------------------------------------------
+TunnelProne:
+// ------------------------------------------------------------------------
+	waitexec anim/prone_walk.scr
+end

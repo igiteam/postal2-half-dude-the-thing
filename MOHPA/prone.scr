@@ -1,0 +1,79 @@
+
+//println "prone.scr"
+
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+start:
+
+// first, transition ourselves to prone...
+
+self waitthread transition
+self waitthread anim/idle.scr::IdleAnim
+
+/*
+
+// now play our standard prone animations...
+self.blendtime = 0.25
+self waitexec anim/aim.scr::Aim
+//self setmotionanim (self getalias idle legs)
+//self setupperanim (self getalias aim)
+wait self.blendtime
+self.position = prone
+
+*/
+
+end
+
+
+//------------------------------------------------------------------------
+transition:
+//		- like crouch.scr::transition, if we're not prone, get prone...
+//
+//------------------------------------------------------------------------
+
+	switch (self.position)
+	{
+	case	prone:
+	case	pronewalk:
+		self.position = prone
+		break
+	case	crouch:
+	case	crouchwalk:
+	case	crouchrun:
+		self setmotionanim (self getalias trans prone)
+		self waittill flaggedanimdone
+		self.position = prone
+		break
+	default:
+		// for all others, transition to crouch and then go from crouch to prone...
+		waitexec anim/crouch.scr::transition
+		goto transition
+		break
+	}
+
+
+	end
+
+
+//------------------------------------------------------------------------
+RollLeft:
+//------------------------------------------------------------------------
+	waitthread transition
+
+	self setmotionanim (self getalias roll "" "" left)
+	self waittill flaggedanimdone
+
+	end
+
+//------------------------------------------------------------------------
+RollRight:
+//------------------------------------------------------------------------
+
+	waitthread transition
+
+	self setmotionanim (self getalias roll "" "" right)
+	self waittill flaggedanimdone
+
+
+	end
+

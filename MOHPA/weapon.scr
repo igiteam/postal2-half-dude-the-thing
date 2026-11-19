@@ -1,0 +1,276 @@
+// --------------------------------------------------------------------------------
+//	weapon.scr
+//
+//	this script is called by the engine when a "gun", "weapon" or "sidearm" event
+//	is issued by an actor
+//
+// --------------------------------------------------------------------------------
+
+start local.name local.sidearm:
+
+	// the local.name parameter passed will always be entirely in lower-case
+	switch ( local.name )
+	{
+	//********************************************
+	//*** ALLIED WEAPONS
+	//********************************************
+	case "m1 carbine":
+	case	"rifle":
+		local.modelname = "models/weapons/m1_carbine.hag"
+		break
+
+	case "s&w 45":
+		local.modelname = "models/weapons/US45.hag"
+		break
+
+	case "colt 45":
+	case "us .45":
+	case "us colt45":
+	case "m1911a1 colt.45":
+		local.modelname = "models/weapons/US_colt45.hag"
+		break
+
+	case "m1 garand":
+		local.modelname = "models/weapons/US_garand.hag"
+		break
+
+	case "m1941 johnson":
+		local.modelname = "models/weapons/johnson.hag"
+		break
+
+	case "model 11 shotgun":
+	case "shotgun":
+		local.modelname = "models/weapons/US_Riot.hag"
+		break
+
+	case "m1 flamethrower":
+		local.modelname = "models/weapons/flamethrower.hag"
+ 		break
+
+	case "us springfield":
+	case "springfield 03":
+		local.modelname = "models/weapons/US_springfield.hag"
+		break
+
+	case "springfield bootcamp":
+		local.modelname = "models/weapons/US_Springfield_bootcamp.hag"
+ 		break
+
+		
+		
+	case "springfield 03 sniper":
+	case "springfield m1903":
+		local.modelname = "models/weapons/springfield_m1903_sniper.hag"
+		break
+
+	case "thompson":
+		local.modelname = "models/weapons/US_Thompson_30.hag"
+		break
+
+	case "thompson drum":
+		local.modelname = "models/weapons/thompson.hag"
+		break
+
+	case "reising model 55":
+		local.modelname = "models/weapons/reising.hag"
+		break
+
+	case "bar":
+		local.modelname = "models/weapons/US_BAR.hag"
+		break
+
+
+	//********************************************
+	//*** JAPANESE WEAPONS
+	//********************************************
+    case "g model 38 arisaka":
+		dprintln "WARNING: weapon.scr -- weapon name is '" local.name "', using 'model 38 arisaka' instead"
+		// no break
+
+	case "model 38 arisaka":
+		local.modelname = "models/weapons/m38_arisaka.hag"
+		if ( self.accuracy==20 )
+		{
+			//dprintln "Cranking up accuracy for arisaka!"
+			// this weapon fires so slowly, need to give them an accuracy boost.
+			self.accuracy = 40
+		}
+		break
+
+	case "model 44 carbine":
+		local.modelname = "models/weapons/JPN_44.hag"
+		if ( self.accuracy==20 )
+		{
+			//dprintln "Cranking up accuracy for arisaka!"
+			// this weapon fires so slowly, need to give them an accuracy boost.
+			self.accuracy = 40
+		}
+		break
+
+	case "model 96 lmg":
+		local.modelname = "models/weapons/JPN_Model96LMG.hag"
+		break
+
+	case "model 97 sniper":
+	case "model97 - sniper":
+	case "m97 sniper rifle":
+		local.modelname = "models/weapons/model97_sniper.hag"
+		break
+
+	case "type 100 smg":
+		local.modelname = "models/weapons/type100_smg.hag"
+		break
+
+//	case "type 93 flamethrower":
+//		dprintln "WARNING: weapon.scr -- '" local.name "' does not exist as a HAG"
+//		local.modelname = ""
+//		break
+
+	case "katana":
+	case "sword":
+		local.modelname = "models/weapons/sword.hag"
+		break
+
+	case "nambu pistol":
+	case "pistol":
+		local.modelname = "models/weapons/nambu_pistol.hag"
+		break
+	case "packed 60mm mortar":
+		local.modelname = "models/statweapons/USM2_60MM_Mortar_carryable.hag"
+		break
+	case "none":
+	case "":
+		local.modelname = ""
+		break
+
+	default:
+//		local.modelname = ""
+//		local.modelname = "models/weapons/US45.hag"
+//		dprintln "ERROR: weapon.scr -- weapon '" local.name "' is not handled -- setting to colt45!!"
+		dprintln "WARNING: weapon.scr -- weapon '" local.name "' is not handled -- Attempting secondary lookup..."
+		self waitthread __SecondaryWeaponLookup local.name local.sidearm
+		end
+	}
+
+	// MJG: are these even used any longer?
+	self defaultnonvislevel 0.75
+	self suppresschance 50
+
+	if ( ( local.sidearm == NIL ) || ( local.sidearm == NULL ) || ( local.sidearm == 0 ) )
+	{
+		self weapon_internal local.modelname local.name
+	}
+	else
+	{
+		self sidearm_internal local.modelname local.name
+	}
+
+end
+
+// -------------------------------------------------------
+__SecondaryWeaponLookup local.name local.sidearm: 
+// Added 9/29/04 - CJI EA
+// -------------------------------------------------------
+
+	local.testname = tolower local.name
+
+	switch (local.testname)
+	{
+		case 	"flamethrower"             	:	
+				local.modelname  = models/weapons/flamethrower.hag
+				break							
+		case 	"johnson lmg"              	:	
+				local.modelname  = models/weapons/johnson.hag								
+				break							
+		case 	"japan 44"                 	:	
+				local.modelname  = models/weapons/jpn_44.hag								
+				break							
+		case 	"model96 lmg"              	:	
+				local.modelname  = models/weapons/jpn_model96lmg.hag						
+				break							
+		case 	"jpn frag grenade"         	:	
+				local.modelname  = models/weapons/jpnfrag_grenade_base.hag					
+				break							
+		case 	"m1 carbine"               	:	
+				local.modelname  = models/weapons/m1_carbine.hag							
+				break							
+		case 	"frag grenade"             	:	
+				local.modelname  = models/weapons/m2frag_grenade_base.hag					
+				break							
+		case 	"g model 38 arisaka"       	:	
+				local.modelname  = models/weapons/m38_arisaka.hag							
+				break							
+		case 	"m97 sniper rifle"         	:	
+				local.modelname  = models/weapons/model97_sniper.hag						
+				break							
+		case 	"nambu pistol"             	:	
+				local.modelname  = models/weapons/nambu_pistol.hag							
+				break							
+		case 	"phys. manipulator"        	:		
+				local.modelname  = models/weapons/psyman.hag								
+				break							
+		case 	"reising"                  	:
+				local.modelname  = models/weapons/reising.hag								
+				break							
+		case 	"satchel charge"           	:
+				local.modelname  = models/weapons/satchel_charge_base.hag					
+				break							
+		case 	"springfield m1903"        	:
+				local.modelname  = models/weapons/springfield_m1903_sniper.hag				
+				break							
+		case 	"sword"                    	:
+				local.modelname  = models/weapons/sword.hag								
+				break							
+		case 	"m1928a1 thompson smg 50"	:	
+				local.modelname  = models/weapons/thompson.hag								
+				break							
+		case 	"training grenade"			:	
+				local.modelname  = models/weapons/training_grenade_base.hag				
+				break							
+		case 	"type 100 smg"             	:	
+				local.modelname  = models/weapons/type100_smg.hag							
+				break							
+		case 	"us .45"                   	:	
+				local.modelname  = models/weapons/us45.hag									
+				break							
+		case 	"us axe"                   	:	
+				local.modelname  = models/weapons/us_axe.hag								
+				break							
+		case 	"bar"                      	:	
+				local.modelname  = models/weapons/us_bar.hag								
+				break							
+		case 	"m1911a1 colt .45"         	:
+				local.modelname  = models/weapons/us_colt45.hag							
+				break							
+		case 	"m1 garand"					:	
+				local.modelname  = models/weapons/us_garand.hag							
+				break							
+		case 	"remington riot"			:	
+				local.modelname  = models/weapons/us_riot.hag								
+				break							
+		case 	"m1903 springfield rifle"	:	
+				local.modelname  = models/weapons/us_springfield_base.hag					
+				break							
+		case 	"m1928a1 thompson smg 30"	:	
+				local.modelname  = models/weapons/US_Thompson_30.hag	
+				break							
+		default:
+				local.modelname = "models/weapons/US45.hag"
+				dprintln "ERROR: weapon.scr -- weapon '" local.name "' is not handled -- setting to colt45!!"																 
+	}																	 
+																		 
+	if ( ( local.sidearm == NIL ) || ( local.sidearm == NULL ) || ( local.sidearm == 0 ) )
+	{
+		self weapon_internal local.modelname local.name
+	}
+	else
+	{
+		self sidearm_internal local.modelname local.name
+	}
+				
+end
+
+
+
+
+	

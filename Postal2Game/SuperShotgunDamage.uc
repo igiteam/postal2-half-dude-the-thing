@@ -1,0 +1,1 @@
+class SuperShotgunDamage extends ShotgunDamage;

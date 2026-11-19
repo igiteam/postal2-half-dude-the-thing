@@ -1,0 +1,80 @@
+// ------------------------------------------------------------------------------------------
+//	playersquadnode.scr
+//
+//	There are some levels where the automatic player squad node detection doesn't work well.
+//	For instance where the level wraps around walls (like Tarawa)  If the auto detection is
+//	left on in these maps, the AI will do weird things because they think the player is 
+//	farther along in the map then he really is.
+//	
+//	You may use this system to get around this problem by laying down triggers with the
+//	targetname of "playersquadnode" and connect the trigger to the squadnode you want
+//	the AI to think the player is at when he hits the trigger.
+//
+//	Since player autosquadnode detection is on by default, the first time the player hits
+//	one of these triggers, autosquadnode is turned off.  If there is a location in the
+//	map where you know the autosquadnode detection will work again, just put down a trigger
+//	with a targetname of playerautosquadnode.  This will automatically turn the auto squad node
+//	detection back on for the player.
+//
+// ------------------------------------------------------------------------------------------
+
+level waittill prespawn
+
+	waitthread InitPlayerSquadNodeTriggers
+
+	end
+
+// ------------------------------------------------------------------------------------------
+InitPlayerSquadNodeTriggers:
+// ------------------------------------------------------------------------------------------
+
+	println "There are " $playersquadnode.size " player squad node triggers."
+	println "There are " $playerautosquadnode.size " player AUTO squad node triggers."
+
+	if ( $playersquadnode.size>0 )
+		$playersquadnode thread DoPlayerSquadNode
+
+	if ( $playerautosquadnode.size>0 )
+		$playerautosquadnode thread DoPlayerAutoSquadNode
+
+	end
+
+// ------------------------------------------------------------------------------------------
+DoPlayerSquadNode:
+// ------------------------------------------------------------------------------------------
+
+	if (self.target==NIL || self.target==NULL )
+	{
+		println "PLAYERSQUADNODE ERROR!  Trigger at " self.origin " does not have a target and will not be used."
+		end
+	}
+
+	while ( self )
+	{
+		self waittill trigger
+
+//		dprintln "Setting player squadnode to " self.target " / set#" self.target.squadset
+
+		$player.autosquadnode	= 0
+		$player.squadnode		= self.target
+		wait 3
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+DoPlayerAutoSquadNode:
+// ------------------------------------------------------------------------------------------
+
+	while ( self )
+	{
+		self waittill trigger
+
+//		dprintln "Setting BACK TO AUTOSQUADNODE."
+
+		$player.autosquadnode	= 1
+		wait 3
+	}
+
+	end

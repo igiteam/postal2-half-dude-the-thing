@@ -1,0 +1,2 @@
+class DOTZSharpImpactDamage extends DOTZDamageTypeBase;
+

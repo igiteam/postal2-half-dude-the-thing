@@ -1,0 +1,1 @@
+class LPUIEvent_CalloutButtonInputProxy extends SPUIEvent_CalloutButtonInputProxy;

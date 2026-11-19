@@ -1,0 +1,68 @@
+// ------------------------------------------------------------------------------------
+//	bumpavoid.scr
+//
+//
+// ------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------
+main:
+end
+
+// ------------------------------------------------------------------------------------
+AvoidRunL:
+// ------------------------------------------------------------------------------------
+
+	while (1)
+	{
+		local.anim = self getalias bumpavoid_run "" "" "l" "x"
+//		dprintln "~~~~~~~~~~~~~~~ avoid anim script is playing animation " local.anim
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+// ------------------------------------------------------------------------------------
+AvoidRunR:
+// ------------------------------------------------------------------------------------
+
+	while (1)
+	{
+		local.anim = self getalias bumpavoid_run "" "" "r" "x"
+//		dprintln "~~~~~~~~~~~~~~~ avoid anim script is playing animation " local.anim
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+
+end
+
+// ------------------------------------------------------------------------------------
+AvoidWalkL:
+// ------------------------------------------------------------------------------------
+
+	while (1)
+	{
+		local.anim = self getalias bumpavoid_walk "" "" "l" "x"
+//		dprintln "~~~~~~~~~~~~~~~ avoid anim script is playing animation " local.anim
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+// ------------------------------------------------------------------------------------
+AvoidWalkR:
+// ------------------------------------------------------------------------------------
+
+	while (1)
+	{
+		local.anim = self getalias bumpavoid_walk "" "" "r" "x"
+//		dprintln "~~~~~~~~~~~~~~~ avoid anim script is playing animation " local.anim
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+
+end
+

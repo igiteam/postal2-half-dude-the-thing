@@ -1,0 +1,68 @@
+//
+// mp_door.scr
+//
+// This script is used to play sounds associated with doors. The current
+// need is to play a locked door sound on closed doors.
+//
+// To make a locked door play a locked sound:
+//
+//	1. Put a trigger_use in the doorway of a locked door
+//	2. Give the trigger the following setthread:
+//		global/mp_door.scr::door_locked_*
+//		or
+//		global/mp_door.scr::gate_locked_*
+//		(where * is either metal of wood)
+//
+//
+// 08-11-04	SCOSGRAVE - first pass
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	//catch any execs
+
+end
+
+
+//-----------------
+door_locked_metal:
+//-----------------
+
+	self playsound door_locked_metal
+
+end
+
+
+
+//-----------------
+door_locked_wood:
+//-----------------
+
+	self playsound door_locked_wood
+
+end
+
+
+//-----------------
+gate_locked_metal:
+//-----------------
+
+	self playsound gate_locked_metal
+
+end
+
+
+
+//-----------------
+gate_locked_wood:
+//-----------------
+
+	self playsound gate_locked_wood
+
+end
+
+
+

@@ -1,0 +1,51 @@
+//-------------------------------------------------
+reach local.node local.bWalk:
+//-------------------------------------------------
+
+	self waitthread reach_cancel	// just in case...
+
+	self.reach_thread = local
+
+	if (local.bWalk==NIL)
+		local.bWalk = 0
+		
+	while( 1 )
+	{
+		if ( local.bWalk==1 )
+			self walkto local.node
+		else
+			self runto local.node
+
+		self waittill movedone
+		
+		if( 0 == parm.movedone )
+		{
+			//	Move was interrupted
+			local.node = self.mostrecentpathnode
+			if( vector_length (self.origin - local.node.origin) < self.movedoneradius )
+			{
+				break
+			}
+		}
+		else
+		{
+			//	We arrived correctly
+			break
+		}
+		
+		waitframe
+	}
+end
+
+//-------------------------------------------------
+reach_cancel:
+//-------------------------------------------------
+
+	if ( self.reach_thread!=NIL && self.reach_thread!=NULL )
+	{
+		self.reach_thread delete
+		self.reach_thread = NULL
+	}
+
+	end
+

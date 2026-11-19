@@ -1,0 +1,1 @@
+class LPDamageTypeCarrierLegBashVs extends LPDamageTypeCarrierMelee;

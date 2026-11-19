@@ -1,0 +1,70 @@
+// ------------------------------------------------------------------------------------
+//	dive.scr
+//	
+//		All diving animations play from here.
+//
+// ------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------
+main:
+// ------------------------------------------------------------------------------------
+	self waitthread Dive
+
+end
+
+// ------------------------------------------------------------------------------------
+Init:
+// ------------------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	end
+
+// ------------------------------------------------------------------------------------
+Dive:
+//
+//	Performs a "diving" animation...
+// ------------------------------------------------------------------------------------
+
+//	self waitthread Init
+
+//	self setmotionanim (self getalias walk)
+//	self setmotionanim xmsax_walk
+//	self waittill flaggedanimdone
+//	end
+
+	self.position = prone
+//	self setmotionanim (self getalias standtocrouch dive stand)
+	self setmotionanim (self getalias dive forward stand)
+	self waittill flaggedanimdone
+	self.position = prone
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+DiveLeft:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self setmotionanim (self getalias dive left)
+	self waittill flaggedanimdone
+	self.position = prone
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+DiveRight:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self setmotionanim (self getalias dive right)
+	self waittill flaggedanimdone
+	self.position = prone
+
+	end
+

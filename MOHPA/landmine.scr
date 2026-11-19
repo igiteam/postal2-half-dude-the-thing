@@ -1,0 +1,515 @@
+// MOHPA TKO, JABBOTT
+//-----------------------------------------------------------------------
+// SOME NOTES ABOUT LANDMINES:
+//
+// 1) In deathmatch games, landmines are created by the engine itself when
+//    a player with landmine ammo lays a mine on a shader for which landmines
+//    can be placed. When created, the following attributes are set:
+//
+//	model:	This is set to be whatever projectile model that is listed
+//		in the weapon TIKI. Note that this projectile must be a
+//		trigger rather than a traditional projectile.
+//	setthread: global/landmine.scr::stepped_on
+//	$defuseThread: global/landmine.scr::defuse
+//	targetname: landmine
+// 
+// 2) In deathmatch landmines cannot be places on WOOD, METAL, ROCK, GRILL,
+//    GLASS, or CARPET shaders.
+//
+// 3) In order to defuse something with the secondary mindetector function,
+//    the following conditions must be met:
+//
+//    a) The object to be defused must be a trigger
+//    b) It must have a "defuseThread" variable
+//    c) The object must be in the forward cone of the player
+//    d) The object must be withing the weapons "maxrange" and "bulletrange"
+//
+// 4) Actual defusing of an object is done in the thread that was named by
+//    the "defuseThread" variable.
+//-----------------------------------------------------------------------
+
+//-----------------------------------------------------------------------
+main:
+//--------
+
+	// You may set the max number of landmines per player in script
+	// by setting level.maxLandminesPerPlayer.  If this script isn't
+	// executed, the default value of 8 is applied when allocate_mine
+	// is first called.
+
+	if (level.maxLandminesPerPlayer == NIL || level.maxLandminesPerPlayer == NULL)
+		level.maxLandminesPerPlayer = 8
+end
+
+
+//--------------------------------------------------------------------
+defuse local.defuser:
+//--------
+
+	// Called when a minelayer tries to defuse a landmine
+
+	if( self.buryTrigger )
+		self.buryTrigger delete
+	self delete
+	local.defuser waitthread global/mp_message.scr::player_message "COMBATCLASS:DefusedLandmine"	
+	//local.defuser iprint ( "landmine defused!" )
+	local.defuser ammo landmine 1
+end
+
+
+//--------------------------------------------------------------------
+expose_landmine:
+//--------
+
+	// Called when the landmine should be exposed to everyone
+
+	self visibleteamonly 0
+	self playsound landmine_trigger
+	self.isHidden = 0
+end
+
+
+//--------
+hide_mine local.stepper:
+//--------
+	// Engineers (and team mates, when there's no friendly fire)
+	// are allowed to bury concealable landmines
+
+	// Are we already handling this stepper?
+	if (local.stepper.landmine == self.entnum)
+		end
+	
+	// dont do this is we have a higher priority useslot up
+	if ((local.stepper compareuseslot "plantlandmine") < 0)
+		end
+
+	// tell new players how to diffuse a landmine
+	self settutorial hide_mine 160
+		
+	local.stepper.landmine = self.entnum
+
+	local.time = 2
+
+	// We have a three state state-machine in the local.stopwatch
+	// switch statement below:
+	//   0 - Entry/Exit state from the state machine. From here we
+	//       go to state 1 or we exit the thread
+	//   1 - We're close enough to the landmine to see the useicon
+	//       indicating we could bury the landmine, but we're not
+	//       crouching and holding the use key
+	//   2 - We're close enough, we're crouching, and we're keeping
+	//       the use key held.
+
+	local.stopwatch = 0
+		
+	while (self != NULL && local.stepper != NULL) 
+	{
+		if (local.stopwatch == 2) {
+			if (vector_length(self.origin - local.stepper.origin) > 57) {
+				local.stepper removeuseslot "plantlandmine"
+				local.stepper stopwatch 0 3 progress_mine_set
+				local.stopwatch = 0
+			} else if (local.stepper.useheld == 0 || (local.stepper.getposition != "crouching" && local.stepper.getposition != "prone") ) {				
+				local.stepper stopwatch 0 3 progress_mine_set
+				local.stopwatch = 1
+			} else if (level.time > local.doneTime) {
+				break
+			} else if (randomfloat(1.0) > 0.6) {
+				thread global/mp_fx.scr::spawn_fx self.origin "models/fx/landmine_plant.tik"
+			}
+		} else if (local.stopwatch == 1) {
+			if (vector_length(self.origin - local.stepper.origin) > 57) {
+				local.stepper removeuseslot "plantlandmine"
+				local.stepper stopwatch 0 3 progress_mine_set
+				local.stopwatch = 0
+			} else if (local.stepper.useheld && (local.stepper.getposition == "crouching" || local.stepper.getposition == "prone")) {
+				local.stepper stopwatch local.time 3 progress_mine_set
+				local.doneTime = level.time + local.time
+				local.stopwatch = 2
+			}
+		} else if (local.stopwatch == 0) {
+			if (vector_length(self.origin - local.stepper.origin) < 57) {
+				local.stepper useslot plantlandmine
+				local.stopwatch = 1
+			} else {
+				local.stepper removeuseslot "plantlandmine"
+				local.stepper.landmine = -1
+				end
+			}
+		}
+
+		wait 0.1
+	}
+
+	if (local.stepper != NULL) {
+		local.stepper stopwatch 0 3 progress_mine_set
+		local.stepper removeuseslot "plantlandmine"
+		local.stepper.landmine = -1
+		if (self != NULL)
+		{
+			local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:HidLandmine"
+		}
+	}
+
+	if (self != NULL)
+	{
+		// Set Model to be flag
+		if (local.stepper.dmteam == "axis")
+			self visibleteamonly 2
+		else
+			self visibleteamonly 1
+
+		self altmodel_id 0
+
+		self.isHidden = 1
+		
+		// landmine is hidden, we don't need the bury trigger anymore
+		if( self.buryTrigger )
+			self.buryTrigger delete
+	}
+end
+
+
+//--------
+trigger_mine local.stepper:
+//--------
+
+	// Called when someone has stepped on a "live" landmine (called
+	// by stepped_on). Some classes can hold still for X seconds, and 
+	// then they get to live (because they defused it themselves), 
+	// otherwise they die.
+
+	// Are we already handling this stepper?
+	if (local.stepper.landmine == self.entnum)
+		end
+
+	local.stepper.landmine = self.entnum
+
+	// Once the player has triggered us, they're caught. They either
+	// need to defuse, stay put, or take their lumps. This noose can
+	// never be less than 40 units from the bomb.
+	local.mindist = vector_length(self.origin - local.stepper.origin) + 3
+	if (local.mindist < 40)
+		local.mindist = 40
+
+	self waitthread expose_landmine
+
+	local.noboom = true
+	local.ableToDefuse = 1
+
+	if (local.stepper.combatclass != "engineer" && level.dm_landmineDefuseTime < 0)
+		local.ableToDefuse = 0
+
+	if (local.stepper.getposition == "crouching" || local.stepper.getposition == "prone") {
+		if (local.stepper.combatclass == "engineer")
+			local.playerDefuseSkill = level.dm_landmineDefuseTimeEngineer
+		else
+			local.playerDefuseSkill = level.dm_landmineDefuseTime
+	}
+	else
+		local.playerDefuseSkill = -1
+
+	if (local.stepper.useheld && local.playerDefuseSkill > 0) {
+		local.defuseTime = level.time + local.playerDefuseSkill
+		local.stepper stopwatch (local.playerDefuseSkill + 0.5) 3 progress_mine_defuse
+	} else {
+		local.defuseTime = -1
+	}
+
+	if ( self.health > 0 ) {
+		local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:SteppedOnLandmine"	
+		if (local.ableToDefuse == 1)
+			local.stepper useslot landmine
+	}
+	
+	while (local.noboom == true) {
+
+		// If the landmine has been removed somehow, clean up
+		if (self == NIL || self == NULL) {
+			if (local.stepper != NIL && local.stepper != NULL)
+			{
+				local.stepper.landmine = -1
+				local.stepper stopwatch 0 3 progress_mine_defuse
+			}
+			end			
+		}
+
+		// If the player has vanished somehow, blow up for realism sake
+		if (local.stepper == NIL || local.stepper == NULL) {	
+			local.noboom = false
+			break
+		}
+
+		local.dist = vector_length(self.origin - local.stepper.origin)
+
+		// If the player has stepped off of us, blow up
+		if (local.dist > local.mindist) {
+			local.noboom = false
+			break
+		}
+
+		// We cheat a little here... keep tightening the noose until
+		// we get the player within 40 units. That will make the player
+		// seem like they're right on the bomb... and it will cause the
+		// explosion when they step off to do more realistic damage
+		// (is it isn't that strong at extreme range provided by 
+		// local.mindist)
+		if (local.dist < local.mindist) {
+			local.mindist = local.dist
+			if (local.dist < 40)
+				local.dist = 40
+		}
+
+		// Handle possible defusing of the landmine, this portion is
+		// built like a state machine.
+		if (local.ableToDefuse == 0) {			
+			// nothing the player can do
+		} else if (!(local.stepper.useheld)) {
+			if (local.defuseTime != -1)
+				local.stepper stopwatch 0 3 progress_mine_defuse
+			local.defuseTime = -1
+		} else if (local.stepper.getposition != "crouching" && local.stepper.getposition != "prone") {
+			if (local.defuseTime != -1)
+				local.stepper stopwatch 0 3 progress_mine_defuse
+			local.defuseTime = -1
+		} else if (local.defuseTime == -1) {
+			if (local.stepper.combatclass == "engineer")
+				local.playerDefuseSkill = level.dm_landmineDefuseTimeEngineer
+			else
+				local.playerDefuseSkill = level.dm_landmineDefuseTime
+			local.defuseTime = local.playerDefuseSkill + level.time
+			local.stepper stopwatch (local.playerDefuseSkill + 0.5) 3 progress_mine_defuse		
+		} else if (level.time > local.defuseTime) {			
+			if (local.stepper != NIL && local.stepper != NULL)
+			{
+				local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:DefusedLandmine"	
+				//local.stepper iprint( "landmine defused!" )
+				local.stepper removeuseslot "landmine"
+				local.stepper stopwatch 0 3 progress_mine_defuse
+			}
+			self playsound landmine_defuse
+			if( self.buryTrigger )
+				self.buryTrigger delete
+			self delete
+			local.stepper.landmine = -1
+			end
+		}		
+		wait 0.1
+	}
+
+	if (local.stepper != NIL && local.stepper != NULL) {	
+		local.stepper removeuseslot "landmine"
+		local.stepper.landmine = -1
+		if (local.defuseTime != -1)
+			local.stepper stopwatch 0 3 progress_mine_defuse
+	}
+
+	self playsound landmine_explode
+	thread global/mp_fx.scr::spawn_fx self.origin "models/fx/Grenade_explosion1_tko.tik"
+	landminedamage self 100 150
+end
+
+
+//--------------------------------------------------------------------
+allocate_mine local.stepper:
+//--------
+
+	// When someone places a landmine, this is the code that gets run.
+	//
+	// For one thing, we make sure that for any player in the game,
+	// that player can only own a set number of mines at one time
+	// (otherwise the player could keep dieing and loading up the map
+	// with umpteen zillion mines).
+
+	// in case the max number of mines isn't set
+	if (level.maxLandminesPerPlayer == NIL || level.maxLandminesPerPlayer == NULL)
+		level.maxLandminesPerPlayer = 8
+
+	if (local.stepper.mines == NIL) {				
+		local.stepper.mines[1][1] = self;
+		local.stepper.mines[1][2] = level.time;
+		local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:PlacedLandmine"	
+		//local.stepper iprint( "landmine placed" )
+	} else {
+		
+		/* first we check to see if there's free slot */
+		local.placeSlot = 0
+		/* if there's not a free slot, we place in the oldest slot */
+		local.oldestSlot = 0
+		local.oldestAge = level.time
+		for (local.findSlot = 1; local.placeSlot == 0 && local.findSlot <= level.maxLandminesPerPlayer; local.findSlot++) {
+			if (local.stepper.mines[local.findSlot] == NIL || local.stepper.mines[local.findSlot] == NULL) {
+				local.placeSlot = local.findSlot
+			} else if (local.stepper.mines[local.findSlot][1] == NIL || local.stepper.mines[local.findSlot][1] == NULL) {
+				local.placeSlot = local.findSlot
+			} else if (local.stepper.mines[local.findSlot][2] < local.oldestAge) {
+				local.oldestSlot = local.findSlot
+				local.oldestAge = local.stepper.mines[local.findSlot][2]
+			}
+		}
+
+		if (local.placeSlot == 0) {
+			local.stepper.mines[local.oldestSlot][1] playsound landmine_defuse
+			local.stepper.mines[local.oldestSlot][1] delete
+			local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:ReplacedLandmine"
+			//local.stepper iprint ( "landmine placed (removed old landmine)" )
+			local.placeSlot = local.oldestSlot
+			self playsound landmine_replace
+		} else {
+			self playsound landmine_place
+			local.stepper waitthread global/mp_message.scr::player_message "COMBATCLASS:PlacedLandmine"	
+			//local.stepper iprint( "landmine placed" )
+		}
+		local.stepper.mines[local.placeSlot][1] = self
+		local.stepper.mines[local.placeSlot][2] = level.time
+	}
+
+	self.landmineowner = local.stepper.entnum
+
+	//self setsize ( -60 -60 -2 ) ( 60 60 40 )
+	//self setsize ( -2 -2 -2 ) ( 2 2 2 )
+
+	local.targetname = "landmine_" + self.entnum
+	self targetname local.targetname
+
+	if ( self.isConcealable > 0 )
+	{
+		self.buryTrigger = spawn trigger_multiple origin self.origin	
+		self.buryTrigger setsize ( -40 -40 -2 ) ( 40 40 40 )
+		self.buryTrigger setthread global/landmine.scr::bury_mine
+		self.buryTrigger target self
+		self.buryTrigger triggerable
+	}
+
+	self visibleteamonly 0
+	self altmodel_id 1
+	self.isHidden = 0
+
+	self thread landmine_thinker local.stepper
+
+	self thread landmine_arm local.stepper
+end
+
+
+//--------
+landmine_arm local.stepper:
+//--------
+
+	// When landmines are placed, they are initially not armed. This
+	// This code arms the mines in 2 seconds.
+
+	wait 1.2
+
+	if (self == NIL || self == NULL)
+		end
+
+	self.isArmed = 1
+
+	self playsound landmine_primed
+end
+
+
+//--------
+landmine_thinker local.placer:
+//--------
+
+	// Landmine thinking code - mostly used to track when our placer
+	// bails on us
+
+	local.health = self.health
+	while (self != NULL) {
+		if ( self isabandoned local.placer ) {
+			if(self.buryTrigger)
+				self.buryTrigger delete
+			self delete
+			end
+		}
+
+		if (self.health < local.health) {
+			self playsound landmine_explode
+			//thread global/mp_fx.scr::spawn_fx self.origin "models/fx/landmine_explode.tik"
+			thread global/mp_fx.scr::spawn_fx self.origin "models/fx/Grenade_explosion1_tko.tik"
+			landminedamage self 100 150
+			if(self.buryTrigger)
+				self.buryTrigger delete
+			self delete
+		}
+
+		wait 1
+	}
+	
+end
+
+//--------------------------------------------------------------------
+stepped_on local.stepper:
+//--------
+
+	// This code is called when the landmine is initially stepped on.
+
+	// Believe it or not, you can be stepped on by a NULL object
+	if (local.stepper == NULL)
+		end
+
+	self nottriggerable
+	if (self.lock != NIL && self.lock == level.time)
+		end
+
+	self.lock = level.time
+	if (self.landmineowner == NIL) {
+		// This person must be the one who placed the landmine
+		// since we have no init data yet. Call the init landmine
+		// routine.
+
+		self waitthread allocate_mine local.stepper
+
+	} else if ( self.isArmed == NIL || self.isArmed == NULL || self.isArmed == 0) {
+		self waitthread landmine_arm local.stepper
+	} else if ( self isimmune local.stepper ) {
+
+	} else {
+		// tell new players how to diffuse a landmine
+		self settutorial diffuse_mine 160
+		self waitthread trigger_mine local.stepper
+		if (self != NIL && self != NULL)
+		{
+			if (self.buryTrigger)
+				self.buryTrigger delete
+			self delete
+		}
+	}
+
+	wait .1
+	if (self != NIL && self != NULL) {
+		self triggerable
+ 	} 
+end
+
+
+//--------
+bury_mine local.stepper:
+//--------
+
+	// This code is called when a player enters the bury trigger
+	
+	// Believe it or not, you can be stepped on by a NULL object
+
+	if (local.stepper == NULL || self.target == NULL || self.target == NIL)
+		end
+
+	if (self.lock != NIL && self.lock == level.time)
+		end
+
+	self.lock = level.time
+	
+	// If the person is immune, they are the planter, allow them to
+	// hide the mine
+
+	if ( self.target isimmune local.stepper ) 
+	{
+		if ( self.target.isConcealable > 0 && self.target.isHidden != 1)
+		{
+			self.target waitthread hide_mine local.stepper
+		}
+	}
+end
+

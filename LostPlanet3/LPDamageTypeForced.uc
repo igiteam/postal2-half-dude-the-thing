@@ -1,0 +1,1 @@
+class LPDamageTypeForced extends LPDamageType;

@@ -1,0 +1,92 @@
+//
+// mp_animation.scr by Victor Dods
+//
+// This script is a convenience script to spawn animations/models
+// with customizable parameters
+//
+// 2/12/2004 - VDODS - initial file creation
+//
+// 4/16/2004 - NWARAN - always do waittill animdone to circumvent repeating animations
+
+
+//--------------------
+spawn_animation local.origin local.angles local.scale local.anim local.sound local.wait:
+//--------------------
+	if (local.origin == NIL || local.origin == NULL) {
+		dprintln " *** mp_animation.scr - no origin specified for spawn_animation (fatal)"
+		end
+	}
+	if (local.angles == NIL || local.angles == NULL) {
+		dprintln " *** mp_animation.scr - no angles specified for spawn_animation (using \"0 0 0\")"
+		local.angles = (0 0 0)
+	}
+	if (local.scale == NIL || local.scale == NULL)
+		local.scale = 1
+	if (local.anim == NIL || local.anim == NULL) {
+		dprintln " *** mp_animation.scr - no animation specified for spawn_animation (fatal)"
+		end
+	}
+	if (local.sound == NIL || local.sound == NULL) {
+		dprintln " *** mp_animation.scr - no sound specified for spawn_animation (using no sound)"
+		local.sound = NULL
+	}
+	if (local.wait == NIL || local.wait == NULL)
+		local.wait = 5
+
+	// spawn the model
+	// CCARON - Apparently, for the collision to follow the model, we need to include the origin and angles
+	//    in the spawn call.  setting the origin after the spawn moves the image, but not the collision
+	local.temp1 = spawn animate model local.anim scale local.scale origin local.origin angles local.angles 
+	// set the scale
+	//local.temp1 scale local.scale
+	local.temp1 notsolid // this may be unnecessary
+	// set the origin and angles
+	//local.temp1.origin = local.origin
+	//local.temp1.angles = local.angles
+	// start the animation
+	local.temp1 anim start
+	local.temp1 notsolid // this may be unnecessary
+	// play the sound
+	if (local.sound != NIL && local.sound != NULL)
+		local.temp1 playsound local.sound
+	// always wait for the anim to end
+	//if (wait == 0)
+		local.temp1 waittill animdone
+	//else
+	//	wait local.wait
+	// remove the anim
+	local.temp1 remove
+end
+
+
+//--------------------
+spawn_model local.origin local.angles local.scale local.model local.sound:
+//--------------------
+	if (local.origin == NIL || local.origin == NULL) {
+		dprintln " *** mp_animation.scr - no origin specified for spawn_model (fatal)"
+		end
+	}
+	if (local.angles == NIL || local.angles == NULL) {
+		dprintln " *** mp_animation.scr - no angles specified for spawn_model (using \"0 0 0\")"
+		local.angles = (0 0 0)
+	}
+	if (local.scale == NIL || local.scale == NULL)
+		local.scale = 1
+	if (local.model == NIL || local.model == NULL) {
+		dprintln " *** mp_animation.scr - no model specified for spawn_model (fatal)"
+		end
+	}
+
+	// spawn the model
+	// CCARON - Apparently, for the collision to follow the model, we need to include the origin and angles
+	//    in the spawn call.  setting the origin after the spawn moves the image, but not the collision
+	local.temp1 = spawn script_model model local.model origin local.origin angles local.angles scale local.scale
+	// set the scale
+	//local.temp1 scale local.scale
+	// set the origin and angles
+	//local.temp1.origin = local.origin
+	//local.temp1.angles = local.angles
+	// play the sound
+	if (local.sound != NIL && local.sound != NULL)
+		local.temp1 playsound local.sound
+end local.temp1 // return the model

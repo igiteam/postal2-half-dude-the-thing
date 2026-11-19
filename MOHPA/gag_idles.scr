@@ -1,0 +1,327 @@
+// -----------------------------------------------------------------------------------
+//	gag_idles.scr  -- works in congunction with gag_idle_anims.hat!
+//	
+//	Call like this:     level.minoso thread global/gag_idles.scr::<idle_name>    
+//	
+//	Available idles names:
+//	
+	//  paint_squatted
+	//  paintonladder
+	//  usebinoculars			// new 6.19.04
+	//  sparringguy_puncher
+	//  sparringguy_punchreciever
+	// 	washCar
+	// 	workonRoof
+	// 	rakeLeaves
+	//	sweepthefloor
+	// 	paintSomething
+	//	PaceAround			
+	//	SitAndBeSad			
+	//	sitandpray			
+	//  cleanglasses		
+	//  sipcoffee			
+	//  PolishHelmet			
+	// 	ThoughtfullyRead		
+	//	SmokeAbutt			//RJ - REPLACED WITH EQUIVOLANT ANIMS DUE TO MSRB COMPLIANCE
+	//	EatRice
+	//	makeConversation
+	//	paceBackAndForth
+	//	goPee
+	//	eatOutOfBowl
+	//	GuardSomething
+	//	GuardSomething2		
+	//	Meditate
+	//	idleAtFire
+	//	warmHandsAtFire
+	//	PolishSword
+	//	CarryCrateBackAndForth
+	//	unloadBoxesFromTruck  
+	// 	fixsomethingSitting
+	//  fixsomthingStanding
+	//	fixvehicle1			
+	//  fixvehicle2		
+	//	useShovel
+	//	sitAndWrite
+	//	sitAndRead
+	//	layDownAndRead
+	//	doSitups
+	//	playCards
+	//	polishRifle
+	//	sleepOnCot
+	//	pickAtFeet
+
+/*
+	$reader2	attachmodel "models/mission1/manmade/shell/Shell_Magazine.hag" 	JO_gun	
+	$reader1	attachmodel "models/mission1/manmade/shell/Shell_Magazine.hag" 	JO_gun		
+	$writer1 	attachmodel "models/mission1/manmade/shell/Shell_PaperPad.gr2" 	JO_gun 
+	$writer1 	attachmodel "models/mission1/manmade/shell/Shell_Pen.gr2" 	  	JO_prop
+	$writer2 	attachmodel "models/mission1/manmade/shell/Shell_PaperPad.gr2" 	JO_gun 
+	$writer2 	attachmodel "models/mission1/manmade/shell/Shell_Pen.gr2" 	  	JO_prop
+	$coffeeguy  attachmodel "models/props/coffee_cup/Coffee_Cup.gr2" 	 JO_prop
+	$digger1    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+	$digger2    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+	$digger3    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+	$digger4    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+	$digger5    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+	$digger6    attachmodel "models/common/manmade/props/Shovel_5_1.gr2" JO_gun
+*/
+
+// -----------------------------------------------------------------------------------
+paint_squatted:
+	self thread global/actor_utils.scr::SetCustomIdleAnim paintingcycle_squatting 1 paintingcycle_squatting paintingcycle_squatting paintingcycle_squatting 
+end
+// -----------------------------------------------------------------------------------
+paintonladder:
+	self thread global/actor_utils.scr::SetCustomIdleAnim paintonladder 1 paintonladder paintonladder paintonladder 
+end
+// -----------------------------------------------------------------------------------
+usebinoculars:
+	self thread global/actor_utils.scr::SetCustomIdleAnim 11040000_tower_guard_with_binoculars 1
+end
+// -----------------------------------------------------------------------------------
+sparringguy_puncher:
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_sparring_punching 1
+end
+// -----------------------------------------------------------------------------------
+sparringguy_punchreciever:
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_sparring_holding_up_hands 1
+end
+// -----------------------------------------------------------------------------------
+washCar:
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_washingStaffCar 1
+end
+// -----------------------------------------------------------------------------------
+workonRoof:
+	self thread global/actor_utils.scr::SetCustomIdleAnim nailingshinglessequence 1
+end
+// -----------------------------------------------------------------------------------
+rakeLeaves:
+	self thread global/actor_utils.scr::SetCustomIdleAnim rakingcycle 1
+end
+// -----------------------------------------------------------------------------------
+sweepthefloor:
+	self thread global/actor_utils.scr::SetCustomIdleAnim sweepingcycle 1
+end
+// -----------------------------------------------------------------------------------
+paintSomething:
+	self thread global/actor_utils.scr::SetCustomIdleAnim paintingcycle 1
+end
+// -----------------------------------------------------------------------------------
+PaceAround:
+	self thread global/actor_utils.scr::SetCustomIdleAnim pacingcycle 1
+end
+// -----------------------------------------------------------------------------------
+SitAndBeSad:
+	self thread global/actor_utils.scr::SetCustomIdleAnim sadguycycle 1
+end
+// -----------------------------------------------------------------------------------
+sitandpray:
+	self thread global/actor_utils.scr::SetCustomIdleAnim praycycle 1
+end
+// -----------------------------------------------------------------------------------
+cleanglasses:
+	self thread global/actor_utils.scr::SetCustomIdleAnim cleanglassescycle 1
+end
+// -----------------------------------------------------------------------------------
+sipcoffee:
+	self thread global/actor_utils.scr::SetCustomIdleAnim sippingcoffeecycle 1
+end
+// -----------------------------------------------------------------------------------
+PolishHelmet:
+	self thread global/actor_utils.scr::SetCustomIdleAnim scrubbinghelmetcycle 1
+end
+// -----------------------------------------------------------------------------------
+ThoughtfullyRead:
+	self thread global/actor_utils.scr::SetCustomIdleAnim sitandreadcycle 1
+end
+// ----------------------------------------------------------------------------------
+SmokeAbutt:
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_guy_talking 1 //xxxxx_smoking_idle 1  // RJ - smoking is not acceptable anymore. 
+end
+// ----------------------------------------------------------------------------------
+EatRice:
+	self thread global/actor_utils.scr::SetCustomIdleAnim riceeatingcycle 1
+end
+// ----------------------------------------------------------------------------------
+makeConversation:
+	local.rand = randomint 100
+	if( local.rand < 50 )
+	{
+		self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_guy_talking 1
+	}
+	else
+	{
+		self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_guy_talking2 1
+	}
+end
+
+// ----------------------------------------------------------------------------------
+paceBackAndForth:
+	self thread global/actor_utils.scr::SetCustomIdleAnim pacingcycle 1
+end
+// ----------------------------------------------------------------------------------
+goPee:
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_soldier_peering 1 NIL NIL 51000000_soldier_peering_death
+end
+// ----------------------------------------------------------------------------------
+eatOutOfBowl:
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_eating_out_bowl_idle 1 51000000_eating_out_bowl_attack
+end
+// ---------------------------------------------------------------------------------
+GuardSomething local.stopCustomIdleOnAssault:
+	if( local.stopCustomIdleOnAssault == NIL )
+	{
+		local.stopCustomIdleOnAssault = 1
+	}
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_Guard_idle local.stopCustomIdleOnAssault 51000000_Guard_idle_trans
+
+end
+// ----------------------------------------------------------------------------------
+GuardSomething2 local.stopCustomIdleOnAssault:
+	if( local.stopCustomIdleOnAssault == NIL )
+	{
+		local.stopCustomIdleOnAssault = 1
+	}
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_guard_atpost_idle_01 local.stopCustomIdleOnAssault 51000000_Guard_idle_trans
+end
+// ----------------------------------------------------------------------------------
+Meditate local.stopCustomIdleOnAssault:
+	if( local.stopCustomIdleOnAssault == NIL )
+	{
+		local.stopCustomIdleOnAssault = 1
+	}
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_meditation_idle local.stopCustomIdleOnAssault 51000000_meditation_trans_attack
+end
+// ----------------------------------------------------------------------------------
+idleAtFire local.stopCustomIdleOnAssault:
+	if( local.stopCustomIdleOnAssault == NIL )
+	{
+		local.stopCustomIdleOnAssault = 1
+	}
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_idle_at_fire local.stopCustomIdleOnAssault 51000000_idle_at_fire_trans_attack
+end
+// ----------------------------------------------------------------------------------
+warmHandsAtFire local.stopCustomIdleOnAssault:
+	if( local.stopCustomIdleOnAssault == NIL )
+	{
+		local.stopCustomIdleOnAssault = 1
+	}
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51000000_Warm_hand_at_fire local.stopCustomIdleOnAssault 51000000_Warm_hand_at_fire_trans_attack
+end
+// ----------------------------------------------------------------------------------
+PolishSword:
+	self thread global/actor_utils.scr::SetCustomIdleAnim swordpolishcycle 1 51000000_polish_sword_trans_attack
+end
+// ----------------------------------------------------------------------------------
+CarryCrateBackAndForth:
+	self thread global/actor_utils.scr::SetCustomIdleAnim cratecarrycycle 1 
+end
+// ----------------------------------------------------------------------------------
+fixsomethingSitting:
+	self thread global/actor_utils.scr::SetCustomIdleAnim fixsittingcycle 1 
+end
+// ----------------------------------------------------------------------------------
+fixsomthingStanding:
+	self thread global/actor_utils.scr::SetCustomIdleAnim 51040000_Guy_fixing_thing_standing_idle 1 
+end
+// ----------------------------------------------------------------------------------
+fixvehicle1:
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_mechanic01_undervehicle 1 
+end
+// ----------------------------------------------------------------------------------
+fixvehicle2:
+	self thread global/actor_utils.scr::SetCustomIdleAnim xxxxx_mechanic02_underhood 1 
+end
+// ----------------------------------------------------------------------------------
+useShovel:
+	self thread global/actor_utils.scr::SetCustomIdleAnim shovelcycle 1 	
+end
+// ----------------------------------------------------------------------------------
+sitAndWrite:
+	self thread global/actor_utils.scr::SetCustomIdleAnim writinglettercycle 1 	
+end
+// ----------------------------------------------------------------------------------
+sitAndRead:
+	self thread global/actor_utils.scr::SetCustomIdleAnim sitandreadCenterfoldcycle 1 	
+end
+// ----------------------------------------------------------------------------------
+layDownAndRead:
+	self thread global/actor_utils.scr::SetCustomIdleAnim laydownreadingcycle 1 	
+end
+// ----------------------------------------------------------------------------------
+doSitups:
+	dprintln "doing situps
+	self thread global/actor_utils.scr::SetCustomIdleAnim situpcycle 1 	
+end
+// ----------------------------------------------------------------------------------
+polishRifle:
+	self thread global/actor_utils.scr::SetCustomIdleAnim polishriflecycle 1
+end
+// ----------------------------------------------------------------------------------
+sleepOnCot:	// random sleep cycle
+	self thread global/actor_utils.scr::SetCustomIdleAnim sleepcycle 1	
+end
+sleepOnCot1:	// to ensure a differnet cycle for a guy
+	self thread global/actor_utils.scr::SetCustomIdleAnim sleepcycle01 1	
+end
+sleepOnCot2:	// to ensure a differnet cycle for a guy
+	self thread global/actor_utils.scr::SetCustomIdleAnim sleepcycle02 1	
+end
+sleepOnCot3:	// to ensure a differnet cycle for a guy
+	self thread global/actor_utils.scr::SetCustomIdleAnim sleepcycle03 1	
+end
+// ----------------------------------------------------------------------------------
+pickAtFeet:
+	self thread global/actor_utils.scr::SetCustomIdleAnim pickingfeetcycle 1	
+end
+// ----------------------------------------------------------------------------------
+
+unloadBoxesFromTruck local.loader1 local.loader2:
+// needs generalization!
+	local.loader1 = $loader		
+	local.loader2 = $loader2
+	while (1) //( isAlive local.loader1) && (isAlive local.loader2 ))
+	{
+	
+		$loader anim 51000000_Unload_Box_from_Truck	
+		$loader2 anim 51000000_Unload_Box_from_Truck_pickup	
+		local.loader2 waittill animdone
+	}
+end
+
+
+playCards:
+	DebugPrintLn("== MP2 plays cards! (and he's GOOOD) ==")
+
+	local.idle1 = ((randomint 2) + 1)
+	
+	// Start Animation loop
+	while ( isAlive self )
+	{
+		//dprintln ("idle now: " + local.idle1)
+		self anim (lookingAtCardsIdlesPlayer + local.idle1)
+		wait (randomint 2 + 2)	
+				
+		//  Idle reaction
+		local.result = randomint 2
+		if (local.result == 0)
+		{
+			self waittill animdone	// finish playing idle
+			self anim (lookingAtCardsReactionsPlayer + local.idle1)
+			
+		}
+		self waittill animdone
+		
+		// transition to a different idle
+		local.result = randomint 0
+		if (local.result == 0)
+		{
+			local.idleNext  = (randomint 3 + 1)   // 1 2 or 3
+			//dprintln ("idle next: " + local.idleNext)
+			self anim (Shell_0_20_trans_idle0 + local.idle1 + _to_idle0 + local.idleNext)
+			self waittill animdone
+			local.idle1 = local.idleNext
+		}
+	}	
+	
+end

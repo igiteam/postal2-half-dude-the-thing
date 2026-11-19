@@ -1,0 +1,16 @@
+///////////////////////////////////////////////////////////////////////////////
+// ChemBase
+// 
+// explosion part of plague rocket
+///////////////////////////////////////////////////////////////////////////////
+class ChemBase extends P2Emitter;
+
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    Emitters[0]=SpriteEmitter'SpriteEmitter287'
+    AutoDestroy=true
+    LifeSpan=5.0000000
+}

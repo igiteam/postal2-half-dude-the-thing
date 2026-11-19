@@ -1,0 +1,15 @@
+// ----------------------------------------------------------------------------
+// weapon_unholster.scr
+// ----------------------------------------------------------------------------
+
+//	iprintln "~~~~~~~~~~~~~ in weapon_unholster.scr, weapongroup is " self.weapongroup
+	
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	//jsl-->todo: use an "unholster" animation...
+	self setupperanim (self getalias reload)
+	self waittill upperanimdone
+
+	end
+

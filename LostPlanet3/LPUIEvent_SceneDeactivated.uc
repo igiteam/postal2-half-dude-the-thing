@@ -1,0 +1,1 @@
+class LPUIEvent_SceneDeactivated extends SPUIEvent_SceneDeactivated;

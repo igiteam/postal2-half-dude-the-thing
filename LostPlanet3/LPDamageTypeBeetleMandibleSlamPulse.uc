@@ -1,0 +1,1 @@
+class LPDamageTypeBeetleMandibleSlamPulse extends LPDamageTypeElectricalBeetle;

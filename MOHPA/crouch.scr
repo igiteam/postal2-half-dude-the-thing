@@ -1,0 +1,491 @@
+//	----------------------------------------------------------------------
+//	Crouch.scr
+//
+//		Called when the character has to crouch.  Check to see if it's doing anything else 
+//	and play the appropriate animation to make it crouch.
+//
+//	----------------------------------------------------------------------
+
+waitexec anim/default_inithandler.scr
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+
+self.blendtime = 0.5
+self waitthread transition
+
+self.position = crouch
+
+
+//	self waitthread Animate
+	self waitthread anim/idle.scr::IdleAnim
+
+end
+
+
+
+//	----------------------------------------------------------------------
+transition local.blendonly:
+// allowed terminate immediately
+//	----------------------------------------------------------------------
+
+	// jsl-->added this blendonly flag.  Most scripts that call this one don't want to play the transition animation
+	// ie: we want to blend to the crouched position...  (that's why we default to blend only)
+	if ( local.blendonly==NIL )
+		local.blendonly = 1
+
+	if (self.position != crouch)
+		self.posestyle = a
+
+	switch ( self.position )
+	{
+	case	stand:
+	case	walk:
+	case	run:
+//jsl-->we don't want this!		self setmotionanim (self getalias trans crouch)
+//		self waittill flaggedanimdone
+		if ( local.blendonly==0 )
+		{	
+			self setmotionanim (self getalias trans crouch)
+			self waittill flaggedanimdone
+		}
+		self.position = crouch		// we'll just blend here (or we're already there)
+
+		break
+		
+	case	crouch:
+		break
+	case	crouchwalk:
+	case	crouchrun:
+		self.position = crouch		// we'll just blend here (or we're already there)
+		break
+		
+	case	prone:
+	case	pronewalk:		
+		self setmotionanim (self getalias trans crouch)
+		self waittill flaggedanimdone
+		self.position = crouch
+		break
+	default:
+		// I think I handled every case, so this is an error condition
+		println "^~^~^ Crouch transition default case for position " self.position " - fix crouch.scr"
+		self.position = crouch		
+		self setmotionanim ( self getalias idle )
+		self waittill flaggedanimdone
+		break
+
+	}	
+end
+
+
+
+//----------------------------------------------------------------
+Animate:
+//----------------------------------------------------------------
+
+	if ( self.shiftcounter==NIL )
+		self.shiftcounter = 0
+
+	if ( self.posestyle==NIL )
+		self.posestyle	= a
+
+	switch (self.mood)
+	{
+		case	atease:
+			self waitthread AtEaseCrouch
+			break
+		case	alert:		
+			self waitthread AlertCrouch
+			break
+		case	cautious:
+			self waitthread CautiousCrouch
+			break			
+		default:
+			dprintln "Invalid mood????"
+			waitframe
+			break
+	}
+end
+
+//----------------------------------------------------------------
+CautiousCrouch:
+//----------------------------------------------------------------
+	
+	local.rand = randomint 100	
+	
+	if (local.rand < 20 && self.posestyle && (0 == self.shiftcounter))	// 20% chance to change crouch type
+	{			
+		local.rand2 = randomint 2
+		
+		local.animtoplay = NIL
+		
+		switch (self.posestyle)
+		{	
+			case a:
+				if ( 1 == local.rand2 )
+				{
+					local.animtoplay = self getalias idle a2b
+					self.posestyle = b
+				}
+				else
+				{
+					local.animtoplay =  self getalias idle a2c
+					self.posestyle = c
+				}				
+				break
+			case b:
+				if ( 1 == local.rand2 )
+				{
+					local.animtoplay = self getalias idle b2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle b2c
+					self.posestyle = c
+				}	
+				break
+			case c:
+				if ( 1  == local.rand2 )
+				{
+					local.animtoplay = self getalias idle c2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle c2b
+					self.posestyle = b
+				}	
+				break
+			default:
+				self.posestyle = a
+				break
+		} 
+				
+		if (NIL != local.animtoplay)
+		{			
+			self setmotionanim local.animtoplay
+			self waittill flaggedanimdone
+		}
+		// Don't do any fidgets or shifts for a few updates
+		self.shiftcounter = (randomint 2) + 2	
+	}
+	else if (local.rand < 50 && self.posestyle && (0 == self.shiftcounter))		// 30% chance to fidget
+	{
+		switch (self.posestyle)
+		{
+			case a:
+				{
+					local.animtoplay = NIL
+					local.rand3 = randomint 4
+					switch(local.rand3)
+					{
+					case 0:
+						local.animtoplay = self getalias idle shift_a
+						break						
+					case 1:
+						local.animtoplay = self getalias idle lookaround_a
+						break
+					case 2:
+						local.animtoplay = self getalias idle adjust_a
+						break
+					default:
+						local.animtoplay = self getalias idle lookback_a
+						break
+					}
+					if (NIL != local.animtoplay)
+					{						
+						self setmotionanim local.animtoplay
+						self waittill flaggedanimdone
+					}
+				}
+				break
+			case b:
+				{
+					local.animtoplay = NIL
+					local.rand3 = randomint 3
+					switch (local.rand3)
+					{
+					case 0:
+						local.animtoplay = self getalias idle shift_b
+						break
+					case 1:
+						local.animtoplay = self getalias idle lookaround_b
+						break
+					default:
+						local.animtoplay = self getalias idle duck_b
+						break
+					}
+					if (NIL != local.animtoplay)
+					{						
+						self setmotionanim local.animtoplay
+						self waittill flaggedanimdone
+					}
+				}
+				break
+			case c:
+				{
+					local.animtoplay = NIL
+					local.rand3 = randomint 4
+					switch (local.rand3)
+					{
+					case 0: 
+						local.animtoplay = self getalias idle shift_c
+						break
+					case 1:
+						local.animtoplay = self getalias idle lookaround_c
+						break
+					case 2:
+						local.animtoplay = self getalias idle listen_c
+						break
+					default:
+						local.animtoplay = self getalias idle duck_c
+						break
+					}
+					if (NIL != local.animtoplay)
+					{						
+						self setmotionanim local.animtoplay
+						self waittill flaggedanimdone
+					}
+				}
+				break
+			default:
+				assert("No crouchtype in fidget selection")
+				break				
+		}
+		// Don't do any fidgets or shifts for a few updates
+		self.shiftcounter = (randomint 3) + 1			
+	}
+	else 		// Otherwise just idle
+	{
+		local.animtoplay = NIL
+		
+		switch (self.posestyle)
+		{
+			case a:
+				local.animtoplay = self getalias idle a
+				break
+			case b:
+				local.animtoplay = self getalias idle b
+				break
+			case c:
+				local.animtoplay = self getalias idle c
+				break
+			default:
+				self.posestyle = a
+				local.animtoplay = self getalias idle a
+				self.shiftcounter = 2
+				
+				break
+		}
+		
+		self setmotionanim local.animtoplay
+		self waittill flaggedanimdone
+	
+		// Decrement our shif counter
+		if (self.shiftcounter > 0)
+		{
+			self.shiftcounter--		
+		}
+	}
+end
+
+//	----------------------------------------------------------------------
+AtEaseCrouch:
+//	----------------------------------------------------------------------
+
+	local.rand = randomint 100
+	if (local.rand < 20 && self.posestyle && (0 == self.shiftcounter))	// 20% chance to change crouch type
+	{
+		local.rand2 = randomint 2
+		
+		local.animtoplay = NIL
+		
+		switch (self.posestyle)
+		{	
+			case a:
+				if ( 1 == local.rand2 )
+				{
+					local.animtoplay = self getalias idle a2b
+					self.posestyle = b
+				}
+				else
+				{
+					local.animtoplay = self getalias idle a2c
+					self.posestyle = c
+				}				
+				break
+			case b:
+				if ( 1 == local.rand2 )
+				{
+					local.animtoplay = self getalias idle b2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle b2c
+					self.posestyle = c
+				}	
+				break
+			case c:
+				if ( 1  == local.rand2 )
+				{
+					local.animtoplay = self getalias idle c2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle c2b
+					self.posestyle = b
+				}	
+				break
+			default:
+				self.posestyle = a
+				break
+		} 
+				
+		if (NIL != local.animtoplay)
+		{			
+			self setmotionanim local.animtoplay
+			self waittill flaggedanimdone
+		}
+		// Don't do any fidgets or shifts for a few updates
+		self.shiftcounter = (randomint 2) + 1
+	}
+	else if (local.rand < 50 && self.posestyle && (0 == self.shiftcounter))
+	{		
+	
+		local.animtoplay = NIL
+	
+		local.rand = randomint 3
+		switch (local.rand)
+		{
+			case 0:
+				local.animtoplay = "shift"
+				break
+			case 1:
+				local.animtoplay = "lookaround"
+				break
+			case 2:
+				local.animtoplay = "adjust"
+				break
+		}
+		
+		switch (self.posestyle)
+		{
+			case a:
+				local.animtoplay = local.animtoplay + _a
+				break
+			case b:
+				local.animtoplay = local.animtoplay + _b
+				break
+			case c:
+				local.animtoplay = local.animtoplay + _c
+				break
+			default:
+				break
+		}
+		
+		local.animtoplay = self getalias idle local.animtoplay
+		
+		if (NIL != local.animtoplay)
+		{			
+			self setmotionanim local.animtoplay
+			self waittill flaggedanimdone
+		}
+		// Don't do any fidgets or shifts for a few updates
+		self.shiftcounter = (randomint 4) + 1		
+	}
+	else			// Otherwise just idle
+	{
+		local.animtoplay = NIL
+		switch (self.posestyle)
+		{
+			case a:
+				local.animtoplay = self getalias idle a
+				break
+			case b:
+				local.animtoplay = self getalias idle b
+				break
+			case c:
+				local.animtoplay = self getalias idle c
+				break
+			default:
+				self.posestyle = a
+				local.animtoplay = self getalias idle a
+				self.shiftcounter = 2
+				break
+		}		
+		
+		self setmotionanim local.animtoplay
+		self waittill flaggedanimdone
+	
+		// Decrement our shift counter
+		if (self.shiftcounter > 0)
+		{
+			self.shiftcounter--		
+		}	
+	}	
+end
+
+//	----------------------------------------------------------------------
+AlertCrouch:
+//	----------------------------------------------------------------------
+	local.rand = randomint 100
+	local.animtoplay = NIL
+	
+	if ((0 == self.shiftcounter) && (15 < local.rand))		// 25% chance to fidget
+	{
+		self.shiftcounter = 5 + (randomint 3)
+	
+		local.rand2 = randomint 9
+		switch(local.rand2)
+		{
+			case 0:
+				local.animtoplay = self getalias idle shift
+				break
+			case 1:
+				local.animtoplay = self getalias idle shift2
+				break
+			case 2:
+				local.animtoplay = self getalias idle duck
+				break
+			case 3:
+				local.animtoplay = self getalias idle rise
+				break
+			case 4:
+				local.animtoplay = self getalias idle look
+				break
+			case 5:
+				local.animtoplay = self getalias idle lookback
+				break
+			case 6:
+				local.animtoplay = self getalias idle sweep
+				break
+			case 7:
+				local.animtoplay = self getalias idle altbreathe 
+				break
+			default:
+				local.animtoplay = self getalias idle adjust
+				break
+		}		
+	}
+	else
+	{
+		local.animtoplay = self getalias idle
+		
+		if (NIL == self.shiftcounter)
+		{
+			self.shiftcounter = (randomint 2) + 1
+		}
+		
+		// Decrement our shift counter
+		if (self.shiftcounter > 0)
+		{
+			self.shiftcounter--		
+		}		
+	}
+	
+	self setmotionanim local.animtoplay
+	self waittill flaggedanimdone
+	
+end

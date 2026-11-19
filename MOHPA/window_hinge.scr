@@ -1,0 +1,18 @@
+//------------
+start:
+//------------
+
+	//	Swap the renderable
+    //self altmodel "awake" //per renderable constraints not yet supported --JimG
+    
+    //WORKAROUND -- hide the joint rather than switch renderables 
+    //This will make the collision and mesh scale to zero --JimG
+    self hidejoint joint_sticks
+	
+	//	Enable damage on the window
+    self takedamage
+	
+	//	Wake up the hinge
+	self havok_physics_driven 
+	
+end

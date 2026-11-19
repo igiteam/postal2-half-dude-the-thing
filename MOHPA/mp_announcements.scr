@@ -1,0 +1,296 @@
+//
+// mp_announcements.scr
+//
+// Description:
+// -----------
+//
+// The timed announcement manager for MOHPA multiplayer games. It keeps track
+// of how much time has elapsed in the game, as well as, how much time is left.
+// Depending on how much time is left in the game, one of 5 announcements is played.
+//
+// Usage:
+// ------
+//
+// In order to use timed announcements, you need to initialize it in your level script
+// in a line similar to this:
+//
+// 	thread global/mp_announcements.scr::initialize level.dmroundlimit level.gametype level.axisDialogQueue level.alliesDialogQueue
+//
+// Initialize the announcements and level.dmroundlimit after 'level waittill roundstart' to make sure the announcements sync
+// correctly with the 'Time Left' indicator in the upper right hand corner of the MP UI. 
+//
+// 
+// Required Parameters:
+// --------------------
+//	local.roundTimeLimit - This is the length of each game round, which is found in the cvar timelimit. This parameter has been deprecated
+//						   Since the code now directly accesses the timelimit cvar every second. This was changed to allow the timelimit
+//                         to be changed during a game.
+//
+//	local.gametype - This is the game type (DM, Team DM, Invader, etc) in integer form, and can usually be found in
+//                       the variable level.gametype. This is required so that each team in Invader hears it's own announcement
+//
+//  	local.axisDialogueQueue - A Dialogue Queue is required, as it is the dialogue manager used for announcements. The
+//                                queue should be initialized before it is passed to the announcement manager. This particular
+//	                          queue is for the axis team.
+//
+//  	local.alliesDialogueQueue - A Dialogue Queue is required, as it is the dialogue manager used for announcements. The
+//                                queue should be initialized before it is passed to the announcement manager. This particular
+//	                          queue is for the allies team.
+//
+//  12.01.04 NW - changed code to allow timelmiit cvar changes to affect the current round's progression of time announcements.
+//
+// 04.27.04 STC - Added offset so that timer plays at correct time, even if player have been running around/spectating
+//                prior to the round starting.	
+//
+// 04.12.04 STC - Added new logic so that the script sleeps when there are more than 60 seconds left until the next 
+//                announcement. Also added Dialogue Queue parameters, allows script writer to use any variable name
+//                they want for their dialogue queues.
+//
+// 04.10.04 STC - original version
+//
+
+//----------------------------------------------------------------------------
+main:
+//-----------------
+
+	// empty main function so that any accidental call to exec on this
+	// script doesn't clobber anything
+	
+end
+
+
+//-----------------
+initialize local.roundTimeLimit local.gametype local.axisDialogQueue local.alliesDialogQueue:
+//-----------------
+	// this function starts up the timed announcements for multiplayer games
+	
+	//dprintln "Starting Time Thread"
+	
+	// the level time limit is in minutes, and our level.time is in seconds
+	// converting the round time limit to seconds so we can compare correctly
+	local.roundTimeLimit = local.roundTimeLimit * 60
+	local.roundTimeLeft = local.roundTimeLimit
+	
+	//dprintln "Round Time Limit (secs): " local.roundTimeLimit
+
+	// level.time starts before this script
+	// getting an offset so that the timer is not ahead of the round time
+	local.offset = level.time
+	dprintln "local.offset = level.time = " local.offset
+	dprintln "local.offset = level.time = " local.offset
+	dprintln "local.offset = level.time = " local.offset
+	dprintln "local.offset = level.time = " local.offset
+	dprintln "local.offset = level.time = " local.offset
+
+	// initialize roundTimeLeft to how many seconds are left in the game
+	local.roundTimeLeft = level.timeleftingame
+			
+	// while there are 10 minutes, or more, left
+	// ready the 10 minute announcement
+	while( 1 )
+	{								
+		// play the sound when our level time is ~600 seconds
+		// using a range of time because sometimes the level time has a fraction
+		// of a second appended to it
+		if( local.roundTimeLeft == 601 )
+		{
+			// if the gametype is Invader, play a different announcement .wav for each team
+			// if not an Invader game, default to playing the Allies announcement for everyone
+			if( local.gametype == 6 )
+			{
+				//play the 10 minutes left axis dialogue
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog axis_ten_min 5
+				// play the 10 minutes left allies dialogue
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_ten_min 5
+			}
+			else
+			{
+				// play the 10 minutes left allies dialogue for everyone
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_ten_min 5
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_ten_min 5
+			}
+			
+			// print bigtext to both teams
+			//local.timeBigText = "Ten minutes remaining."
+			local.timeBigText = "MP:TenMinutesRemaining"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText	
+						
+		}
+		// play the sound when our level time is ~300 seconds
+		// using a range of time because sometimes the level time has a fraction
+		// of a second appended to it
+		else if( local.roundTimeLeft == 301)
+		{
+			// if the gametype is Invader, play a different announcement .wav for each team
+			// if not an Invader game, default to playing the Allies announcement for everyone
+			if( local.gametype == 6 )
+			{
+				//play the 10 minutes left axis dialogue
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog axis_five_min 5
+				// play the 10 minutes left allies dialogue
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_five_min 5
+			}
+			else
+			{
+				// play the 10 minutes left allies dialogue for everyone
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_five_min 5
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_five_min 5
+			}
+			
+			// print bigtext to both teams
+			//local.timeBigText = "Five minutes remaining."
+			local.timeBigText = "MP:FiveMinutesRemaining"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText	
+						
+		}
+		// play the sound when our level time is ~120 seconds
+		// using a range of time because sometimes the level time has a fraction
+		// of a second appended to it
+		else if( local.roundTimeLeft == 121 )
+		{
+			// if the gametype is Invader, play a different announcement .wav for each team
+			// if not an Invader game, default to playing the Allies announcement for everyone
+			if( local.gametype == 6 )
+			{
+				//play the 2 minutes left axis dialogue
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog axis_two_min 5
+				// play the 2 minutes left allies dialogue
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_two_min 5
+			}
+			else
+			{
+				// play the 2 minutes left allies dialogue for everyone
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_two_min 5
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_two_min 5	
+			}
+			
+			// print bigtext to both teams
+			//local.timeBigText = "Two minutes remaining."
+			local.timeBigText = "MP:TwoMinutesRemaining"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText				
+						
+		}
+		// play the sound when our level time is ~60 seconds
+		// using a range of time because sometimes the level time has a fraction
+		// of a second appended to it
+		else if( local.roundTimeLeft == 61 )
+		{
+			// if the gametype is Invader, play a different announcement .wav for each team
+			// if not an Invader game, default to playing the Allies announcement for everyone
+			if( local.gametype == 6 )
+			{
+				//play the 2 minutes left axis dialogue
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog axis_one_min 5
+				// play the 2 minutes left allies dialogue
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_one_min 5
+			}
+			else
+			{
+				// play the 2 minutes left allies dialogue for everyone
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_one_min 5
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_one_min 5	
+			}
+			
+			// print bigtext to both teams
+			//local.timeBigText = "One minute remaining."
+			local.timeBigText = "MP:OneMinutesRemaining"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText	
+			
+		}		
+		// play the sound when our level time is ~30 seconds
+		// using a range of time because sometimes the level time has a fraction
+		// of a second appended to it
+		else if( local.roundTimeLeft == 31 )
+		{
+			// if the gametype is Invader, play a different announcement .wav for each team
+			// if not an Invader game, default to playing the Allies announcement for everyone
+			if( local.gametype == 6 )
+			{
+				//play the 2 minutes left axis dialogue
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog axis_thirty_sec 5
+				// play the 2 minutes left allies dialogue
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_thirty_sec 5
+			}
+			else
+			{
+				// play the 2 minutes left allies dialogue for everyone
+				local.alliesDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_thirty_sec 5
+				local.axisDialogQueue thread global/mp_dialog_queue.scr::queue_dialog allies_thirty_sec 5	
+			}
+			
+			// print bigtext to both teams
+			//local.timeBigText = "Thirty seconds remaining."
+			local.timeBigText = "MP:ThirtySecondsRemaining"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText	
+										
+		}	
+		else if( local.roundTimeLeft == 11 )
+		{	
+			//local.timeBigText = "*10..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~10"	
+		} 
+		else if( local.roundTimeLeft == 10 )
+		{	
+			//local.timeBigText = "*9..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~9"	
+		} 
+		else if( local.roundTimeLeft == 9 )
+		{	
+			//local.timeBigText = "*8..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~8"	
+		} 
+		else if( local.roundTimeLeft == 8 )
+		{	
+			//local.timeBigText = "*7..."	
+			local.timeBigText = "MP:TimeCountDown"	
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~7"	
+		} 
+		else if( local.roundTimeLeft == 7 )
+		{	
+			//local.timeBigText = "*6..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~6"	
+		} 
+		else if( local.roundTimeLeft == 6 )
+		{	
+			//local.timeBigText = "*5..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~5"	
+		} 
+		else if( local.roundTimeLeft == 5 )
+		{	
+			//local.timeBigText = "*4..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~4"	
+		} 
+		else if( local.roundTimeLeft == 4 )
+		{	
+			//local.timeBigText = "*3..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~3"	
+		} 
+		else if( local.roundTimeLeft == 3 )
+		{	
+			//local.timeBigText = "*2..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~2"	
+		} 
+		else if( local.roundTimeLeft == 2 )
+		{	
+			//local.timeBigText = "*1..."
+			local.timeBigText = "MP:TimeCountDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.timeBigText "~1"
+		} 
+	
+		// always wait 1 second to recheck the time since it can change during the course of a game
+		wait 1
+		
+		// how many seconds are left in the game?
+		local.roundTimeLeft = level.timeleftingame
+		//local.roundTimeLeft = int(getcvar("dm_secondsLeftInMatch")) - (local.offset )
+	}
+		
+end

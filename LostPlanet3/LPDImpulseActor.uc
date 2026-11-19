@@ -1,0 +1,13 @@
+class LPDImpulseActor extends SPDImpulseActor
+    hidecategories(AnimDependency,Navigation);
+
+defaultproperties
+{
+    // Reference: RB_RadialImpulseComponent'Default__LPDImpulseActor.ImpulseComponent0'
+    begin object name=ImpulseComponent0
+    end object
+    ImpulseComponent=ImpulseComponent0
+    Components[0]=none
+    Components[1]=ImpulseComponent0
+    Components[2]=none
+}

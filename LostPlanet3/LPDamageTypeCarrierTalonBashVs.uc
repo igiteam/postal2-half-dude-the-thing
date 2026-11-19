@@ -1,0 +1,1 @@
+class LPDamageTypeCarrierTalonBashVs extends LPDamageTypeCarrierMelee;

@@ -1,0 +1,176 @@
+
+//----------------------------------------------------------------------------
+EnterFromPier local.vehicle local.slot:
+//  Used to enter the lvt from the pier
+//  Example:  $frank EnterFromPier $lvt 0
+//----------------------------------------------------------------------------
+
+	// Construct the enter tag name for the slot
+	local.passenger_enter_tag = "passenger0" + local.slot + "_enter"
+	
+	// Get the enter position and angles
+	local.enter_pos = local.vehicle gettagposition local.passenger_enter_tag
+	local.enter_angles = local.vehicle gettagangles local.passenger_enter_tag
+
+	// Move to the enter node
+	self walkto local.enter_pos
+	self waittill movedone
+
+	// Turn toward the vehicle
+//	self turnto local.enter_angles
+//	self waittill turndone
+
+	// Construct the anim name for the side
+	local.side = local.slot % 2
+	if( local.side == 0 )
+	{
+		local.passenger_enter_anim = "xvxxl_lvt2_mount_passenger_pier"
+	}
+	else
+	{
+		local.passenger_enter_anim = "xvxxr_lvt2_mount_passenger_pier"
+	}
+
+	// Play the enter animation
+	self anim_noclip local.passenger_enter_anim 
+	self waittill animdone
+
+	// Attach the passenger to the vehicle
+	local.vehicle attachpassengerslot local.slot self 1
+
+	// Set the passenger to idle
+	self anim xvxxx_lvt2_idle_passenger_01
+	
+end
+
+//----------------------------------------------------------------------------
+ExitToGround local.vehicle local.slot:
+//  Used to exit the lvt to the ground
+//  Example:  $frank ExitToGround $lvt 0
+//----------------------------------------------------------------------------
+
+	// Detach the passenger in place
+	local.passenger_pos = self.origin 
+	local.vehicle detachpassengerslot local.slot local.passenger_pos
+
+	// Construct the anim name for the slot
+	local.passenger_exit_anim = "xvxxx_lvt2_dismount_passenger" + local.slot
+
+	// Play the exit anim
+	self anim_noclip local.passenger_exit_anim  
+	self waittill animdone
+
+end
+
+//----------------------------------------------------------------------------
+ExitToPier local.vehicle local.slot local.zoffset:
+//  Used to exit the lvt to the pier
+//  Example:  $frank ExitToPier $lvt 0
+//----------------------------------------------------------------------------
+
+	// Detach the passenger in place
+	local.passenger_pos = self.origin
+	
+	if(local.zoffset != NIL)
+	{
+		local.curX = local.passenger_pos[0]
+		local.curY = local.passenger_pos[1]
+		local.curZ = local.passenger_pos[2] + local.zoffset
+		local.passenger_pos = (local.curX local.curY local.curZ)
+	}
+	
+	local.vehicle detachpassengerslot local.slot local.passenger_pos
+
+	// Construct the anim name for the side
+	local.side = local.slot % 2
+	if( local.side == 0 )
+	{
+		local.passenger_exit_anim = "xvxxl_lvt2_dismount_passenger_pier"
+	}
+	else
+	{
+		local.passenger_exit_anim = "xvxxr_lvt2_dismount_passenger_pier"
+	}
+
+	// Play the exit anim
+	self anim_noclip local.passenger_exit_anim  
+	self waittill animdone
+
+end
+
+//----------------------------------------------------------------------------
+FillBoat local.model local.numPassengers local.numGunners local.passengerName:
+//
+//	local.model			[OPTIONAL]	The name of the model to populate the boat with
+//	local.numPassengers [OPTIONAL]	The number of passengers to place on the boat.
+//	local.numGunners	[OPTIONAL]	Number of gunners to place on the boat.
+//	local.passengerName	[OPTIONAL]	The targetname you want to pass for the lvt guys.
+//
+//----------------------------------------------------------------------------
+
+	//Constants for number of passengers and gunners
+	local.LVT_MAX_PASSENGERS	= 6
+	local.LVT_MAX_GUNNERS		= 2
+	
+	if !( isalive self )
+	{
+		println "ERROR: global\lvt.scr::FillBoat no boat or dead boat passed to function."
+	}
+
+	if( local.model == NIL )
+	{
+		local.model = "models/characters/allied/allied_marine.hag"
+	}
+
+	if( local.numPassengers == NIL )
+	{
+		local.numPassengers = 1
+	}
+
+	if( local.numGunners == NIL )
+	{
+		local.numGunners = 0
+	}
+
+	if( local.passengerName == NIL )
+	{
+		local.passengerName = "lvt_guy"
+	}
+	
+	if( local.numPassengers > local.LVT_MAX_PASSENGERS )
+	{
+		local.numPassengers = local.LVT_MAX_PASSENGERS
+	}
+
+	if( local.numGunners > local.LVT_MAX_GUNNERS )
+	{
+		local.numGunners = local.LVT_MAX_GUNNERS
+	}
+
+	//Save off some info
+	self.numPassengers	= local.numPassengers
+	self.numGunners		= local.numGunners
+	
+	//Attach the Passengers
+	for( local.i = 0; local.i < local.numPassengers; local.i++ )
+	{
+		local.guy = spawn local.model "targetname" local.passengername
+		if ( local.guy )
+		{	
+			self AttachPassengerSlot local.i local.guy 1
+		}
+	}
+
+	//Attach the Gunners
+	for( local.i = 0; local.i < local.numGunners; local.i++ )
+	{
+		local.guy = spawn local.model "targetname" local.passengername
+		if ( local.guy )
+		{	
+			self AttachTurretSlot local.i local.guy 1
+		}	
+	}
+
+end
+
+

@@ -1,0 +1,1 @@
+class LPActorFactoryPhysXDestructible extends SPActorFactoryPhysXDestructible;

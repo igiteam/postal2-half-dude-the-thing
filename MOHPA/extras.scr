@@ -1,0 +1,312 @@
+// ----------------------------------------------------------------------------------
+//	global/extras.scr
+//	
+//	Spawns non-AI extras for background scenery.  They can walk, run, or loop animations,
+//	but won't react to enemies or events.  Great for guys walking around in the background.
+//	They delete themselves automatically once their #culltime has expired, or if #culltime is
+//	set to 0, they stick around until deleted by hand.
+//
+//	Spawned actors have targetname "spawnedExtra_Live" for real guys, and
+//	"spawnedExtra_ScriptModel" for script_model guys.
+//
+//	Returns a reference to the spawned actor, but it isn't necessary to use it.
+//
+//	Usage:
+//	Plant info_waypoints in the map and set their properties as follows:
+//	Spawning properties:
+//	$mymodel		no default		REQUIRED	What model should spawn?
+//	#realguy		default 0		OPTIONAL	Script model or real actor?  1 == real actor.
+//	#spawndelay		default 0		OPTIONAL	How long should we wait before spawning this actor?
+//	$myprop			no default		OPTIONAL	Prop to attach to this actor
+//	$mypropattach	default JO_prop	OPTIONAL	Where should we attach the prop?
+//	gun				no default		OPTIONAL	What gun should the actor carry?
+//	#culltime		default 40		OPTIONAL	How long should we wait before trying to remove this actor?
+//												* setting culltime to 0 tells actor not to delete himself.
+//	#culldist		default 4096	OPTIONAL	How far should this actor be from player before we try to cull?
+//
+//	Action properties:
+//	$myanim			no default		*			What animation should this actor play?
+//									* REAL GUYS MUST HAVE EITHER A $myanim OR A target set.
+//									* FAKE GUYS MUST HAVE A $myanim
+//	$myanim02		no default		OPTIONAL	If you'd like the actor to alternate between two animations, put the other one here.
+//	target			no default		OPTIONAL	Where should this actor walk? (VALID ONLY FOR REALGUYS)
+//	#actiondelay	default 0		OPTIONAL	How long should we wait after spawning before starting anim or action? (useful for preventing synchronized animations)
+//	$mymood			default atease	OPTIONAL	What mood is this actor in (atease, cautious) (VALID ONLY FOR REALGUYS)
+//	#run			default 0		OPTIONAL	Should the actor be running? (VALID ONLY FOR REALGUYS)
+//	
+//	To spawn the actors, either run global/extras.scr::SpawnExtras on the individual waypoints, or
+//	set up a trigger, target the trigger to those waypoints, and run global/extras.scr::WatchSpawnTrigger
+//	on that trigger.
+//	
+//	Example 1:
+//	
+//	//	entity 2094
+//	{
+//	"#realguy" "0"
+//	"uniqueid" "159084"
+//	"#actiondelay" "0.2"
+//	"angles" "0.0 0.0 0.0"
+//	"$myanim" "surrender_idle04"
+//	"$mymodel" "models/characters/allied/allied_navysailor2.hag"
+//	"$targetname" "s01extras06"
+//	"origin" "2000 -4752 1000"
+//	"classname" "info_waypoint"
+//	}
+//	
+//	This guy will spawn as a script_model immediately, and 0.2 seconds after spawn,
+//	will start looping surrender_idle04.
+//
+//
+//	Example 2:
+
+//	// entity 2165
+//	{
+//	"$mymood" "atease"
+//	"#run" "0"
+//	"#realguy" "1"
+//	"$mymodel" "models/characters/allied/allied_navycpo.hag"
+//	"uniqueid" "159160"
+//	"namedgroup" "actors_scenic_subbase"
+//	"target" "t927"
+//	"$targetname" "s01extras01"
+//	"angles" "0.0 45.0 0.0"
+//	"testanim" "idle"
+//	"origin" "11416 -10080 1146"
+//	"scale" "1.0"
+//	"classname" "info_waypoint"
+//	}
+//
+//	This guy will spawn as a real actor, and immediately start walking his target path
+// 	using the "atease" animation set.
+//	
+//	In general, if an actor only needs to animate in place, a script_model's fine.
+//	If the actor needs to move (walk a path, or run an animtion which moves its origin), 
+//	then make it a real guy.
+// ----------------------------------------------------------------------------------
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXX    PUBLIC    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// ----------------------------------------------------------------------------------
+WatchSpawnTrigger:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/extras.scr::WatchSpawnTrigger, on " self
+	
+	self waittill trigger
+	println "Triggered: " self
+	local.mytarget = self.target
+	self delete
+	
+	$(local.mytarget) thread SpawnExtras
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+SpawnExtras:
+//
+//
+// ----------------------------------------------------------------------------------
+	
+	println "Thread launched: global/extras.scr::SpawnExtras, on " self ", with " self.mymodel ", " self.myanim
+	
+	assert (self.mymodel != NIL && "Extra's $mymodel key isn't set.")
+	
+	if(self.spawndelay != NIL) {
+		wait self.spawndelay
+	}
+	
+	if(self.realguy)
+	{
+		self.myguy = spawn self.mymodel origin self.origin angles self.angles targetname "spawnedExtra_Live"
+		self.myguy takeall
+		self.myguy interval 48
+		if( self.mymood == NIL ) {
+			self.myguy.mood = atease		// atease, cautious, alert
+		} else {
+			self.myguy.mood = self.mymood
+		}
+		self.myguy waitthread global/actor_utils.scr::GagModeStart
+		self.myguy waitthread global/actor_utils.scr::EnableFastMode
+		if(self.run == NIL) {
+			self.run = 0
+		}
+		self.myguy.run = self.run
+		self.myguy.startingorigin = self.origin
+		self.myguy.startingangles = self.angles
+		self.myguy.resetorigin = self.resetorigin
+		self.myguy.target = self.target
+	}
+	else
+	{
+		self.myguy = spawn animate model self.mymodel origin self.origin angles self.angles targetname "spawnedExtra_ScriptModel"
+	}
+	
+	if(self.physicsoff == 1) {
+		self physics_off
+	}
+	
+	if(self.myprop != NIL)
+	{
+		if(self.mypropattach == "JO_gun")
+			self.myguy attachmodel self.myprop JO_gun
+		else
+			self.myguy attachmodel self.myprop JO_prop
+	}
+	
+	if(self.gun != NIL) {
+		self.myguy gun self.gun
+	}
+	
+	self.myguy svflags "+broadcast"	// we clean these guys up manually - if they're in the world, we want them drawing
+	self.myguy nodamage
+	
+	if( self.solid == NIL || self.solid == 0 ) {
+		self.myguy notsolid
+	} else {
+		self.myguy solid
+	}
+	
+	// plant spawn node's values on spawned actor
+	self.myguy.myanim = self.myanim
+	if(self.myanim02 != NIL) {
+		self.myguy.myanim02 = self.myanim02
+	}
+	self.myguy.realguy = self.realguy
+	
+	if(self.actiondelay != NIL) {
+		wait self.actiondelay
+	}
+	
+	self.myguy thread Action
+	self thread CleanMeUp
+	
+end self.myguy
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXX    PRIVATE   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// ----------------------------------------------------------------------------------
+Action:
+//
+//
+// ----------------------------------------------------------------------------------
+	
+	println "Thread launched: global/extras.scr::Action, on " self
+	
+	if(self.realguy)
+	{
+		self.fastmove = 3
+		if(self.target != NIL && $(self.target) != NULL)
+		{
+			// walk or run
+			if(self.run) {
+				self runto self.target
+			} else {
+				self walkto self.target
+			}
+			self waittill movedone
+			
+			// play animation at end
+			if(self.myanim != NIL){
+				self animstop
+				self thread LoopAnimation 0
+			} else {
+				self idlecover
+			}
+		}
+		else {
+			self thread LoopAnimation
+		}
+	} else {
+		self thread LoopAnimation 0
+	}
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+LoopAnimation local.noclip:
+//
+//
+// ----------------------------------------------------------------------------------
+	
+	println "Thread launched: global/extras.scr::LoopAnimation, on " self
+	
+	if(local.noclip == NIL) {
+		local.noclip = 1
+	}
+	
+	// loop animation
+	while(isAlive self)
+	{
+		assert (self.myanim != NIL && "Live extra is trying to play an animation, but its $myanim key isn't set.")
+		if(local.noclip) {
+			self anim_noclip self.myanim
+		} else {
+			self anim self.myanim
+		}
+		self waittill animdone
+		if(self.myanim02 != NIL)	// play alternate animation if supplied
+		{
+			if(local.noclip) {
+				self anim_noclip self.myanim02
+			} else {
+				self anim self.myanim02
+			}
+			self waittill animdone
+		}
+		if(self.resetorigin)
+		{
+			self hide
+			self.origin = self.startingorigin
+			self.angles = self.startingangles
+			waitframe
+			self show
+		}
+	}
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+CleanMeUp:
+//
+//
+// ----------------------------------------------------------------------------------
+	
+	println "Thread launched: global/extras.scr::CleanMeUp, on " self
+	
+	if( self.culltime == NIL ) {
+		self.culltime = 40
+	}
+	if( self.culldist == NIL ) {
+		self.culldist = 4096
+	}
+
+	wait self.culltime
+
+	if(self != NULL && self.culltime) {	// setting culltime to 0 tells model not to delete himself.
+		self.myguy thread global/actor_utils.scr::DeleteMeWhenUnseen self.culldist
+	}
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+CleanMeUpNow:
+//
+//
+// ----------------------------------------------------------------------------------
+	
+	println "Thread launched: global/extras.scr::CleanMeUpNow, on " self
+	
+	if(self.myguy != NULL) {
+		self.myguy delete
+	}
+	self delete
+	
+end

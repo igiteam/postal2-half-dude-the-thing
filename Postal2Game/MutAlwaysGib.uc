@@ -1,0 +1,39 @@
+///////////////////////////////////////////////////////////////////////////////
+// MutAlwaysGib.
+// Copyright 2023 Running With Scissors Studios LLC.  All Rights Reserved.
+//
+// Always gib mutator.
+//
+// With this on, always explode into gibs, instead of dying with ragdoll.
+//
+///////////////////////////////////////////////////////////////////////////////
+class MutAlwaysGib extends Mutator;
+
+///////////////////////////////////////////////////////////////////////////////
+// Get players ready to gib
+///////////////////////////////////////////////////////////////////////////////
+function ModifyPlayer(Pawn Other)
+{
+	if(MpPawn(Other) != None)
+	{
+		MpPawn(Other).bOnlyGibs=true;
+	}
+	if ( NextMutator != None )
+		NextMutator.ModifyPlayer(Other);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+function bool MutatorIsAllowed()
+{
+	return true;
+}
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    GroupName="AlwaysGib"
+    FriendlyName="Always Gib"
+    Description="Instead of normal deaths, everyone always explodes into gibs when they die."
+}

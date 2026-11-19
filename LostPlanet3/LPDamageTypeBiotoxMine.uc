@@ -1,0 +1,1 @@
+class LPDamageTypeBiotoxMine extends LPDamageTypeToxicCloud;

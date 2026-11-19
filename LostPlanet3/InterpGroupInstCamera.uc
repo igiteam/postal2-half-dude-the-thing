@@ -1,0 +1,1 @@
+class InterpGroupInstCamera extends InterpGroupInst;

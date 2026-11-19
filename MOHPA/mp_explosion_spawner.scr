@@ -1,0 +1,296 @@
+/*  MP_EXPLOSION_SPAWNER
+ *
+ *  SETUP:
+ * 	Add this line to your script before level waittill prespawn
+ *		exec global/mp_explosion_spawner.scr
+ *	script_objects must be present in your map and given the following variables
+ *	all are optional except for the targetname. If leadin, sound, or fx are set to
+ *	0 the cooresponding sound/fx will be disabled.
+ *	
+ *		targetname:     must be "explosion_spawner"
+ *(optional)	minRange:       the minimum distance you want the explosion to happen from
+ *			                    the script origin (default 256)
+ *(optional)	maxRange:       the maximum distance you want the explosion to happen from
+ *			                    the script origin (default 512)
+ *(optional)	minTime:        the minimum time interval you want the explosions to go off
+ *                              (default 10)
+ *(optional)	maxTime:        the maximum time interval you want the explosions to go off
+ *                              (default 30)
+ *(optional)    minVolley:	the minimum number of explosions to launch with each volley
+ *(optional)    maxVolley: 	the maximum number of explosions to launch with each volley
+ *(optional)    volleyMaxTime:	time between each individual explosion in the volley
+ *(optional)	leadin:         the alias of the sound you want for the leadin. "must be quoted"
+ *(optional)	leadinTime:     the time we have to wait for leadin to play
+ *(optional)	sound:          the sound of the explosion. "must be quoted"
+ *(optional)	soundTime:      the time it takes for the explosion sound to play
+ *(optional)	fx1:	        Explosion effect choice 1 (CCARON) "must be quoted" 
+ *(optional)    fx2:            Explosion effect choice 2 (CCARON)
+ *(optional)    fx3:            Explosion effect choice 3 (CCARON)
+ *(optional)    smoke:		the smoke fx to spawn in after an explosion
+ *(optional)    dontHitPlayers: 0 if you don't want players to be hit by explosions
+ *                              1 if you do want the players to be hit
+ *(optional)    doDamage:       0 if you DONT want the explosions to cause damage
+ *			        1 if you DO want the explosion to cause damage
+ *(optional)    explosionRadius: radius you want the damage of the explosion to effect
+ *(optional)    explosionDamage: damage you want to do within the explosionRadius
+ *(optional)    earthquake      (default 1 - means cause an earthquake to nearby players)
+ *
+ * 5-14-04 Nesan Waran: initial creation
+ *		
+ */
+
+
+
+//-----------------
+main:
+//-----------------
+	if ($explosion_spawner.size == 0){
+		dprintln("global/mp_explosions_spawner.scr - MAP ERROR: no explosion_spawner entities!")
+		end
+	}
+	
+	for (local.i =0; local.i<$explosion_spawner.size; local.i++){
+		$explosion_spawner[local.i+1] thread turn_on	
+	}
+	
+end
+
+//-------------------
+init:
+//------------------
+	if (self.maxRange == NULL || self.maxRange == NIL)
+		self.maxRange = 512
+	if (self.minRange == NULL || self.minRange == NIL || self.minRange > self.maxRange)
+		self.minRange = 256	
+		
+	if (self.maxTime == NULL || self.maxTime == NIL)
+		self.maxTime = 5
+	if (self.minTime == NULL || self.minTime == NIL || self.minTime >self.maxTime)
+		self.minTime = 5
+		
+	if (self.leadin == NULL || self.leadin == NIL)
+		self.leadin = "mp_arty_leadin"
+	if (self.leadinTime == NULL || self.leadinTime == NIL)
+		self.leadinTime = 1
+	if (self.sound == NULL || self.sound == NIL)
+		self.sound = "mp_explo_dirt1"
+	if (self.soundTime == NULL || self.soundTime == NIL)
+		self.soundTime = 5
+	if (self.fx1 == NULL || self.fx1 == NIL)
+		self.fx1 = "models/fx/hellcat_bomb_explosion.tik"
+	if (self.fx2 == NULL || self.fx2 == NIL)
+		self.fx2 = "models/vfx/explosions/explosion1_sec1.tik"
+	if (self.fx3 == NULL || self.fx3 == NIL)
+		self.fx3 = "models/vfx/explosions/explosion1_sec2.tik"
+	if (self.dontHitPlayers == NULL || self.dontHitPlayers == NIL)
+		self.dontHitPlayers = 1
+	if (self.explosionRadius == NULL || self.explosionRadius == NIL)
+		self.explosionRadius = (self.maxRange + self.minRange) / 2
+	if (self.explosionDamage == NULL || self.explosionDamage == NIL)
+		self.explosionDamage = 200
+	if (self.doDamage == NULL || self.doDamage == NIL)
+		self.doDamage = 1
+	if (self.earthquake == NIL || self.earthquake == NULL)
+		self.earthquake = 1
+	if (self.smoke == NIL || self.smoke == NULL)
+		self.smoke = "models/fx/battlesmoke1.tik"
+	if (self.minvolley == NIL || self.minvolley == NULL)
+		self.minVolley = 1
+	if (self.maxvolley == NIL || self.maxvolley == NULL)
+		self.maxVolley = 1
+	if (self.volleymaxtime == NIL || self.volleymaxtime == NULL)
+		self.volleyMaxTime = 2
+	self.init = 1;
+end
+
+//-----------------
+do_explosion_spawner:
+//-----------------
+	if (self.init == NULL || self.init == NIL || self.init !=1)
+		self waitthread init
+
+	while (self.on == 1)
+	{			
+		local.volleySize = randomint(self.maxVolley - self.minVolley) + self.minVolley
+		for (local.i=1; local.i <= local.volleySize; local.i++)
+		{
+			self thread fire_volley
+			local.volleyTime = randomfloat(self.volleyMaxTime)
+			wait local.volleyTime	
+		}
+			
+		local.randomTime = randomint ( self.maxTime - self.minTime )
+		wait ( self.minTime + local.randomTime )
+		
+		// if the map wants the explosions to be turned off, this is a good
+		// time to exit out of this thread.
+		if (self.on != 1){
+			end
+		}			
+	}
+
+end
+
+//--------------
+fire_volley:
+//------------
+		local.xyz = self.origin	
+		local.quadrant = randomint (4) + 1
+		
+		local.x = randomint(self.maxRange - self.minRange) + self.minRange
+		local.y = randomint(self.maxRange - self.minRange) + self.minRange
+		
+		switch (local.quadrant)
+		{
+			case 1: local.high = local.xyz + (local.x local.y 500)
+				local.low = local.xyz + (local.x local.y -500)
+				break	
+			case 2: local.high = local.xyz + ( -local.x local.y 500)
+				local.low = local.xyz + ( -local.x local.y -500)
+//				local.xyz = trace local.high local.low 1
+				break
+			case 3: local.high = local.xyz + ( -local.x -local.y 500)
+				local.low = local.xyz + ( -local.x -local.y -500)
+//				local.xyz = trace local.high local.low 1
+				break
+			case 4: local.high = local.xyz + (local.x -local.y 500)
+				local.low = local.xyz + (local.x -local.y -500)
+//				local.xyz = trace local.high local.low 1
+				break	
+		}
+		local.xyz = trace local.high local.low
+		
+		// done setting up location: stored in local.xyz
+		
+		if (self.dontHitPlayers == 1){
+			local.abort = 0
+			for(local.i = 1; local.i <= $player.size; local.i++){
+				local.vector = vector_subtract $player[local.i].origin local.xyz
+				local.distance = vector_length local.vector
+				if(local.distance < self.explosionRadius){
+					local.abort = 1
+					break
+				}
+			}
+			if (local.abort == 0){
+				self waitthread explode local.xyz
+			}
+		}
+		else{
+			self waitthread explode local.xyz
+		}
+end
+
+//-----------------
+turn_on:
+//-----------------
+	if (self.on == 1)
+		end
+	self.on = 1
+	self thread do_explosion_spawner
+end
+
+//-----------------
+turn_off:
+//-----------------
+	self.on = 0
+end
+
+//-----------------
+explode local.origin:
+//-----------------
+
+	//dprintln "explosion at " local.origin
+
+	local.o = spawn script_origin
+	local.o.origin = local.origin
+
+	if (self.leadin != 0)
+	{
+		local.o playsound self.leadin
+		wait self.leadinTime
+	}
+	if (self.doDamage == 1)
+	{
+		//dprintln "doing radiusdamage" 
+		radiusdamage local.origin 30 512
+	}
+	if (self.sound != 0)
+	{
+		self thread spawn_sound
+		//wait self.soundTime
+	}
+	
+	// choose a random explosion
+	local.rand = (randomint 3) + 1
+	
+	if (local.rand == 1)
+		local.fx = self.fx1
+	else if (local.rand == 2)
+		local.fx = self.fx2
+	else
+		local.fx = self.fx3
+	
+	//dprintln "explosion fx: " local.fx
+	
+	if (local.fx != 0)
+	{
+		//dprintln "playing FX " local.fx
+		self waitthread spawn_fx local.origin local.fx
+	}
+	
+	if (self.earthquake == 1)
+	{
+		wait 0.1
+		//dprintln "doing earthquake"
+		level earthquake 0.2 4.0 0 0 local.origin 512
+	}
+	if (self.smoke != 0)
+	{	
+		//dprintln "making smoke"		
+		self waitthread spawn_fx (local.origin + (0 0 10)) self.smoke
+		
+		local.randX = (randomint 60) + 10
+		local.randY = (randomint 60) + 10
+		local.wait = (randomint 3) + 1		
+		wait local.wait
+		self thread spawn_fx (local.origin + (local.randX local.randY 10)) "models/fx/smoulder_2.tik"
+		
+		local.randX = (randomint 60) + 10
+		local.randY = (randomint 60) + 10
+		local.wait = (randomint 3) + 1		
+		wait local.wait
+		self thread spawn_fx (local.origin + (local.randX local.randY 10)) "models/fx/smoulder_2.tik"
+		
+		local.randX = (randomint 60) + 10
+		local.randY = (randomint 60) + 10
+		local.wait = (randomint 3) + 1		
+		wait local.wait
+		self thread spawn_fx (local.origin + (local.randX local.randY 10)) "models/fx/smoulder_2.tik"
+			
+	}
+	local.o remove	
+
+end
+
+//-------------------
+spawn_sound:
+//-------------------
+	wait 0.1
+	self playsound self.sound
+end
+
+//-----------------
+spawn_fx local.origin local.fx:
+//-----------------
+	// This function is used to spawn explosions
+	if (local.fx == NIL || local.fx == NULL)
+		end
+	local.temp = spawn Animate model local.fx
+	local.temp notsolid
+	local.temp.origin = local.origin
+	local.temp anim idle // CCARON - choose 'idle' cause this is almost available
+	local.temp waittill animdone // for some reason this fixes the respawning anim bug
+	local.temp remove
+
+end

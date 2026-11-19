@@ -1,0 +1,1 @@
+class LPDamageTypeARIncendiary extends LPDamageTypeBallistic;

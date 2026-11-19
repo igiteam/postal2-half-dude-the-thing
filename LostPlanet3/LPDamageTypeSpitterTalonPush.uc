@@ -1,0 +1,1 @@
+class LPDamageTypeSpitterTalonPush extends LPDamageTypeSpitterTalon;

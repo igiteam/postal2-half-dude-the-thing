@@ -1,0 +1,1 @@
+class LPUIAction_ActivateLevelEvent extends SPUIAction_ActivateLevelEvent;

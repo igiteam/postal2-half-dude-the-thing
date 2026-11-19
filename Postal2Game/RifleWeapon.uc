@@ -1,0 +1,1164 @@
+///////////////////////////////////////////////////////////////////////////////
+// RifleWeapon
+// Copyright 2002 Running With Scissors, Inc.  All Rights Reserved.
+//
+// Rifle weapon (first and third person).
+//
+// Has powerful head shots. If you're zoomed in it has much better built-in aim.
+//
+// This uses by default, the mouse wheel to zoom in and out. Therefore, it turns
+// off Next/Prev weapon when in zoomed mode. Two functions AllowNextWeapon and
+// AllowPrevWeapon to determine if it can use the Next/PrevWeapon functions.
+// Normally we would have used states to ignore these functions, but because
+// we need to be in NormalFire state zoomed and normal, we went with two
+// extra functions to say if he's zoomed or not, instead of making a 'IsZoomed'
+// state. This also followed Epics original method or their zoom mode.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+class RifleWeapon extends CatableWeapon; //P2Weapon;
+
+///////////////////////////////////////////////////////////////////////////////
+// Vars, structs, consts
+///////////////////////////////////////////////////////////////////////////////
+var bool bZoomed;
+var texture SniperReticleCorner;
+var Texture SniperReticleCenter;
+var Texture BlackBackground;
+var float ZoomedTraceAccuracy;		// Better aim when you're zoomed in
+var float BotTraceAccuracy;
+var Sound SniperBreathing;	// breathing while in zoomed mode
+var Sound SniperChangeZoomSound; // clicky noise as you zoom in and out
+var Sound SniperFarting[2];
+var float ZoomFOV;
+var float FullScreenAlpha;
+var float FadeSpeed;
+var float WeaponSpeedZoom;
+var bool  bChangedZoom;
+var int BreathCount;
+var int BreathMax;
+var int SoundIndex;
+var float BreathWait;
+var travel bool bShowHint1;
+var bool bBlockZoomIn;
+var float TestTraceDist;
+var P2Pawn MyTarget;
+var float TargetTime;		// After every so often, reduce this again to 0. Use it to update
+							// the client that they're still in range.
+
+const SCALE_RAND =	0.3;
+const OFFSET_X_BASE = 0.02;
+const OFFSET_Y_BASE = 0.02;
+const MAX_ZOOM_FOV		=	30;
+const START_ZOOM_FOV	=	15;
+const MIN_ZOOM_FOV		=	5;		// 2
+const INC_ZOOM_FOV		=	5;      // 1 
+const BREATH_MAX		=	20;
+const FADE_ZOOM_ENTRY_TIME=	1.4;
+const CAN_SHOOT_FADE	=	100;
+const BETWEEN_BREATH_WAIT= 1.0;
+const BETWEEN_BREATH_WAIT_BEHIND= 5.0;
+
+const MAX_TRACES	=	5;
+
+const EXPECTED_START_RES_WIDTH_RIFLE	= 1024;
+
+const WAIT_IDLE_TIME	=	0.2;
+
+const TARGET_UPDATE_TIME	= 2.0;
+
+// Added by Man Chrzan: xPatch 2.0
+var sound EjectSound;    	 // Missing sound fix  
+
+///////////////////////////////////////////////////////////////////////////////
+// Modify your speed based on your owners body speed
+///////////////////////////////////////////////////////////////////////////////
+function ChangeSpeed(float NewSpeed)
+{
+	Super.Changespeed(NewSpeed);
+	WeaponSpeedZoom = default.WeaponSpeedZoom*NewSpeed;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Bots with a sniper rifle always use ZoomedTraceAccuracy
+///////////////////////////////////////////////////////////////////////////////
+function PostBeginPlay()
+{
+	Super.PostBeginPlay();
+
+	// Bots with a sniper rifle use a higher accuracy
+	if(FPSPawn(Instigator) != None
+		&& !FPSPawn(Instigator).bPlayer)
+		TraceAccuracy = BotTraceAccuracy;
+		
+	// If it's enhanced game we have higher accuracy too!
+	if(P2GameInfoSingle(Level.Game).VerifySeqTime()
+		&& Pawn(Owner).Controller.bIsPlayer )
+	{
+	    default.TraceAccuracy=ZoomedTraceAccuracy;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Allow hints again
+///////////////////////////////////////////////////////////////////////////////
+function RefreshHints()
+{
+	Super.RefreshHints();
+	bShowHint1=true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Fire the weapon
+///////////////////////////////////////////////////////////////////////////////
+simulated function PlayFiring()
+	{
+	local PlayerController P;
+		
+	Super.PlayFiring();
+	//SetupMuzzleFlash();
+	
+		// xPatch: Camera shake effect fix
+		if ( (Instigator != None) && Instigator.IsLocallyControlled() )
+		{
+			P = PlayerController(Instigator.Controller);
+			if (P!=None)
+			{
+				if ( InstFlash != 0.0 )
+					P.ClientInstantFlash( InstFlash, InstFog);
+	
+				P.ShakeView(ShakeRotMag, ShakeRotRate, ShakeRotTime,
+							ShakeOffsetMag, ShakeOffsetRate, ShakeOffsetTime);
+			}
+		}
+		
+		// xPatch: Play MP sounds on everyone's computers
+		if(Level.Game == None
+			|| !FPSGameInfo(Level.Game).bIsSinglePlayer)
+			PlayOwnedSound(FireSound,SLOT_Interact,1.5,,,WeaponFirePitchStart + (FRand()*WeaponFirePitchRand),false);
+	}
+
+///////////////////////////////////////////////////////////////////////////////
+// This will randomly change the color and the size of the dynamic
+// light associate with the flash. Change in each weapon's file,
+// but call each time you start up the flash again.
+// This function is also used by the third-person muzzle flash, so the
+// colors will look the same
+///////////////////////////////////////////////////////////////////////////////
+simulated function PickLightValues()
+{
+	LightBrightness=150;
+	LightSaturation=150;
+	LightHue=12+FRand()*15;
+	LightRadius=12+FRand()*6;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Make sure the muzzle flash renders, and move it around some
+///////////////////////////////////////////////////////////////////////////////
+simulated function SetupMuzzleFlash()
+{
+	if(!IsZoomed())
+	{
+		bMuzzleFlash = true;
+		bSetFlashTime = false;
+
+		// Gets turned off in weapon, in RenderOverlays
+		// Slightly change colors each time
+		if(IsFirstPersonView()
+			&& bDrawMuzzleFlash)
+		{
+			PickLightValues();
+			bDynamicLight=bAllowDynamicLights;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+simulated event RenderOverlays( canvas Canvas )
+{
+	local int i;
+	local int X,Y;
+	local Float CX,CY,Scale;
+	local Rotator OldVR;
+	local float ULength, VLength, UStart, VStart, FixedClipX, OffsetX;
+	local PlayerController PlayerOwner;
+
+	if ( Instigator == None )
+		return;
+
+	
+
+	bNoHudReticle=false;
+
+	if ( !bZoomed || IsInState('Zooming'))
+		// draw the normal weapon and reticle
+		Super.RenderOverlays(Canvas);
+	else	// draw in our fancy sniping reticle
+	{
+        bNoHudReticle=true;
+        PlayerOwner = PlayerController(Instigator.Controller);
+
+		FixedClipX = PlayerOwner.GetFourByThreeResolution(Canvas);
+        OffsetX = (Canvas.ClipX - FixedClipX) /2;
+
+		scale = FixedClipX/EXPECTED_START_RES_WIDTH_RIFLE;
+		Canvas.Style = ERenderStyle.STY_Normal;
+
+		// Draw black bars on sides
+		// +/- 10 fixes small visible line on both sides
+        // where the bars meet the scope texture.
+	    // Left Side
+        Canvas.SetPos(0,0);
+	    Canvas.DrawRect( BlackBackground, OffsetX+10, Canvas.ClipY );
+        // Right Side
+        Canvas.SetPos(FixedClipX+OffsetX-10,0);
+	    Canvas.DrawRect( BlackBackground, OffsetX+10, Canvas.ClipY );
+
+		ULength = SniperReticleCorner.USize;
+		VLength = SniperReticleCorner.VSize;
+		// Four corners curved pieces flipped around x and y axes to make
+		// a full circle, centered around the center of the screen
+		// upper left
+		Canvas.SetPos(OffsetX, 0);
+		Canvas.DrawTile(SniperReticleCorner, FixedClipX/2,
+											Canvas.SizeY/2,
+											0,
+											0,
+											-ULength,
+											-VLength);
+		// upper right
+		Canvas.SetPos((Canvas.ClipX/2), 0);
+		Canvas.DrawTile(SniperReticleCorner, FixedClipX/2,
+											Canvas.SizeY/2,
+											0,
+											0,
+											ULength,
+											-VLength);
+		// lower left
+		Canvas.SetPos(OffsetX, Canvas.ClipY/2);
+		Canvas.DrawTile(SniperReticleCorner, FixedClipX/2,
+											Canvas.SizeY/2,
+											0,
+											0,
+											-ULength,
+											VLength);
+		// lower right
+		Canvas.SetPos((Canvas.ClipX/2), Canvas.ClipY/2);
+		Canvas.DrawTile(SniperReticleCorner, FixedClipX/2,
+											Canvas.SizeY/2,
+											0,
+											0,
+											ULength,
+											VLength);
+
+		// Large cross-hairs that scretch over the whole screen
+		ULength = SniperReticleCenter.USize;
+		VLength = SniperReticleCenter.VSize;
+
+
+		// TOTAL HACK--fix in the texture, so it's 0, 0
+		Canvas.SetPos(OffsetX+(Scale*10), Scale*10);
+
+		Canvas.DrawTile(SniperReticleCenter, FixedClipX,
+											Canvas.SizeY,
+											0,
+											0,
+											ULength,
+											VLength);
+
+		if(FullScreenAlpha > 0)
+		{
+			// Draw full screen fades for when you're switching between zoom modes
+			Canvas.Style = ERenderStyle.STY_Alpha;
+			Canvas.SetDrawColor(255,255,255,FullScreenAlpha);
+			Canvas.SetPos(0, 0);
+			Canvas.DrawTile(BlackBackground, Canvas.SizeX,
+												Canvas.SizeY,
+												0,
+												0,
+												1.0,
+												1.0);
+		}
+
+		Canvas.Style = ERenderStyle.STY_Normal;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Don't allow them to shoot as the rifle is brightening up
+///////////////////////////////////////////////////////////////////////////////
+simulated function Fire( float Value )
+{
+	if(FullScreenAlpha <= CAN_SHOOT_FADE)
+		Super.Fire(Value);
+}
+simulated function AltFire( float Value )
+{
+	if(FullScreenAlpha <= CAN_SHOOT_FADE)
+	{
+		if(!bBlockZoomIn)
+		{
+			ServerAltFire();
+
+			if ( Role < ROLE_Authority)
+			{
+				LocalAltFire();
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Called on client's side to make the gun fire
+// Check here to throw out danger markers to let people know the gun has gone
+// off.
+///////////////////////////////////////////////////////////////////////////////
+simulated function LocalFire()
+{
+	local P2Player P;
+
+	bPointing = true;
+
+	// Same as the one in P2Weapon, but we don't do the camera shake here
+	// We make it shake when he throws
+
+	if ( Affector != None )
+		Affector.FireEffect();
+	PlayFiring();
+	if(Role < ROLE_Authority)
+		GotoState('ClientFiring');
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Same as above.. we don't want the shake here
+///////////////////////////////////////////////////////////////////////////////
+simulated function LocalAltFire()
+{
+	Zoom();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+function ServerAltFire()
+{
+	Zoom();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Is zooming
+///////////////////////////////////////////////////////////////////////////////
+simulated function bool IsZoomed()
+{
+	return bZoomed;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Start the zoom
+///////////////////////////////////////////////////////////////////////////////
+simulated function Zoom()
+{
+	if(AmmoType.HasAmmo()
+		&& Instigator.Physics == PHYS_Walking
+		&& (P2Player(Instigator.Controller) == None
+			|| P2Player(Instigator.Controller).IsInState('PlayerWalking')))
+	{
+		if ( !bZoomed )
+		{
+			GotoState('ZoomingIn');
+		}
+		else
+		{
+			GotoState('ZoomingOut');
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Do the work in the FOV to change the zoom mode.
+///////////////////////////////////////////////////////////////////////////////
+simulated function EnterZoomMode()
+{
+	bShowHints=false;
+	if(bShowHint1)
+		bShowHint1=false;
+
+	if(P2Player(Instigator.Controller) != None)
+		P2Player(Instigator.Controller).EnterSnipingState();
+
+	PlayAnim('StartZoom',WeaponSpeedZoom);
+	bBlockZoomIn=true;
+	bHideFoot=true;	// xPatch
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+simulated function ExitZoomMode()
+{
+	if(bZoomed)
+	{
+		bBlockZoomIn=true;
+		bZoomed = false;
+
+		if(P2Player(Instigator.Controller) != None)
+		{
+			PlayerController(Instigator.Controller).ResetFOV();
+			P2Player(Instigator.Controller).ExitSnipingState();
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+simulated function FinishZoomEntry()
+{
+	bBlockZoomIn=false;
+	bZoomed=true;
+	// Change over to second hint now
+	bShowHints=true;
+	UpdateHudHints();
+
+	// Give it better accuracy when zoomed
+	TraceAccuracy = ZoomedTraceAccuracy;
+
+	ZoomFOV = START_ZOOM_FOV;
+	if(PlayerController(Instigator.Controller) != None)
+	{
+		PlayerController(Instigator.Controller).SetFOV(ZoomFov);
+		PlayerController(Instigator.Controller).ClientAdjustGlow(0.5,vect(0,255,0));
+	}
+
+	HandleZoomChange(255, FADE_ZOOM_ENTRY_TIME);
+
+	// Setup the new sniper zone fog
+	if(P2GameInfoSingle(Level.Game) != None)
+		P2GameInfo(Level.Game).SetSniperZoneFog(Owner);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+simulated function FinishZoomExit()
+{
+	if(PlayerController(Instigator.Controller) != None)
+		PlayerController(Instigator.Controller).ClientAdjustGlow(0,vect(0,0,0));
+
+	// Reset the zone's general fog
+	if(P2GameInfoSingle(Level.Game) != None)
+		P2GameInfo(Level.Game).SetGeneralZoneFog(Owner);
+
+	// Reset the accuracy
+	// Bots with a sniper rifle use a higher accuracy
+	if(FPSPawn(Instigator) != None
+		&& !FPSPawn(Instigator).bPlayer)
+		TraceAccuracy = BotTraceAccuracy;
+	else
+	{
+		if(CatOnGun == 1)
+			TraceAccuracy = ZoomedTraceAccuracy;
+		else
+			TraceAccuracy = default.TraceAccuracy;
+	}
+	
+	bHideFoot=false;	// xPatch
+	bShowHints=false;
+	UpdateHudHints();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Give hints about this item
+///////////////////////////////////////////////////////////////////////////////
+function bool GetHints(out String str1, out String str2, out String str3,
+				out byte InfiniteHintTime)
+{
+	if(bShowHints
+		&& bAllowHints)
+	{
+		if(bShowHint1)
+			str1=HudHint1;
+		else
+			str2=HudHint2;
+		return true;
+	}
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Make sure you're not zoomed
+///////////////////////////////////////////////////////////////////////////////
+simulated function bool ForceEndFire()
+	{
+	log(self$" sniper force end fire ");
+	if(PlayerController(Instigator.Controller) != None)
+		PlayerController(Instigator.Controller).ResetFOV();
+	ExitZoomMode();
+	FinishZoomExit();
+	return Super.ForceEndFire();
+	}
+
+///////////////////////////////////////////////////////////////////////////////
+// Send the rifle into a mode of fading the screen
+///////////////////////////////////////////////////////////////////////////////
+simulated function HandleZoomChange(float StartAlpha, float TimeSpent)
+{
+	FullScreenAlpha = StartAlpha;
+	FadeSpeed = FullScreenAlpha/TimeSpent;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Next weapon like normal, unless you're in zoom mode then we don't want the
+// player to use this
+///////////////////////////////////////////////////////////////////////////////
+simulated function bool AllowNextWeapon()
+{
+	if(IsZoomed())
+		return false;
+	else
+		return Super.AllowNextWeapon();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Prev weapon like normal, unless you're in zoom mode then we don't want the
+// player to use this
+///////////////////////////////////////////////////////////////////////////////
+simulated function bool AllowPrevWeapon()
+{
+	if(IsZoomed())
+		return false;
+	else
+		return Super.AllowPrevWeapon();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Zooms scope in
+///////////////////////////////////////////////////////////////////////////////
+simulated function ZoomIn()
+{
+	if(IsZoomed())
+	{
+		if(ZoomFOV > MIN_ZOOM_FOV)
+		{
+			Instigator.PlaySound(SniperChangeZoomSound,SLOT_Misc);
+			// FOV works seemingly backwards.. smaller it is, the more zoomed in you are
+			ZoomFOV -= INC_ZOOM_FOV;
+			if(ZoomFOV < MIN_ZOOM_FOV)
+				ZoomFOV = MIN_ZOOM_FOV;
+			if(PlayerController(Instigator.Controller) != None)
+				PlayerController(Instigator.Controller).SetFOV(ZoomFov);
+			// We've completed whatever it was that makes us not want to show hints anymore for this weapon
+			TurnOffHint();
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Zooms scope out
+///////////////////////////////////////////////////////////////////////////////
+simulated function ZoomOut()
+{
+	if(IsZoomed())
+	{
+		if(ZoomFOV < MAX_ZOOM_FOV)
+		{
+			Instigator.PlaySound(SniperChangeZoomSound,SLOT_Misc);
+			// FOV works seemingly backwards.. smaller it is, the more zoomed in you are
+			ZoomFOV += INC_ZOOM_FOV;
+			if(ZoomFOV > MAX_ZOOM_FOV)
+				ZoomFOV = MAX_ZOOM_FOV;
+			if(PlayerController(Instigator.Controller) != None)
+				PlayerController(Instigator.Controller).SetFOV(ZoomFov);
+			// We've completed whatever it was that makes us not want to show hints anymore for this weapon
+			TurnOffHint();
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Normal projectile fire, plus check where to make the danger marker to
+// alert people of the noise.
+///////////////////////////////////////////////////////////////////////////////
+function ProjectileFire()
+{
+	local vector markerpos, EndTrace;
+	local vector StartTrace, X,Y,Z;
+	
+	// Added by Man Chrzan: xPatch 2.0
+	// Reduce the cat ammo if we're using one
+	if(CatOnGun == 1)
+		CatAmmoLeft--;
+
+	// Moves like a projectile, but set up like a trace
+	Owner.MakeNoise(1.0);
+	GetAxes(Instigator.GetViewRotation(),X,Y,Z);
+	StartTrace = GetFireStart(X,Y,Z);
+	AdjustedAim = Instigator.AdjustAim(AmmoType, StartTrace, 2*AimError);
+	EndTrace = StartTrace + (TraceAccuracy * (FRand() - 0.5 ) ) * Y * 1000
+		+ (TraceAccuracy * (FRand() - 0.5 )) * Z * 1000;
+	X = vector(AdjustedAim);
+	EndTrace += (TraceDist * X);
+
+	// Make it
+	if (CatOnGun == 1) // Change by Man Chrzan: Silencing doesn't seem work from SwapCatOn so let's use new projectile 
+		RifleAmmoInv(AmmoType).SpawnSilentRifleProjectile(StartTrace,Normal(EndTrace - StartTrace));
+	else
+		RifleAmmoInv(AmmoType).SpawnRifleProjectile(StartTrace,Normal(EndTrace - StartTrace));
+
+	// Only make a new danger marker if the consecutive fires were as high
+	// as the max
+	if(ShotCount >= ShotCountMaxForNotify
+		&& Instigator.Controller != None
+		&& ShotMarkerMade != None)
+	{
+		// tell it we know this just happened, by recording it.
+		ShotCount -= ShotCountMaxForNotify;
+
+		// Records the first (gun fire)
+		markerpos = Instigator.Location;
+
+		// Primary (the gun shooting, making a loud noise)
+		if(ShotMarkerMade != None)
+		{
+			ShotMarkerMade.static.NotifyControllersStatic(
+				Level,
+				ShotMarkerMade,
+				FPSPawn(Instigator),
+				None,
+				ShotMarkerMade.default.CollisionRadius,
+				markerpos);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+function DropFrom(vector StartLocation)
+{
+	if(bZoomed)
+	{
+		ExitZoomMode();
+		FinishZoomExit();
+	}
+	Super.DropFrom(StartLocation);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// When necessary, handle the full screen alpha change
+///////////////////////////////////////////////////////////////////////////////
+simulated function FadeTick(float DeltaTime)
+{
+	if (Level.NetMode != NM_DedicatedServer )
+	{
+		if(FullScreenAlpha != 0)
+		{
+			FullScreenAlpha -= DeltaTime*FadeSpeed;
+
+			if(FullScreenAlpha < 0)
+			{
+				FullScreenAlpha = 0;
+			}
+		}
+	}
+}
+
+simulated function bool PutDown()
+{
+	bChangeWeapon = true;
+	ExitZoomMode();
+	FinishZoomExit();
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Make glare so he'll be easier to spot in MP games
+///////////////////////////////////////////////////////////////////////////////
+function MakeGlare()
+{
+	if(Level.Game == None
+		|| !FPSGameInfo(Level.Game).bIsSinglePlayer)
+		P2Pawn(Instigator).MakeSniperGlare();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Zooming
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state Zooming
+{
+	ignores ForceReload, NextWeapon, PrevWeapon,
+		ZoomIn, ZoomOut, WeaponChange;
+
+	simulated function Fire(float F)
+	{
+		if ( AmmoType == None
+			|| !AmmoType.HasAmmo() )
+		{
+			ClientForceFinish();
+			ServerForceFinish();
+			return;
+		}
+	}
+
+	simulated function AltFire(float F)
+	{
+		Fire(F);
+	}
+
+	simulated function bool IsZoomed()
+	{
+		return false;
+	}
+
+	simulated function bool PutDown()
+	{
+		bChangeWeapon = true;
+		ExitZoomMode();
+		FinishZoomExit();
+		return True;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// ZoomingIn/Out
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state ZoomingIn extends Zooming
+{
+	simulated function AnimEnd(int Channel)
+	{
+		FinishZoomEntry();
+		GotoState('Idle');
+	}
+
+	simulated function BeginState()
+	{
+		// START zoom mode
+		EnterZoomMode();
+	}
+}
+
+state ZoomingOut extends Zooming
+{
+	simulated function AnimEnd(int Channel)
+	{
+		FinishZoomExit();
+		if(Level.NetMode == NM_Client)
+			PlayIdleAnim();
+		GotoState('Idle');
+	}
+
+	simulated function BeginState()
+	{
+		// END zoom mode
+		ExitZoomMode();
+		PlayAnim('EndZoom',WeaponSpeedZoom);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Idle
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state Idle
+{
+	ignores ClientIdleCheckFire;
+
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function bool PutDown()
+	{
+		GotoState('DownWeapon');
+		return True;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Don't let them zoom in/out till this is called
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function Timer()
+	{
+		bBlockZoomIn=false;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// When necessary, handle the full screen alpha change
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function Tick(float DeltaTime)
+	{
+		local vector HitLocation, HitNormal, StartTrace, EndTrace, X,Y,Z;
+		local Actor TestTarget;
+
+		FadeTick(DeltaTime);
+		
+		// xPatch: Cutscenes FOV glitch fix
+		if(P2GameInfo(Level.Game) != None 
+			&& P2GameInfo(Level.Game).IsCinematic()
+			&& bZoomed)
+		{
+			ExitZoomMode();
+			FinishZoomExit();
+			GotoState('Idle');
+		}
+
+		// If it's the client, or a normal, single player game
+		if (P2GameInfoSingle(Level.Game) == None)
+		{
+			// The client can't check a trace/collision, only the server
+			if(Level.NetMode != NM_Client)
+			{
+				// If you're zoomed and in an MP game, trace forward and see if you'll
+				// hit a pawn or not. Then we can alert the person playing and tell them
+				// they're in range to get shot in the head.
+				if(bZoomed
+					&& PlayerController(Instigator.Controller) != None)
+				{
+					GetAxes(Instigator.GetViewRotation(),X,Y,Z);
+					StartTrace = Instigator.Location + Instigator.EyePosition();
+					EndTrace = StartTrace + TestTraceDist*X;
+					TestTarget = Trace(HitLocation, HitNormal, EndTrace, StartTrace, true);
+
+					// Undo view from last target, because we have a new/none target
+					if(MyTarget != None
+						&& TestTarget != MyTarget)
+					{
+						MyTarget.ClientSniperViewingMe(P2Pawn(Owner), false);
+						MyTarget = None;
+					}
+
+					// Keep track of how long we've have this target.
+					if(MyTarget != None)
+						TargetTime+=DeltaTime;
+
+					// Tell our new target he's in our sites!
+					if(TestTarget != MyTarget
+						&& P2Pawn(TestTarget) != None
+						&& PlayerController(Pawn(TestTarget).Controller) != None)
+					{
+						MyTarget = P2Pawn(TestTarget);
+						MyTarget.ClientSniperViewingMe(P2Pawn(Owner), true);
+						TargetTime=DeltaTime;
+					}
+					else if(MyTarget != None
+						&& TargetTime > TARGET_UPDATE_TIME)
+						// We've got the same old target, just update him
+					{
+						TargetTime =0;
+						MyTarget.ClientSniperViewingMe(P2Pawn(Owner), true);
+					}
+				}
+			}
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// If we're zoomed, make sure to update the new zone's zone fog, and change
+	// the old one's before you leave.
+	///////////////////////////////////////////////////////////////////////////////
+	event ZoneChange( ZoneInfo NewZone )
+	{
+		if(IsZoomed())
+		{
+			if(P2GameInfoSingle(Level.Game) != None)
+			{
+				// Reset old zone's fog
+				P2GameInfo(Level.Game).SetGeneralZoneFog(Owner);
+				// Set new one
+				P2GameInfo(Level.Game).SetNewSniperZoneFog(NewZone);
+			}
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// If it's the dude and he farted, apologize
+	///////////////////////////////////////////////////////////////////////////////
+	function float DudeCommentsOnFarting()
+	{
+		if(P2Player(Instigator.Controller) != None)
+			return P2Player(Instigator.Controller).CommentOnFarting();
+		return 0.0;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Check he's not talking or something
+	///////////////////////////////////////////////////////////////////////////////
+	function float DudeBreathes()
+	{
+		if(P2Player(Instigator.Controller) != None)
+			return P2Player(Instigator.Controller).SniperBreathing();
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Reset shot count if you're not still firing
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function BeginState()
+	{
+		// Always reset the count with each shot
+		ShotCountReset();
+		bBlockZoomIn=true;
+		SetTimer(WAIT_IDLE_TIME, false);
+		// Make sure to make a glare right off the bat
+		if(IsZoomed())
+		{
+			MakeGlare();
+		}
+	}
+
+	simulated function EndState()
+	{
+		bBlockZoomIn=false;
+		// Undo view from last target because we're leaving this state
+		if(MyTarget != None)
+		{
+			MyTarget.ClientSniperViewingMe(P2Pawn(Owner), false);
+			MyTarget = None;
+			TargetTime =0;
+		}
+
+		Instigator.PlaySound(SniperBreathing,SLOT_Interface,0.01);
+		Super.EndState();
+	}
+Begin:
+	bPointing=False;
+	if ( NeedsToReload() && AmmoType.HasAmmo() )
+		GotoState('Reloading');
+	if ( !AmmoType.HasAmmo() )
+		Instigator.Controller.SwitchToBestWeapon();  //Goto Weapon that has Ammo
+	if ( Instigator.PressingFire() ) Fire(0.0);
+	//if ( Instigator.PressingAltFire() ) AltFire(0.0);
+	PlayIdleAnim();
+	Sleep(WAIT_IDLE_TIME);	// Don't let them switch during this time
+
+ZoomedBreathing:
+	if(IsZoomed())
+	{
+		// Wait a second to start breathing (again)
+		Sleep(1.5 + FRand());
+		// Setup our counters
+		BreathCount = 0;
+		BreathMax = Rand(BREATH_MAX) + BREATH_MAX;
+
+MakeSound:
+		MakeGlare();
+
+		// Breathes as he stares through scope (unless the
+		// camera is viewing him in third-person)
+		if(PlayerController(Instigator.Controller) != None
+			&& !PlayerController(Instigator.Controller).bBehindView)
+			BreathWait = DudeBreathes() + BETWEEN_BREATH_WAIT;
+		else
+			BreathWait = BETWEEN_BREATH_WAIT_BEHIND;
+
+		if(BreathWait > 0)
+			BreathCount++;
+		else
+			Goto('ZoomedBreathing');
+
+		Sleep(BreathWait/2);
+		MakeGlare();
+		Sleep(BreathWait/2);
+
+		// Every so often, fart
+		if(BreathCount > BreathMax)
+		{
+			SoundIndex = Rand(ArrayCount(SniperFarting));
+			Instigator.PlaySound(SniperFarting[SoundIndex],SLOT_Interface,1.0);
+			Sleep(GetSoundDuration(SniperFarting[SoundIndex]) + 1.0 + FRand());
+			// Apologize for it
+			Sleep(DudeCommentsOnFarting() + 1.0);
+			Goto('ZoomedBreathing');
+		}
+		Goto('MakeSound');
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// NormalFire
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state NormalFire
+{
+	///////////////////////////////////////////////////////////////////////////////
+	// When necessary, handle the full screen alpha change
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function Tick(float DeltaTime)
+	{
+		FadeTick(DeltaTime);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// ClientFiring
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state ClientFiring
+{
+	///////////////////////////////////////////////////////////////////////////////
+	// When necessary, handle the full screen alpha change
+	///////////////////////////////////////////////////////////////////////////////
+	simulated function Tick(float DeltaTime)
+	{
+		FadeTick(DeltaTime);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Downweapon
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+state DownWeapon
+{
+	ignores Zoom;
+
+	simulated function BeginState()
+	{
+		Super.BeginState();
+		ExitZoomMode();
+		FinishZoomExit();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Added by Man Chrzan: xPatch 2.0
+///////////////////////////////////////////////////////////////////////////////
+
+function Notify_Eject()
+{
+    Instigator.PlaySound(EjectSound, SLOT_None, 1.0, true, , WeaponFirePitchStart + (FRand()*WeaponFirePitchRand));
+}
+
+function SwapCatOn()
+{
+	// Do actual silencing!! (silencer part)
+	// Turn off sounds so no one gets freaked out unless you actaully hit them
+	ShotMarkerMade = None;
+
+	// Increase accuracy
+	TraceAccuracy = ZoomedTraceAccuracy;
+
+	Super.SwapCatOn();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Swap meshes and animations appropriately for normal shotgun
+///////////////////////////////////////////////////////////////////////////////
+function SwapCatOff()
+{
+	// Undo actual silencing!! (silencer part)
+	// Turn sounds back on, so people freak out again
+	ShotMarkerMade = default.ShotMarkerMade;
+	ExitZoomMode();
+	FinishZoomExit();
+	TraceAccuracy = default.TraceAccuracy;
+	
+	Super.SwapCatOff();
+}
+
+// xPatch: Make sure that this gun is not extension!
+function bool CanSwapHands()
+{
+	return (Class == Class'RifleWeapon');
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Default properties
+///////////////////////////////////////////////////////////////////////////////
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    SniperReticleCorner=Texture'JakeWS.Misc.Rifle_Sight_Corner'
+    SniperReticleCenter=Texture'P2Misc.Reticle.Rifle_Sight_Crosshairs'
+    BlackBackground=Texture'nathans.Inventory.blackbox64'
+    BotTraceAccuracy=0.0500000
+    SniperBreathing=Sound'WeaponSounds.sniper_zoombreathing'
+    SniperChangeZoomSound=Sound'WeaponSounds.sniper_zoomclick'
+    SniperFarting[0]=Sound'AmbientSounds.fart1'
+    SniperFarting[1]=Sound'AmbientSounds.fart3'
+    WeaponSpeedZoom=1.0000000
+    bShowHint1=true
+    TestTraceDist=10000.0000000
+    EjectSound=Sound'WeaponSounds.sniper_ejectshell'
+    StartShotsWithCat=9
+    CatFireSound=Sound'WeaponSounds.machinegun_catfire'
+    bAttachCat=true
+    CatBoneName="MESH_Stock"
+    CatRelativeLocation=(X=57.0000000,Y=8.2000000,Z=0.0000000)
+    CatRelativeRotation=(Pitch=0,Yaw=0,Roll=16384)
+    CatScale=1.2500000
+    bUsesAltFire=true
+    ViolenceRank=3
+    RecognitionDist=1100.0000000
+    holdstyle=5
+    switchstyle=5
+    firingstyle=5
+    MinRange=250.0000000
+    ShakeOffsetTime=2.0000000
+    bAllowHints=true
+    bShowHints=true
+    HudHint1="%KEY_AltFire% brings up scope."
+    HudHint2="Use %KEY_WeaponZoomIn%/%KEY_WeaponZoomOut% to zoom in and out."
+    CombatRating=2.0000000
+    FirstPersonMeshSuffix="Rifle"
+    WeaponSpeedLoad=1.5000000
+    WeaponSpeedHolster=1.5000000
+    WeaponSpeedShoot1Rand=0.1500000
+    WeaponSpeedIdle=0.1000000
+    OldMesh=SkeletalMesh'FP_Weapons.FP_Dude_Rifle'
+    bSpawnMuzzleFlash=true
+    MFClass[2]=Class'FX2.MuzzleFlash01'
+    MFBoneName="MESH_Stock"
+    MFRelativeLocation=(X=57.5000000,Y=4.0000000,Z=0.0000000)
+    MFTex=Texture'Timb.muzzle_flash.machine_gun_corona'
+    MFScale=(Min=1.7000000,Max=1.7000000)
+    MFSizeRange=(Min=25.0000000,Max=25.0000000)
+    MFLifetime=(Min=0.0500000,Max=0.0500000)
+    AmmoName=Class'RifleAmmoInv'
+    AutoSwitchPriority=8
+    ShakeRotMag=(X=450.0000000,Y=50.0000000,Z=50.0000000)
+    ShakeOffsetMag=(X=20.0000000,Y=2.0000000,Z=2.0000000)
+    ShakeOffsetRate=(X=800.0000000,Y=800.0000000,Z=800.0000000)
+    TraceAccuracy=0.2000000
+    bSniping=true
+    aimerror=0.0000000
+    AIRating=0.8000000
+    TraceDist=1000.0000000
+    MaxRange=4096.0000000
+    FireSound=Sound'WeaponSounds.sniper_fire'
+    FlashOffsetY=-0.0900000
+    FlashOffsetX=0.0950000
+    MuzzleFlashSize=96.0000000
+    MFTexture=Texture'Timb.muzzle_flash.machine_gun_corona'
+    MuzzleFlashScale=2.4000000
+    MuzzleFlashStyle=1
+    InventoryGroup=8
+    GroupOffset=1
+    PickupClass=Class'RiflePickup'
+    PlayerViewOffset=(X=2.0000000,Y=0.0000000,Z=-7.7500000)
+    BobDamping=1.1200000
+    AttachmentClass=Class'RifleAttachment'
+    ItemName="Rifle"
+    Mesh=SkeletalMesh'MP_Weapons.MP_LS_Rifle'
+    Skins[0]=Texture'MP_FPArms.LS_arms.LS_hands_dude'
+    Skins[1]=Texture'WeaponSkins.sniper_timb'
+    Skins[2]=Texture'WeaponSkins.brass-01'
+    Skins[3]=Texture'xPatchTex.Weapons.Rifle_handle'
+    SoundRadius=255.0000000
+}

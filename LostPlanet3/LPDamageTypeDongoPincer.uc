@@ -1,0 +1,1 @@
+class LPDamageTypeDongoPincer extends LPDamageTypeDongoMelee;

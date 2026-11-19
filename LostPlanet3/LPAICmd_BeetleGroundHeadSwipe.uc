@@ -1,0 +1,1 @@
+class LPAICmd_BeetleGroundHeadSwipe extends LPAICmd_BeetleBaseStrike within LPAIControllerBaseBeetle;

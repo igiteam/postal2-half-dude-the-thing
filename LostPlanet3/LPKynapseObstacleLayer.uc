@@ -1,0 +1,1 @@
+class LPKynapseObstacleLayer extends SPKynapseObstacleLayer;

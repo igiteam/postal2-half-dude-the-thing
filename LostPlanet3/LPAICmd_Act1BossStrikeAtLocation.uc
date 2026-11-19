@@ -1,0 +1,1 @@
+class LPAICmd_Act1BossStrikeAtLocation extends LPAICommand within LPAIControllerAct1Boss;

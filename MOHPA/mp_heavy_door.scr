@@ -1,0 +1,449 @@
+//
+// mp_heavy_door.scr by Victor Dods
+//
+// This implements a heavy door which has momentum, friction,
+// and more than 1 player can push on either side.  The door
+// acts more realistic than just open/close.
+//
+// The door has positional limiters to limit its rotation (so that each
+// individual door may have unique properties), as well as constants which
+// govern its physical properties (friction, mass, etc).  The door has
+// 2 areas, one directly touching each side of the door, which act as
+// push areas.  Players who intersect these areas are interpreted as pushing
+// the door in the respective direction.  The door also has a hinge which can
+// be set to anywhere, on which the door (and its push areas) will rotate.
+//
+// The door provides callbacks for when it reaches either of the position-
+// limitting states.  Depending on the map, each could be opened or
+// closed, so it is left to the user to make that determination and provide
+// the appropriate callback function (if one is even necessary).  Example:
+// checking off an objective once the door has reached an open state, or
+// deactivating the door once it has closed all the way.
+//
+// The door must be initialized at the beginning of the level with a call to
+// "init".  This is where you set up the initial position of the door (open,
+// closed, or somewhere in between) and the callback functions for the
+// limiting states.  The door is then in a deactivated state, so a call to
+// "activate" must be made for the door to be movable.  Similarly, the door
+// may be halted and frozen at any time with a call to "deactivate".
+//
+// To use this door, you need the following setup:
+// - a script_door: which is made out of your actual visible door
+//                  and a brush that is textured with the common/origin
+//                  texture, and is placed at the XY coordinates of
+//                  the door's hinge.  This is the door.  Targetname it
+//                  appropriately.
+//                  NOTE: the door (and associated push areas) must be created
+//                  aligned up with the positive X axis (no matter how the
+//                  door will actually be in the game).  The reason for this
+//                  is so that the "angles" property returns a value which
+//                  is consistent for the orientation of the door.  Thus
+//                  the door must be created in a consistent orientation.
+//                  Don't worry if it looks weird, the door's initial position
+//                  will be set by the call to "init" at the beginning of the
+//                  level.
+// - a script_object: which is created similarly to the door.  It should be
+//                    about the same size as the door, placed on the counter-
+//                    clockwise side of the door, as it would rotate on its 
+//                    origin.  There should also be a brush with the origin 
+//                    texture on it, at the same XY coordinates as the door's 
+//                    origin.  Make sure the script_object is textured with 
+//                    some invisible texture (I suggest "common/trigger").  
+//                    This script_object represents the brush which the 
+//                    players must intersect in order to push the door in a 
+//                    clockwise direction.  This object's targetname must be
+//                    set as the "$cw" key of the door entity.
+// - a script_object: which is identical to the previous script_object.  The
+//                    difference is that it should be placed on the opposite
+//                    side (clockwise) of the door (opposite from "cw").  This
+//                    represents the script_object that players must intersect
+//                    in order to push the door in a ccw direction.  This
+//                    object's targetname must be set as the "$ccw" key of the
+//                    door entity.  Note that the origin brush for this object 
+//                    should be at the same XY coordinates as the other 2 
+//                    brushes (i.e. identical XY coordinates).  This is 
+//                    because we want all the brushes to rotate around the 
+//                    same point.
+// - a script_origin: which will behave as the door stop, limiting the door's
+//                    cw motion.  It should be placed with regard to the
+//                    origin brushes of the door/cw/ccw.  This object's
+//                    targetname must be set as the "$cw_limiter" key of
+//                    the door entity.
+// - a script_origin: which will behave as the door stop, limiting the door's
+//                    ccw motion.  It should be placed with regard to the
+//                    origin brushes of the door/cw/ccw.  This object's
+//                    targetname must be set as the "$ccw_limiter" key of
+//                    the door entity.
+// - a script_origin: which will be used to calculate the length of the door
+//                    for leverage calculations.  The object may be placed 
+//                    anywhere, but for correct calculations, it should be 
+//                    placed at the edge of the door opposite from it's pivot 
+//                    origin brush.  This object's targetname must be set as
+//                    the "$door_edge" key of the door entity.
+// - a trigger_multiple: which encloses the entire area, and all area that
+//                       the door (and cw/ccw objects) could rotate into and
+//                       occupy.  This is to optimize the processing so that
+//                       the motion of doors are only computed when players
+//                       are inside this trigger or if the door is still
+//                       moving.  This object's targetname must be set as 
+//                       the "$proximity" key of the door entity.  You MUST
+//                       have the keypair 
+//                       "setthread" / "global/mp_heavy_door.scr::proximity"
+//                       in this entity (or setthread to a function which
+//                       calls proximity in a correct manner).
+//
+// make sure the following keypairs are set in the door entity:
+// "$cw" / the clockwise direction pushing entity for the door (the one on
+//         the counterclockwise side of the door)
+// "$ccw" / the counterclockwise direction pushing entity for the door (the
+//          one on the clockwise side of the door)
+// "$cw_limiter" / the script_origin which acts as a doorstop for limiting the
+//                 clockwise motion of the door.
+// "$ccw_limiter" / the script_origin which acts as a doorstop for limiting
+//                  the counterclockwise motion of the door.
+// "$proximity" / the trigger_multiple which encloses the entire apparatus.
+// "$door_edge" / the script_origin which denotes the opposite edge of the
+//                door.  It allows leverage computations, and allows the
+//                mapper to place the door at any angle in the map (doesn't
+//                have to be in the closed or open state necessarily)
+//
+
+//----------------------------------------------------------------------------
+init local.startPosition local.ccwCallback local.cwCallback:
+//--------------------
+
+	// The initialization function for the door.  params:
+	// - local.startPosition: may be in the range [0, 1].  0 specifies
+	//   that the door shall start in the clockwise limited position, 1
+	//   is the counterclockwise position.  Values between 0 and 1 
+	//   represent the linear interpolation of the respective angles.
+	// - local.ccwCallback: pass the optional callback for when the door
+	//   reaches the counterclockwise limit.  Pass in NULL for no callback
+	// - local.cwCallback: pass the optional callback for when the
+	//   door reaches the clockwise limit.  Pass in NULL for no callback
+
+	// check the user-definable values are set (or set them to defaults)
+	if (self.ccw == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'ccw' script_object")
+	}
+	// dereference the string to a listener with that name
+	self.ccw = $(self.ccw)
+	self.ccw notsolid
+
+	if (self.cw == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'cw' script_object")
+	}
+	// dereference the string to a listener with that name
+	self.cw = $(self.cw)
+	self.cw notsolid
+
+	if (self.ccw_limiter == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'ccw_limiter' script_origin")
+	}
+	// dereference the string to a listener with that name
+	self.ccw_limiter = $(self.ccw_limiter)
+		
+	if (self.cw_limiter == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'cw_limiter' script_origin")
+	}
+	// dereference the string to a listener with that name
+	self.cw_limiter = $(self.cw_limiter)
+		
+	if (self.proximity == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'proximity' trigger_multiple")
+	}
+	// dereference the string to a listener with that name
+	self.proximity = $(self.proximity)
+
+	if (self.door_edge == NIL) {
+		iprintln ("WARNING: " + self.targetname + ": you did not specify the 'door_edge' script_origin")
+	}
+	// dereference the string to a listener with that name
+	self.door_edge = $(self.door_edge)
+	self.doorLength = vector_length (self.door_edge.origin - self.origin)
+	dprintln ("doorLength = " + self.doorLength)
+
+	// set the callbacks
+	self.ccwCallback = local.ccwCallback
+	self.cwCallback = local.cwCallback
+
+	// figure out what the open/closed angle is
+	local.ccwVector = self.ccw_limiter.origin - self.origin
+	local.ccwLimitAngles = vector_toangles local.ccwVector
+	local.cwVector = self.cw_limiter.origin - self.origin
+	local.cwLimitAngles = vector_toangles local.cwVector
+	local.doorEdgeAngles = vector_toangles (self.door_edge.origin - self.origin)
+
+	dprintln ("init counter clock wise limit angle: " + local.ccwLimitAngles[1])
+	dprintln ("init clock wise limit angle: " + local.cwLimitAngles[1])
+	dprintln ("init door edge angle: " + local.doorEdgeAngles[1])
+	
+	self.ccwLimitAngle = local.ccwLimitAngles[1] - local.doorEdgeAngles[1]
+	self.cwLimitAngle = local.cwLimitAngles[1] - local.doorEdgeAngles[1]
+	
+	// offset the limit angles by the cw limit so that the door doesn't
+	// need to be built at 0 degrees in the map
+//	self.ccwLimitAngle -= local.initialDoorAngles[1]
+//	self.cwLimitAngle -= local.initialDoorAngles[1]
+
+	dprintln ("counter clock wise limit angle: " + self.ccwLimitAngle)
+	dprintln ("clock wise limit angle door angle: " + self.cwLimitAngle)
+
+	// set the initial state
+	local.startAngle = self.cwLimitAngle * (1 - local.startPosition) + self.ccwLimitAngle * local.startPosition
+	self waitthread set_door_angle_up_to local.startAngle 0.05
+
+	// set the hidden internal vars
+//	self.angle = 0 // this is redundant but necessary to get around
+//	               // the negative angle wrapping around to 360 problem
+	self.angleSpeed = 0
+	self.proximity.target = self
+	self.monitored = 0
+	self.dt = 0.1
+	self.activated = 0
+		
+	// physical constants (can be set by map-maker, but can be left out
+	// for default values)
+//	if (self.impactConstant == NIL)	
+//		self.impactConstant = 2
+	if (self.pushConstant == NIL)	
+		self.pushConstant = 10.0
+	if (self.dampingFactor == NIL)	
+		self.dampingFactor = 0.5
+	if (self.dampingMin == NIL)	
+		self.dampingMin = 2.0
+	if (self.stopSpeedThreshold == NIL)	
+		self.stopSpeedThreshold = 0.08
+	if (self.useLeverage == NIL)
+		self.useLeverage = 1
+end
+
+
+//--------------------
+activate:
+//--------------------
+
+	// Enables free door motion.  This must be called after "init" for
+	// the door to work in the map, as it is initially deactivated.
+	
+	self.activated = 1
+end
+
+
+//--------------------
+deactivate:
+//--------------------
+	
+	// Disallows further motion of the door.  The door will halt and
+	// freeze at the position it was when deactivate was called.
+	
+	self.activated = 0
+end
+
+
+//--------------------
+set_position local.position:
+//--------------------
+
+	// regardless of wether or not the door is activated, this function
+	// will set the door's position, in the same manner as the 
+	// local.startPosition parameter of "init".
+
+	local.newAngle = self.cwLimitAngle * (1 - local.position) + self.ccwLimitAngle * local.position
+	if (self.angles[1] < local.newAngle)
+		self waitthread set_door_angle_up_to local.newAngle self.dt
+	else
+		self waitthread set_door_angle_down_to local.newAngle self.dt
+end	
+
+
+//----------------------------------------------------------------------------
+proximity local.player:
+//--------------------
+	// if the poll thread is already running, don't run another
+	if (self.target.monitored)
+		end
+	
+	if (self.target.activated)	
+		self.target thread door_monitor
+end	
+
+
+//--------------------
+door_monitor:
+//--------------------
+	self.monitored = 1
+	while (1) {
+		// count up the number of players in each trigger as a 
+		// weighted sum (open weight = 1, close weight = -1)
+		local.count = 0
+		local.absCount = 0
+		for (local.i = 1; local.i <= $player.size; local.i++) {
+			if ($player[local.i] isinside self.ccw && isalive $player[local.i]) {
+				if (self.doorLength != NIL && self.doorLength != NULL && self.doorLength > 0 && self.useLeverage) {
+//					local.velocity = /*vector_normalize*/ $player[local.i].velocity
+//					local.playerToDoorPivot = vector_scale ($player[local.i].origin - self.origin) (1.0 / self.doorLength)
+//					dprintln ("velocity = " + (vector_length local.velocity))
+//					dprintln ("playerToDoorPivot" + (vector_length local.playerToDoorPivot))
+//					local.leverage = vector_length (vector_cross local.velocity local.playerToDoorPivot)
+//					dprintln ("leverage = " + local.leverage)
+					local.leverage = self waitthread calculate_leverage $player[local.i]
+					local.count += local.leverage
+//					if (local.leverage > 0)
+//						local.count += local.leverage					
+				} else {
+					local.count++
+				}
+				local.absCount++
+			}
+			if ($player[local.i] isinside self.cw && isalive $player[local.i]) {
+				if (self.doorLength != NIL && self.doorLength != NULL && self.doorLength > 0 && self.useLeverage) {
+//					local.velocity = /*vector_normalize*/ $player[local.i].velocity
+//					local.playerToDoorPivot = vector_scale ($player[local.i].origin - self.origin) (1.0 / self.doorLength)
+//					dprintln ("velocity = " + (vector_length local.velocity))
+//					dprintln ("playerToDoorPivot" + (vector_length local.playerToDoorPivot))
+//					local.leverage = vector_length (vector_cross local.velocity local.playerToDoorPivot)
+//					dprintln ("leverage = " + local.leverage)
+					local.leverage = self waitthread calculate_leverage $player[local.i]
+					local.count -= local.leverage
+//					if (local.leverage > 0)
+//						local.count -= local.leverage					
+				} else {
+					local.count--
+				}
+				local.absCount++
+			}
+		}
+		
+//		dprintln ("local.count = " + local.count)
+		if (local.count == NIL || local.count == NULL)
+			break
+		
+		if (local.absCount == 0 && self.angleSpeed == 0)
+			break
+		
+		// calculate acceleration
+		local.damping = self.angleSpeed * self.dampingFactor
+		if (self.angleSpeed > 0 && local.damping < self.dampingMin)
+			local.damping = self.dampingMin
+		else if (self.angleSpeed < 0 && local.damping > -self.dampingMin)
+			local.damping = -self.dampingMin
+
+		local.acceleration = (self.pushConstant * local.count - local.damping) * self.dt
+
+		if (self.angleSpeed == 0 && local.acceleration != 0)
+			self playsound creakyboards
+
+		// update the speed
+		if (self.angleSpeed > 0 && self.angleSpeed + local.acceleration < 0)
+			self.angleSpeed = 0
+		else if (self.angleSpeed < 0 && self.angleSpeed + local.acceleration > 0)
+			self.angleSpeed = 0
+		else
+			self.angleSpeed += local.acceleration
+
+		self waitthread set_door_angleSpeed self.angleSpeed		
+		
+		dprintln ("angle speed " + self.angleSpeed)
+		dprintln ("angle " + self.angles[1])
+		dprintln ("corrected angle " + (waitthread correct_angle_range self.angles[1] self.cwLimitAngle self.ccwLimitAngle))
+
+		// check if it will be all the way to the ccw or cw limits
+		local.correctedAngle = waitthread correct_angle_range self.angles[1] self.cwLimitAngle self.ccwLimitAngle
+		if (local.correctedAngle + self.angleSpeed * self.dt > self.ccwLimitAngle) {
+			dprintln "door CCW limit"
+
+			self waitthread set_door_angleSpeed 0
+			self.angleSpeed = 0
+//			self.angle = self.ccwLimitAngle
+//			self waitthread set_door_angle_up_to self.ccwLimitAngle self.dt
+			self playsound creakyboards
+			if (self.ccwCallback != NIL && self.cwCallback != NULL)
+				self thread self.ccwCallback
+			break
+		} else if (local.correctedAngle + self.angleSpeed * self.dt < self.cwLimitAngle) {
+			dprintln "door CW limit"
+
+			self waitthread set_door_angleSpeed 0
+			self.angleSpeed = 0
+//			self.angle = self.cwLimitAngle
+//			self waitthread set_door_angle_down_to self.cwLimitAngle self.dt
+			self playsound creakyboards
+			if (self.cwCallback != NIL && self.cwCallback != NULL)
+				self thread self.cwCallback
+			break
+		}
+
+		// check if the speed is below the stop threshold
+		if ((self.angleSpeed > -self.stopSpeedThreshold) && (self.angleSpeed < self.stopSpeedThreshold)) {
+			self waitthread set_door_angleSpeed 0
+			self playsound creakyboards
+			break
+		}
+				
+		// pause for a specified small amount of time 
+		// until the next poll
+		wait self.dt
+	}
+	
+	self.monitored = 0
+end		
+
+// change these so that when the corrected angle is calculated, they rotate in the correct direction
+//--------------------
+set_door_angle_up_to local.angle local.timeToMove:
+//--------------------
+	self.ccw time local.timeToMove
+	self.cw time local.timeToMove
+	self rotateYupto local.angle
+	self.ccw rotateYupto local.angle
+	self.cw rotateYupto local.angle
+	self waitmove
+	self.ccw waitmove
+	self.cw waitmove
+end		
+
+
+//--------------------
+set_door_angle_down_to local.angle local.timeToMove:
+//--------------------
+	self time local.timeToMove
+	self.ccw time local.timeToMove
+	self.cw time local.timeToMove
+	self rotateYdownto local.angle
+	self.ccw rotateYdownto local.angle
+	self.cw rotateYdownto local.angle
+	self waitmove
+	self.ccw waitmove
+	self.cw waitmove
+end		
+
+
+//--------------------
+set_door_angleSpeed local.angleSpeed:
+//--------------------
+	self rotateY local.angleSpeed
+	self.ccw rotateY local.angleSpeed
+	self.cw rotateY local.angleSpeed
+end
+
+
+//--------------------
+calculate_leverage local.player:
+//--------------------
+	local.leverage = vector_length (vector_scale (local.player.origin - self.origin) (1.0 / self.doorLength))
+	dprintln ("leverage = " + local.leverage)
+end local.leverage
+
+//--------------------
+correct_angle_range local.angle local.cwLimitAngle local.ccwLimitAngle:
+//--------------------
+	if (local.angle > local.ccwLimitAngle)
+		local.newAngle = local.angle - 360
+	else if (local.angle < local.cwLimitAngle)
+		local.newAngle = local.angle + 360
+	else
+		local.newAngle = local.angle
+end local.newAngle
+	
+

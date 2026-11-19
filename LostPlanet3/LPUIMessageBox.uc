@@ -1,0 +1,1 @@
+class LPUIMessageBox extends SPUIMessageBoxGFx;

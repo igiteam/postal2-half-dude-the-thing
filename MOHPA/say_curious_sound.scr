@@ -1,0 +1,5 @@
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+self thread anim/SayManager.scr::SayManager ID2CUR 3
+

@@ -1,0 +1,100 @@
+//
+// mp_extra.scr
+//
+// Script file for general-use functions
+//
+// 06.05.04 VDODS - original version
+//
+
+//----------------------------------------------------------------------------
+main:
+//-----------------
+
+	// stop any accidental calls from clobbering stuff
+end
+
+
+//-----------------
+object_destroyed local.name local.origin:
+//-----------------
+
+	// this can be used as a destroyed callback for mp_destroyable.scr
+	
+//	local.bigtextMsg = "The " + local.name + " has been destroyed"
+	local.bigtextMsg = "INVADER:GenericObjectDestroyed" 	
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg local.name
+end
+
+
+//-----------------
+bomb_armed local.planter:
+//-----------------
+
+	// this can be used as a bomb armed callback for mp_destroyable.scr	
+	
+	//local.bigtextMsg = "A charge has been placed on the " + self.name
+	local.bigtextMsg = "INVADER:GenericBombArmed"
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.name
+end
+
+
+//-----------------
+bomb_disarmed local.planter:
+//-----------------
+
+	// this can be used as a bomb disarmed callback for mp_destroyable.scr
+	
+	// not in big text becuase it's not indicated in GDD
+	waitthread global/mp_message.scr::general "INVADER:GenericBombDisarmed" self.name
+	//iprintln "The bomb on " self.name " has been disarmed"
+end
+
+
+//-----------------
+startup_stopwatches local.time:
+//-----------------
+	// starts the stopwatches for all players with a given time
+	
+	// self is undefined
+
+	for (local.i = 1; local.i <= $player.size; local.i++)
+		$player[local.i] stopwatch local.time
+end
+
+
+//-----------------
+shutdown_stopwatches:
+//-----------------
+	// hides the stopwatches for all players
+	
+	// self is undefined
+
+	for (local.i = 1; local.i <= $player.size; local.i++)
+		$player[local.i] stopwatch 0
+end
+
+
+//-----------------
+playsound_team local.sound local.team:
+//-----------------
+	// plays a sound to all players on a team
+	
+	// self is undefined
+
+	for (local.i = 1; local.i <= $player.size; local.i++) {
+		if ($player[local.i].dmteam == local.team)
+			$player[local.i] playclientsound local.sound
+	}
+end
+
+//-----------------
+playsound_all local.sound :
+//-----------------
+	// plays a sound to all players on a team
+	
+	// self is undefined
+
+	for (local.i = 1; local.i <= $player.size; local.i++) {
+		$player[local.i] playclientsound local.sound
+	}
+end

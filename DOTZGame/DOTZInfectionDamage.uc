@@ -1,0 +1,1 @@
+class DOTZInfectionDamage extends DOTZDamageTypeBase;

@@ -1,0 +1,1 @@
+class LPDamageTypeBombExplosion extends LPDamageTypeFragGrenade;

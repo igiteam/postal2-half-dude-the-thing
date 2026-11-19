@@ -1,0 +1,23 @@
+// ----------------------------------------------------------------------------
+// weapon_drop.scr
+// ----------------------------------------------------------------------------
+
+	dprintln "~~~~~~~~~~~~~ in weapon_drop.scr"
+	
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+
+
+	local.upperbodyanimonly = 1
+
+	self.playedreloadanim = 0
+	self.playedrechamberanim = 0
+
+	// jsl-->Todo: Use a weapon drop animation instead of reload...
+	self setmotionanim (self getalias idle)
+	self setupperanim (self getalias reload)
+
+	end
+
+

@@ -1,0 +1,409 @@
+//----------------------------------------------------------------------------
+//	order.scr
+//
+//	This script implements giving hand-signals or verbal orders (using animation)
+//
+//----------------------------------------------------------------------------
+main:
+
+end
+
+//----------------------------------------------------------------------------
+OrderInit:
+//----------------------------------------------------------------------------
+
+	self endactionanim
+
+	switch ( self.position )
+	{
+		case	prone:
+		case	pronewalk:
+			self waitexec anim/crouch.scr::transition
+			break;
+	}
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_ambush:
+// aka "take cover"
+//----------------------------------------------------------------------------
+	self waitthread OrderInit
+
+	dprintln "Unimplemented order. You should never see this message. Please bug it."
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "cover" 4 1 1
+
+	self setmotionanim (self getalias signal cover)
+	self waittill flaggedanimdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_flankX2:
+//----------------------------------------------------------------------------
+	
+	//self thread anim/SayManager.scr::SayManager DBLENV 8
+	self waitthread order_flankleft	
+
+	end
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_flankleft:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit	
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "flankleft" 4 1 1
+
+	self setmotionanim (self getalias signal flankleft)
+	self waittill flaggedanimdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_flankright:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit		
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "flankright" 4 1 1
+
+	self setmotionanim (self getalias signal flankright)
+	self waittill flaggedanimdone
+
+	
+
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_advance:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+	
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "advance" 4 1 1
+
+	self setmotionanim (self getalias signal moveout)
+	self waittill flaggedanimdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_fallback:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+
+	self setmotionanim (self getalias signal fallback)
+	self waittill flaggedanimdone
+end
+
+
+
+//----------------------------------------------------------------------------
+order_retreat:
+//----------------------------------------------------------------------------	
+
+	self waitthread OrderInit	
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "fallback" 4 1 1
+
+	dprintln "order.scr: TODO: waiting for retreat animation"
+	self setmotionanim (self getalias signal freeze)
+	self waittill flaggedanimdone
+	
+end
+
+
+
+//----------------------------------------------------------------------------
+order_charge:
+// aka double time
+//----------------------------------------------------------------------------	
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "doubletime" 4 1 1
+	
+	self setmotionanim (self getalias signal doubletime)
+	self waittill flaggedanimdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_banzai:
+//----------------------------------------------------------------------------		
+	
+	dprintln "Missing Banzai AI dialog"
+	self waitthread order_advance
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_slow_advance:
+//----------------------------------------------------------------------------
+	
+	self waitthread order_advance	
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_hitandfade:
+//----------------------------------------------------------------------------
+	
+	dprintln "Hit and Fade removed from game - write a bug if you see this message"
+
+	//self waitthread order_advance
+	waitframe
+
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_holdsteady:
+//----------------------------------------------------------------------------
+
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "halt" 4 1 1
+
+	self setmotionanim (self getalias signal freeze)
+	self waittill flaggedanimdone
+
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_spreadout:
+//----------------------------------------------------------------------------
+		
+	self waitthread OrderInit	
+	
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "cover" 4 1 1
+	
+		self setmotionanim (self getalias signal cover)
+	self waittill flaggedanimdone
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_giveground:
+//----------------------------------------------------------------------------	
+	//self thread anim/SayManager.scr::SayManager GVGRND 8
+	self waitthread order_fallback
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_gethelp:
+//----------------------------------------------------------------------------
+	//self thread anim/SayManager.scr::SayManager GO4HLP 8	
+	dprintln "Missing Get Help anims and AI dialog"
+//	self waitthread unimplemented
+
+	waitframe
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_surrender:
+//----------------------------------------------------------------------------	
+
+	dprintln "Surrender removed from game - write a bug if you see this message" 
+//	self waitthread unimplemented
+	waitframe
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_coverfire:
+//----------------------------------------------------------------------------
+
+	dprintln "Missing COVERING FIRE AI dialog"
+//	self waitthread unimplemented
+
+	waitframe
+
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_giving_order:
+//----------------------------------------------------------------------------
+
+//	self waitthread unimplemented
+
+	waitframe
+
+
+end
+
+
+
+//----------------------------------------------------------------------------
+unimplemented:
+//----------------------------------------------------------------------------
+
+	dprintln "An unimplemented order just tried to run."
+//	self waitthread order_advance
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_halt:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+	self setmotionanim (self getalias signal halt)
+	self waittill flaggedanimdone
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_moveout:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+	self setmotionanim (self getalias signal moveout)
+	self waittill flaggedanimdone
+
+	self thread DoInterrupt 0.01
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+DoInterrupt local.waittime:
+//----------------------------------------------------------------------------
+
+	wait local.waittime
+	self interrupt_point order
+
+end
+
+
+
+// ------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+//----------------------------------------------------------------------------
+order_holdfire:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+
+	// TODO: self thread anim/SayManager.scr::SayManager HOLDFIRE 8 // or could play DFRUS_5_1_S07_MS301
+	dprintln "Missing HOLD YOUR FIRE AI dialog"
+	self setmotionanim (self getalias signal ceasefire)
+	self waittill flaggedanimdone
+
+
+end
+
+
+
+//----------------------------------------------------------------------------
+order_bounding_overwatch:
+//----------------------------------------------------------------------------
+	
+	self waitthread OrderInit
+
+	dprintln "TODO order.scr unsure if using correct animation."
+	self setmotionanim (self getalias signal freeze)
+	self waittill flaggedanimdone
+
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_assemble:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+//	if ( self.team=="american" )
+//		self thread global/hand_signals.scr::SetHandSignal "assemble" 4 1 1
+
+	self setmotionanim (self getalias signal assemble)
+	self waittill flaggedanimdone
+
+
+end
+
+
+
+
+//----------------------------------------------------------------------------
+order_commencefire:
+//----------------------------------------------------------------------------
+
+	self waitthread OrderInit
+//	self thread global/hand_signals.scr::SetHandSignal "commencefire" 4 1 1
+
+	dprintln "Missing COMMENCE FIRE AI dialog"
+
+	self setmotionanim (self getalias signal commencefire)
+	self waittill flaggedanimdone
+
+
+end
+
+

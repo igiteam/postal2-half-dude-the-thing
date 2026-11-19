@@ -1,0 +1,1 @@
+class SuperShotgunBodyDamage extends ScytheDamage;

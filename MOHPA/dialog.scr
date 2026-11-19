@@ -1,0 +1,177 @@
+// ----------------------------------------------------------------------------------
+//	global/dialog.scr
+//
+//	Support functions for triggered dialogue in levels:
+//		- 
+//		- 
+//		- 
+//		- 
+//		- 
+//		- 
+//
+// ----------------------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------------------
+WatchDialogTrigger local.soundAlias local.speaker:
+//
+//	- Watches a trigger and runs its specified dialog.
+//
+//	local.dialogalias:	desired dialog alias					Optional	No default
+//	local.speaker:		entity on which we'd like to run that animation.	Optional	Defaults to player
+//	
+//	Usage:
+// ----------------------------------------------------------------------------------
+
+	//dprintln "Thread launched: global/dialog.scr::WatchDialogTrigger, on " self
+	
+	assert (self != NIL && self != NULL && "WatchDialogTrigger must be run on a trigger.")
+	
+	// collect our dialog information
+	if (local.soundAlias == NIL)
+	{
+		// look for it on the trigger
+		local.soundAlias = self.dialogalias
+	}
+	assert (local.soundAlias != NIL && "Dialog alias must be supplied as an argument or placed in this trigger's $dialogalias key.")
+
+	if (local.speaker == NIL)
+	{
+		// look for it on the trigger
+		if (self.speaker != NIL)
+		{
+			local.speaker = self.speaker
+		}
+		else
+		{
+			local.speaker = "player"
+		}
+	}
+	assert (local.speaker != NIL)
+	
+	// watch the trigger
+	self triggerable	// safety measure
+	self waittill trigger
+	//-----------------------------------
+	//dprintln "Triggered: " self
+	
+	// play the specified dialog
+	if( $(local.speaker) == $player )
+	{
+		$(local.speaker) playsound local.soundAlias
+	}
+	else
+	{
+		$(local.speaker) anim local.soundAlias
+	}
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+DeliverBriefing local.animAlias local.destination local.mdRadius:
+//	
+//	Runs the speaker (self) to a specified point, or to the player, and plays
+// 	an animation on arrival.
+//	
+//	local.animAlias:	animation alias to be played				Required	No default
+//	local.destination:	targetname of a locator where we'd like to play it	Optional	Defaults to player
+// 	local.mdRadius:		movedone radius						Optional	Defaults to 128
+//	
+// ----------------------------------------------------------------------------------
+
+	dprintln "Thread launched: global/dialog.scr::DeliverBriefing"
+	
+	// check arguments
+	assert (local.animAlias != NIL && "DeliverBriefing called without a valid animation alias specified.")
+	
+	// set defaults where required
+	if (local.destination == NIL)
+		local.destination = "player"
+	
+	if (local.mdRadius == NIL)
+		local.mdRadius = 128
+	
+	// prepare speaker
+	assert (self != NIL)
+	self waitthread global/actor_utils.scr::GagModeStart
+	
+	// get the speaker to the player
+	self followstop
+	self.movedoneradius = local.mdRadius
+	assert ($(local.destination) != NULL && "Specified destination couldn't be found in the map.")
+	self runto $(local.destination).origin
+	self waittill movedone	
+	//-----------------------------------
+	
+	// face player
+	self turnto $player
+	//self waittill turndone
+	//self turnto NULL	
+	
+	// run animation
+	dprintln self " starting anim: " local.animAlias
+	self anim local.animAlias
+	self waittill animdone
+	//-----------------------------------
+	dprintln self " finished anim: " local.animAlias
+	
+	// restore speaker to previous state
+	self lookat NULL
+	self waitthread global/actor_utils.scr::GagModeStop
+
+end
+
+
+FadeDuckedSounds local.destvol local.time:
+	
+	$player ducked_volume_target local.destvol local.time
+
+// Kevin, we made the above ducked volume event so that ducked volumes will work in multiplayer
+
+	
+//	// get starting volume
+//	local.s_startvol = getcvar s_duckedvolume
+//	if ( local.s_startvol == "" )
+//		local.s_startvol = "1.0"
+//	local.startvol = float(local.s_startvol)
+//	
+//	println "Starting volume: " local.startvol
+//	
+//	// find the total range of our change
+//	local.deltavol = abs( local.destvol - local.startvol )
+//	
+//	// lerp volume over time
+//	local.lasttime = level.time
+//	local.timeRemaining = local.time
+//	while(local.timeRemaining > 0)
+//	{
+//		// update the clock
+//		local.deltatime = level.time - local.lasttime
+//		local.lasttime = level.time
+//		local.timeRemaining -= local.deltatime
+//		
+//		// where should our interpolation be at this time?
+//		local.volchange = (local.deltavol * local.timeRemaining) / local.time
+//		
+//		// apply it.
+//		if ( local.destvol < local.startvol )
+//		{
+//			// fade down
+//			local.vol = local.destvol + local.volchange
+//		}
+//		else
+//		{
+//			// fade up
+//			local.vol = local.destvol - local.volchange
+//		}
+//		setcvar s_duckedvolume local.vol
+//		//println "New volume: " local.vol
+//		
+//		waitframe
+//	}
+//	// correct any rounding errors
+//	setcvar s_duckedvolume local.destvol
+//	println "Destination volume: " local.destvol
+
+end

@@ -1,0 +1,1 @@
+class LPDamageTypeNoxiousDemise extends LPDamageTypeToxicCloud;

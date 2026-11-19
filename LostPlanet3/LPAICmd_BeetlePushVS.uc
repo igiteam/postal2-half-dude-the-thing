@@ -1,0 +1,1 @@
+class LPAICmd_BeetlePushVS extends LPAICmd_BeetleNudgeStrike within LPAIControllerBaseBeetle;

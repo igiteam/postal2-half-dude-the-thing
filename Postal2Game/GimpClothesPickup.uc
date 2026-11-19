@@ -1,0 +1,24 @@
+///////////////////////////////////////////////////////////////////////////////
+// GimpClothesPickup
+// Copyright 2002 Running With Scissors, Inc.  All Rights Reserved.
+//
+// Stack of clothes pickup for dude to wear 
+// of the gimp clothing.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+class GimpClothesPickup extends ClothesPickup
+placeable;
+
+///////////////////////////////////////////////////////////////////////////////
+// Default properties
+///////////////////////////////////////////////////////////////////////////////
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    Price=20
+    InventoryType=Class'GimpClothesInv'
+    PickupMessage="You found a stack of Gimp clothes"
+    StaticMesh=StaticMesh'stuff.stuff1.GimpUniform'
+}

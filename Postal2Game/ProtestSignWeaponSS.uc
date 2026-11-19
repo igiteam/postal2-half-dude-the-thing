@@ -1,0 +1,2 @@
+class ProtestSignWeaponSS extends ProtestSignWeapon;
+

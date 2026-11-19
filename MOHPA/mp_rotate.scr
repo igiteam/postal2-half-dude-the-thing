@@ -1,0 +1,58 @@
+// created by nate lieby
+// facilities for making objects rotate
+
+//---------
+main:
+//---------
+
+end
+
+//---------
+rotate local.axis local.min local.max local.reverse local.step:
+//---------
+	
+	if(local.axis == NULL || local.axis == NIL || local.min == NULL || local.min == NIL || local.max == NULL || local.max == NIL || local.reverse == NULL || local.reverse == NIL || local.step == NULL || local.step == NIL)
+	{
+		dprintln "mp_rotate::rotate failed! bad args."
+		end
+	}
+	
+	local.flag = 1
+	local.direction = 1
+	while(local.flag == 1)
+	{
+		if(self == NULL || self == NIL)
+		{
+			dprintln "mp_rotate::rotate failed! self is null."
+			end		
+		
+		}
+		if(self.angles[local.axis] >= local.max)
+		{
+			if(local.reverse == 1)
+			{
+				local.direction = -1
+			}
+			else
+			{
+				end	
+			}
+		}
+		else if(self.angles[local.axis] <= local.min)
+		{
+			if(local.reverse == 1)
+			{
+				local.direction = 1
+			}
+			else
+			{
+				end	
+			}			
+		}
+		local.newAngles = self.angles
+		local.newAngles[local.axis] = self.angles[local.axis] + (local.direction * local.step)
+
+		self.angles = local.newAngles
+		waitframe
+	}
+end

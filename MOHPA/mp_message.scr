@@ -1,0 +1,94 @@
+// mp_message.scr
+//
+// A wrapper for sending localized messages in mp games.
+//
+
+
+//-----------------------------------------------------------------------------
+general local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	msg all local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+end
+
+
+//-----------------
+axis_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	msg team axis local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+//-----------------
+allies_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	msg team allies local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+//-----------------
+player_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	//use self to send this message to a particular player (on concurrent versions of this script)
+	msg user self local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+//-----------------
+barricade_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	waitthread general local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+//-----------------
+axis_objective_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	msg team axis local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+//-----------------
+allies_objective_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	msg team allies local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+//-----------------
+all_objective_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	waitthread general local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+end
+
+
+//-----------------
+time_message local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//-----------------
+
+	waitthread general local.strToken local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+	
+end
+
+
+
+
+
+
+
+
+

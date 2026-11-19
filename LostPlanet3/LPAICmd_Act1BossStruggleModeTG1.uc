@@ -1,0 +1,1 @@
+class LPAICmd_Act1BossStruggleModeTG1 extends LPAICmd_StrugglePofStrike within LPAIControllerAct1Boss;

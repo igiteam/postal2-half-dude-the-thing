@@ -1,0 +1,65 @@
+// ---------------------------------------------------------------
+//	banzai.scr
+//
+//	Handles banzai functionality....
+// ---------------------------------------------------------------
+
+main:
+
+end
+
+// ---------------------------------------------------------------
+BanzaiInit:
+// ---------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+	self.inreload = 0	
+	self.shootpct = 0	
+
+	// see if we need to transition...
+	switch (self.position)
+	{
+		prone:
+		pronewalk:
+			waitexec anim/crouch.scr::transition
+			// Deliberately fall through to crouched running now that we're crouched.
+		crouch:
+		crouchwalk:
+		crouchrun:
+			// Deliberately fall through to regular running.
+		default:
+			break
+	}
+
+
+	end
+
+
+// ---------------------------------------------------------------
+BanzaiRun:
+// ---------------------------------------------------------------
+
+	self waitthread BanzaiInit
+	
+	// 5 is Squad Spammer priority.
+	self aid_banzai 5 self.team 1
+
+	self.position = run
+	waitexec anim/motionblend.scr::LoopAnim "banzai"
+	
+
+	end
+
+// ---------------------------------------------------------------
+BanzaiAttack:
+// ---------------------------------------------------------------
+
+	self waitthread BanzaiInit
+
+	self setmotionanim (self getalias banzai attack)
+	self waittill flaggedanimdone	
+
+
+	end
+

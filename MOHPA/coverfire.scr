@@ -1,0 +1,56 @@
+//-------------------------------------------------------------------------------------
+//	coverfire.scr
+//
+//	Does covering fire shooting....
+//
+//-------------------------------------------------------------------------------------
+
+
+//println "Shoot.scr called"
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+waitexec anim/reload.scr::ReloadInit
+self weaponcommand mainhand attachtohand mainhand
+
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+start:
+
+local.aim_at	= self.aimat
+self.canshoot	= 1
+
+
+
+// try not to shoot our buddies!
+if ( self.aimat )
+{
+	self.canshoot = self FriendlyInLineOfFire self.aimat
+}
+else
+{
+	if (self.enemy)
+		self.canshoot = !(self FriendlyInLineOfFire self.enemy)
+//		self waitthread anim/shoot.scr::CanShoot
+	else
+		self.canshoot = 1
+
+}
+
+if ( self.canshoot==0 )
+{
+	wait 0.1
+//	dprintln "Can't shoot right now:" self.actorname
+	end
+}
+
+// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+// lining up perfectly.
+self waitexec anim/shoot.scr::Shoot
+
+// We need a dialog alias for cover fire
+// self aid_attack
+
+end
+
+

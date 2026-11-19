@@ -1,0 +1,99 @@
+//
+// mp_dialog_queue.scr by Victor Dods
+//
+// This script is used to set up a queue for playing dialog
+// when it is important that dialog does not overlap.  A queue
+// is created for a given team, and subsequent calls to play
+// dialog happen only to members of that team
+// 
+// call initialize with the team for which the dialog queue applies
+// and the maximum number of dialog sounds that may be in the queue
+// at once (default 16).  Save the return value, because subsequent
+// calls to queue_dialog must be made upon the returned value (which
+// stores the queue itself).
+//
+// 3/8/2004 - VDODS - initial file creation
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	// used to trap accidental execs on this script
+	
+end
+
+
+//-----------------
+initialize local.team local.maxSize:
+//-----------------
+	// this function initializes a circular queue which is used
+	// to queue up dialog sounds which must be played in order, and
+	// not overlap.
+	// self is undefined
+	// return value: a script origin which stores the queue.
+	
+	// spawn a script origin which will be used to store the queue's data
+	local.thingy = spawn script_origin
+	
+	// init the queue
+	local.thingy.dialogQueueCurrent = 0
+	local.thingy.dialogQueueLast = 0
+	local.thingy.soundsQueued = 0
+	local.thingy.team = local.team
+	if (local.maxSize == NIL || local.maxSize == NULL)
+		local.thingy.maxSize = 16
+	else
+		local.thingy.maxSize = local.maxSize
+		
+	// start the queue monitor
+	local.thingy thread dialog_monitor
+end local.thingy // return the queue
+
+
+//-----------------
+queue_dialog local.dialog local.length:
+//-----------------
+	// queues up a dialog sound to be played
+	// self is the script_origin with the queue
+
+	self.dialogQueue[(self.dialogQueueLast % self.maxSize) + 1] = local.dialog
+	self.dialogLengthQueue[(self.dialogQueueLast % self.maxSize) + 1] = local.length
+	self.dialogQueueLast = (self.dialogQueueLast + 1) % self.maxSize
+	
+	//incriment the sound counter
+	self.soundsQueued++
+end
+	
+	
+//-----------------
+dialog_monitor:
+//-----------------
+	// monitors the dialog queue and plays dialog when the queue is ready
+	// self is the script_origin which stores the queue
+
+	self.waitForTime = level.time
+
+	while (self) {
+		
+		// if there's no sound playing and there's something in the queue, play it		
+		if (level.time >= self.waitForTime && self.soundsQueued > 0 ) {
+			if (level.gametype == 1)
+				thread global/mp_extra.scr::playsound_all self.dialogQueue[(self.dialogQueueCurrent % self.maxSize) + 1]
+			else			
+				// play the sound (for now, on any object, because its global dialog)				
+				thread global/mp_extra.scr::playsound_team self.dialogQueue[(self.dialogQueueCurrent % self.maxSize) + 1] self.team												
+			// decriment the sound counter
+			self.soundsQueued--				
+			// update the wait for time (for halting til the dialog is finished)
+			self.waitForTime = level.time + self.dialogLengthQueue[(self.dialogQueueCurrent % self.maxSize) + 1]
+			// increment current index
+			self.dialogQueueCurrent++
+		}
+		wait 1
+	}
+end
+
+
+

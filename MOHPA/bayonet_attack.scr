@@ -1,0 +1,10 @@
+// -----------------------------------------------------------------------------
+//	bayonet_attack.scr
+//
+//
+// Performs one full cycle of the bayonet animation.  Script then exits and the "animation" ends
+//
+// -----------------------------------------------------------------------------
+
+	self waitexec anim/banzai.scr::BanzaiAttack
+	end

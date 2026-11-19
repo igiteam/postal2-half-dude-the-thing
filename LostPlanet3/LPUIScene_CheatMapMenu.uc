@@ -1,0 +1,1 @@
+class LPUIScene_CheatMapMenu extends SPUIScene_CheatMapMenu;

@@ -1,0 +1,41 @@
+//---------
+main:
+//---------
+
+	level.g_sink_delay = 3
+	level.g_sink_depth = 150
+	level.g_sinkstep  = .1
+	level.g_sinkstep_delay = .01
+end
+
+//---------
+sink_and_remove:
+//---------
+	
+	//wait for a while before sinking
+	wait level.g_sink_delay
+	
+	//sink the object
+	self waitthread sink
+
+	iprintln "removing"
+	//remove the object
+	self remove
+end
+
+//---------
+sink:
+//---------
+
+	wait 1
+	self havok_lock_sleeping
+	self havok_disable_wakeup
+	self notsolid
+
+	for (local.i=0; local.i<=level.g_sink_depth; local.i+=level.g_sinkstep)
+	{
+		self.origin = self.origin - (0 0 level.g_sinkstep)	
+		wait level.g_sinkstep_delay
+	}
+
+end

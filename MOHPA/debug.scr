@@ -1,0 +1,516 @@
+// -----------------------------------------------------------------------------
+//
+// global/debug.scr
+//
+// copyright: (c) 2000-2003 Electronic Arts Inc.
+//
+// synopsis:
+//	set of debugging utilities for scripters to use
+//
+// usage:
+//	Just call the function that you wish to you, see below for function
+//	specific details.
+//
+//	NOTE:	If you add commands to this script, PLEASE DOCUMENT THEM in the
+//			section below.
+//
+//
+//	Function Usage:
+//
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------------
+Main:
+//
+//	This is the setup function that starts the debugging system
+// -----------------------------------------------------------------------------------
+	
+	//--- if the game is not in developer mode, quit out
+	if( getcvar( developer ) != "1" )
+	{
+		end	
+	}
+
+	//------------------------------------------
+	// Init overall system constants
+	//------------------------------------------
+	level.DSYS_WIDTH_CHAR 		= 6				//tells the formatting how many virtual size pixels to account per character
+	level.DSYS_WIDTH_LINE 		= 12			//tells the formatting how many virtual size pixesl to account for a single line
+	level.DSYS_FONT				= "verdana-12"	//tells what font to use for the text.  If changed, the CHAR and LINE widths will also need changing
+	level.DSYS_FONT_COLORR		= 1				//default font red color
+	level.DSYS_FONT_COLORG		= 1				//default font green color
+	level.DSYS_FONT_COLORB		= 1				//default font blue color
+	level.DSYS_WATCH_HUD_BASE	= 0				//this is the base hud draw index to use for the watch window system
+
+	//------------------------------------------
+	// Init watch window constants
+	//------------------------------------------
+	level.DWATCH_COL1_ULX			= 20		//the upper left X coor of the window
+	level.DWATCH_COL1_ULY			= 110		//the upper left Y coor of the window
+												//all the CHAR_WIDTH constants are 1 character larger to account for a space between columns
+	level.DWATCH_COL1_CHAR_WIDTH	= 4			//the default char width of column1 - element number
+	level.DWATCH_COL2_CHAR_WIDTH	= 6			//the default char width of column2 - variable type (level, local, game, targetname)
+	level.DWATCH_COL3_CHAR_WIDTH	= 20		//the default char width of column3 - variable name
+	level.DWATCH_COL4_CHAR_WIDTH	= 5			//the default char width of column4 - variable value
+	level.DWATCH_ELEMENT_MAX		= 10		//the maximum number of elements that can appear in the window.
+												//Elements always start at 1 and go to this number.  THIS CAN NOT BE GREATER THAN 20
+
+	level.DWATCH_BACK_COLORR		= .5		//default background red color
+	level.DWATCH_BACK_COLORG		= .5		//default background green color
+	level.DWATCH_BACK_COLORB		= .5		//default background blue color
+
+	//------------------------------------------
+	// Init calculated constants
+	//------------------------------------------
+	level.DWATCH_HUD_HEADER			= (level.DWATCH_ELEMENT_MAX * 5) + level.DSYS_WATCH_HUD_BASE + 1	//the watch window header hud index
+	level.DWATCH_HUD_HEADER_BACK	= level.DWATCH_HUD_HEADER + 1										//the background of the window header hud index
+	
+	//--- initialize watch element variables
+	for( local.i = 1 ; local.i <= level.DWATCH_ELEMENT_MAX ; local.i++ )
+	{
+		waitthread DWatchInit_Element local.i
+	}
+	
+	//--- initialize watch window variables
+	level.dWatch_Draw_Col1CharWidth	= level.DWATCH_COL1_CHAR_WIDTH		//used to store the current char width of col1
+	level.dWatch_Draw_Col2CharWidth	= level.DWATCH_COL2_CHAR_WIDTH		//used to store the current char width of col1
+	level.dWatch_Draw_Col3CharWidth	= level.DWATCH_COL3_CHAR_WIDTH		//used to store the current char width of col1
+	level.dWatch_Draw_Col4CharWidth	= level.DWATCH_COL4_CHAR_WIDTH		//used to store the current char width of col1
+	
+	level.dWatch_Draw_Col1X = level.DWATCH_COL1_ULX		//sets the X coordinate of col 1 since it never changes
+	waitthread DWatchMain_WindowCalcCol					//this function will calculate all the col X coordinates
+	
+	level.dWatch_ElementCurrent		= 1			//the current index to process
+	level.dWatch_ElementTotal 		= 0			//the total number of indexes used
+	level.dWatch_IsActive			= FALSE		//sets that the status of the watch window from an internal system standpoint
+
+	//--- initialize watch window cvars
+	setcvar "scr_dWatch" 		"0"			//used to turn off the watch window
+	setcvar "scr_dWatchRemove" 	"NIL"		//used to pass in an element to be removed from the window
+	setcvar "scr_dWatchLevel" 	"NIL"		//used to pass in a level variable to add to the window
+	setcvar "scr_dWatchGame" 	"NIL"		//used to pass in a game variable to add to the window
+	setcvar "scr_dWatchObject" 	"NIL"		//used to pass in an object variable to add to the window
+	
+	//--- initialize the hud draw elements for the watch window
+	waitthread DWatchInit_Window
+
+	//------------------------------------------
+	// Start the systems
+	//------------------------------------------
+	//--- watch system functions
+	thread DWatchMain_Loop
+	
+	
+
+end
+
+//===============================================================================================================================================
+//===============================================================================================================================================
+//		WATCH WINDOW FUNCTIONS
+//===============================================================================================================================================
+//===============================================================================================================================================
+
+//====================================================================================
+//	WATCH WINDOW INIT FUNCTIONS
+//====================================================================================
+
+// -----------------------------------------------------------------------------------
+DWatchInit_Element local.elementIndex:
+//
+//	This initializes all of the variables for each index in the watch system
+//
+//	local.elementIndex - float, the index to initialize
+// -----------------------------------------------------------------------------------
+	level.dWatchElement_Type[ local.elementIndex ] 			= NIL		//stores the type of variable
+	level.dWatchElement_Name[ local.elementIndex ] 			= NIL		//stores the name of the variable
+	level.dWatchElement_Value[ local.elementIndex ] 		= NIL		//stores the value of the variable
+	level.dWatchElement_ArrayIndex[ local.elementIndex ] 	= NIL		//stores the array index of the variable (if it's an array)
+	level.dWatchElement_Targetname[ local.elementIndex ] 	= NIL		//stores the targetname of the object (if it's an object)
+	level.dWatchElement_DoRemove[ local.elementIndex ] 		= FALSE		//sets the flag to remove this variable from the watch window
+	level.dWatchElement_DoFullRefresh[ local.elementIndex ] = FALSE		//sets the flag to refresh the entire element instead of just the value
+	level.dWatchElement_IsLongestName[ local.elementIndex ] = FALSE		//sets the flag that this has the longest name
+	level.dWatchElement_IsLongestType[ local.elementIndex ] = FALSE		//sets the flag that this has the longest type
+	level.dWatchElement_IsLongestValue[ local.elementIndex ]= FALSE		//sets the flag that this has the longest value
+	
+	//The following calculates the hud draw index numbers for this particular element
+	//col5 is the index for the background
+	level.dWatchElement_Col5Hud[ local.elementIndex ]		= local.elementIndex + level.DSYS_WATCH_HUD_BASE
+	level.dWatchElement_Col1Hud[ local.elementIndex ]		= local.elementIndex + level.DSYS_WATCH_HUD_BASE + level.DWATCH_ELEMENT_MAX
+	level.dWatchElement_Col2Hud[ local.elementIndex ]		= local.elementIndex + level.DSYS_WATCH_HUD_BASE + (level.DWATCH_ELEMENT_MAX * 2)
+	level.dWatchElement_Col3Hud[ local.elementIndex ]		= local.elementIndex + level.DSYS_WATCH_HUD_BASE + (level.DWATCH_ELEMENT_MAX * 3)
+	level.dWatchElement_Col4Hud[ local.elementIndex ]		= local.elementIndex + level.DSYS_WATCH_HUD_BASE + (level.DWATCH_ELEMENT_MAX * 4)
+	
+	//The following calculates the Y coordinate of the element
+	level.dWatchElement_ULY[ local.elementIndex ]			= ((local.elementIndex + 1) * level.DSYS_WIDTH_LINE) + level.DWATCH_COL1_ULY
+	level.dWatchElement_BRY[ local.elementIndex ]			= level.dWatchElement_ULY[ local.elementIndex ] + level.DSYS_WIDTH_LINE
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchInit_Window:
+//
+//	This initializes all of the hud draw elements for the watch window
+// -----------------------------------------------------------------------------------
+
+	//--- set the watch window header
+	waitthread DWatchInit_WindowText_SetBase level.DWATCH_HUD_HEADER
+	huddraw_string level.DWATCH_HUD_HEADER "Watch Window" level.DWATCH_COL1_ULX level.DWATCH_COL1_ULY
+	
+	//--- set the watch window header background
+	local.temp_BRY = level.DWATCH_COL1_ULY + level.DSYS_WIDTH_LINE		//calculate the BRY coor for the background
+	waitthread DWatchInit_WindowBackground_SetBase level.DWATCH_HUD_HEADER_BACK level.DWATCH_COL1_ULX level.DWATCH_COL1_ULY level.dWatch_Draw_ColTotalX local.temp_BRY
+	huddraw_color level.DWATCH_HUD_HEADER_BACK .8 .8 .8
+	
+	//--- init all the watch window elements hud draw indexes
+	for( local.i = 1 ; local.i <= level.DWATCH_ELEMENT_MAX ; local.i++ )
+	{
+		waitthread DWatchInit_WindowElement local.i
+	}
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchInit_WindowElement local.element:
+//
+//	This initializes all of the text hud draw base properties for the passed in element
+//
+//	local.element 	- integer, the watch window element to set
+// -----------------------------------------------------------------------------------
+	waitthread DWatchInit_WindowText_SetBase level.dWatchElement_Col1Hud[ local.element ] level.dWatch_Draw_Col1X level.dWatchElement_ULY[ local.element ]
+	waitthread DWatchInit_WindowText_SetBase level.dWatchElement_Col2Hud[ local.element ] level.dWatch_Draw_Col2X level.dWatchElement_ULY[ local.element ]
+	waitthread DWatchInit_WindowText_SetBase level.dWatchElement_Col3Hud[ local.element ] level.dWatch_Draw_Col3X level.dWatchElement_ULY[ local.element ]
+	waitthread DWatchInit_WindowText_SetBase level.dWatchElement_Col4Hud[ local.element ] level.dWatch_Draw_Col4X level.dWatchElement_ULY[ local.element ]
+	waitthread DWatchInit_WindowBackground_SetBase level.dWatchElement_Col5Hud[ local.element ] level.dWatch_Draw_Col1X level.dWatchElement_ULY[ local.element ] level.dWatch_Draw_ColTotalX level.dWatchElement_BRY[ local.element ]
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchInit_WindowText_SetBase local.hudDrawIndex local.ULX local.ULY:
+//
+//	This initializes all of the text hud draw base properties for the passed in element
+//
+//	local.hudDrawIndex 	- integer, the hud draw index to set base properties on
+//	local.ULX			- integer, the UL X coor for this hud draw index
+//	local.ULY			- integer, the UL Y coor for this hud draw index
+// -----------------------------------------------------------------------------------
+	huddraw_virtualsize local.hudDrawIndex 1
+	huddraw_align local.hudDrawIndex left top
+	huddraw_font local.hudDrawIndex level.DSYS_FONT
+	huddraw_color local.hudDrawIndex level.DSYS_FONT_COLORR level.DSYS_FONT_COLORG level.DSYS_FONT_COLORB
+	huddraw_rect local.hudDrawIndex local.ULX local.ULY 0 0
+	huddraw_alpha local.hudDrawIndex 0
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchInit_WindowBackground_SetBase local.hudDrawIndex local.ULX local.ULY local.BRX local.BRY:
+//
+//	This initializes all of the background hud draw base properties for the passed in element
+//
+//	local.hudDrawIndex - integer, the hud draw index to set base properties on
+//	local.ULX			- integer, the UL X coor for this hud draw index
+//	local.ULY			- integer, the UL Y coor for this hud draw index
+//	local.BRX			- integer, the BR X coor for this hud draw index
+//	local.BRY			- integer, the BR Y coor for this hud draw index
+// -----------------------------------------------------------------------------------
+	huddraw_virtualsize local.hudDrawIndex 1
+	huddraw_align local.hudDrawIndex left top
+	huddraw_color local.hudDrawIndex level.DWATCH_BACK_COLORR level.DWATCH_BACK_COLORG level.DWATCH_BACK_COLORB
+	huddraw_rect local.hudDrawIndex local.ULX local.ULY local.BRX local.BRY
+	huddraw_alpha local.hudDrawIndex 0
+end
+
+
+//====================================================================================
+//	WATCH WINDOW MAIN LOOP FUNCTIONS
+//====================================================================================
+
+// -----------------------------------------------------------------------------------
+DWatchMain_Loop:
+//
+//	This is the watch window's main processing loop
+// -----------------------------------------------------------------------------------
+	while( 1 )
+	{
+		//--- loop while the watch master cvar flag is set to show
+		while( getcvar( scr_dWatch ) == "1" )
+		{
+			//--- set that the window is active
+			if( level.dWatch_IsActive != TRUE )
+			{
+				level.dWatch_IsActive = TRUE
+				waitthread DWatchMain_WindowShow
+			}
+			
+			//--- process the removal stack to mark elements for removal
+			waitthread DWatchMain_ProcessRemovalStack
+
+			//--- Refresh the window, removing any elements that are marked
+			waitthread DWatchMain_Refresh
+
+			//--- process the add stack to add them to the window
+			waitthread DWatchMain_ProcessAddStack
+
+			//--- allow the scripting language to continue
+			waitframe
+		}
+	
+		//--- hide the watch window if it's not already
+		if( level.dWatch_IsActive != FALSE )
+		{
+			level.dWatch_IsActive = FALSE
+			waitthread DWatchMain_WindowHide
+		}
+		
+		waitframe
+	}
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_ProcessRemovalStack:
+//
+//	This function processes the removal stack to mark elements of the window for removal
+// -----------------------------------------------------------------------------------
+
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_Refresh:
+//
+//	This function cycles through the elements, cleans up removed elements, and 
+//	refreshes all the others
+// -----------------------------------------------------------------------------------
+	//--- initialize counters
+	local.elementCurrent 								= 1		//used to count through the used elements
+	local.elementsRemoved								= 0		//used to count how many elements were removed this cycle
+	local.elementToRemove[ level.dWatch_ElementTotal ]	= 0		//used to store which elements to remove
+	
+	//--- loop through all the used elements
+	//--- clean out the ones marked for removal, and refresh the rest
+	while( level.dWatch_ElementTotal >= local.elementCurrent )
+	{
+		//--- check if the element is marked for removal
+		if( level.dWatchElement_DoRemove[ local.elementCurrent ] == FALSE )
+		{
+			//--- refresh the element and go to the next
+			waitthread DWatchMain_ElementRefresh local.elementCurrent
+		}
+		else
+		{
+			//--- search for the next available element to put in this ones place
+			local.elementSearch = local.elementCurrent + 1
+			local.elementSearchFound = FALSE
+			
+			//--- loop through the remaining elements to find one to move into the current element
+			while( level.dWatch_ElementTotal >= local.elementSearch )
+			{
+				//--- if this element is not set to be deleted, put it in the current element
+				//--- and mark it for removal
+				if( level.dWatchElement_DoRemove[ local.elementSearch ] == FALSE )
+				{
+					//--- mark that a suitable element was found to move
+					local.elementSearchFound = TRUE
+					
+					//--- move it's data
+					waitthread DWatchMain_ElementMove local.elementSearch local.elementCurrent
+					
+					//--- set the found element for removal
+					level.dWatchElement_DoRemove[ local.elementSearch ] = TRUE
+					
+					//--- stop searching for a replacement element
+					break
+				}
+				
+				local.elementSearch++
+			}
+			
+			//--- if a match was found, do a refresh, else store the index and up the remove counter
+			if( local.elementSearchFound == TRUE )
+			{
+				waitthread DWatchMain_ElementRefresh local.elementCurrent
+			}
+			else
+			{
+				local.elementsRemoved++
+				local.elementToRemove[ local.elementsRemoved ] = local.elementCurrent
+			}
+			
+		}
+		
+		local.elementCurrent++
+	}
+	
+	//--- if elements were removed then blank their data
+	if( local.elementsRemoved > 0 )
+	{
+		for( local.i = 1 ; local.i <= local.elementsRemoved ; local.i++ )
+		{
+			waitthread DWatchMain_ElementRemove local.elementToRemove[ local.i ]
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_ProcessAddStack:
+//
+//	This function processes the add stack to add elements to the window
+// -----------------------------------------------------------------------------------
+
+end
+
+
+//====================================================================================
+//	WATCH WINDOW MAIN UTILITY FUNCTIONS
+//====================================================================================
+
+// -----------------------------------------------------------------------------------
+DWatchMain_WindowShow:
+//
+//	This function sets all the alpha's on the watch window to make it visible
+// -----------------------------------------------------------------------------------
+	huddraw_alpha level.DWATCH_HUD_HEADER 0
+	huddraw_alpha level.DWATCH_HUD_HEADER_BACK 0
+	
+	for( local.i = 1 ; local.i <= level.dWatch_ElementTotal ; local.i++ )
+	{
+		level.dWatchElement_DoFullRefresh[ local.i ] = TRUE
+	}
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_WindowHide:
+//
+//	This function sets all the alpha's on the watch window to make it hidden
+// -----------------------------------------------------------------------------------
+	huddraw_alpha level.DWATCH_HUD_HEADER 0
+	huddraw_alpha level.DWATCH_HUD_HEADER_BACK 0
+	
+	for( local.i = 1 ; local.i <= level.dWatch_ElementTotal ; local.i++ )
+	{
+		huddraw_alpha level.dWatchElement_Col1Hud[ local.i ] 0
+		huddraw_alpha level.dWatchElement_Col2Hud[ local.i ] 0
+		huddraw_alpha level.dWatchElement_Col3Hud[ local.i ] 0
+		huddraw_alpha level.dWatchElement_Col4Hud[ local.i ] 0
+		huddraw_alpha level.dWatchElement_Col5Hud[ local.i ] 0
+	}
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_WindowCalcCol:
+//
+//	This function calculates all the column X coordinates
+// -----------------------------------------------------------------------------------
+	level.dWatch_Draw_Col2X		= (level.dWatch_Draw_Col1CharWidth * level.DSYS_WIDTH_CHAR) + level.DWATCH_COL1_ULX
+	level.dWatch_Draw_Col3X		= (level.dWatch_Draw_Col2CharWidth * level.DSYS_WIDTH_CHAR) + level.dWatch_Draw_Col2X
+	level.dWatch_Draw_Col4X		= (level.dWatch_Draw_Col3CharWidth * level.DSYS_WIDTH_CHAR) + level.dWatch_Draw_Col3X
+	level.dWatch_Draw_ColTotalX	= (level.dWatch_Draw_Col4CharWidth * level.DSYS_WIDTH_CHAR) + level.dWatch_Draw_Col4X
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_ElementRefresh local.element:
+//
+//	This function does a partial or full refresh of the passed in index
+//
+//	local.element - float, the element to refresh
+// -----------------------------------------------------------------------------------
+
+	//--- check if a full refresh is needed
+	if( level.dWatchElement_DoFullRefresh[ local.element ] == TRUE )
+	{
+		huddraw_alpha level.dWatchElement_Col1Hud[ local.element ] 1
+		huddraw_alpha level.dWatchElement_Col2Hud[ local.element ] 1
+		huddraw_alpha level.dWatchElement_Col3Hud[ local.element ] 1
+		huddraw_alpha level.dWatchElement_Col4Hud[ local.element ] 1
+		huddraw_alpha level.dWatchElement_Col5Hud[ local.element ] 1
+		
+		//--- set the flag to false for next time around
+		level.dWatchElement_DoFullRefresh[ local.element ] = FALSE
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_ElementRemove local.element:
+//
+//	This function removes an element from the window and blanks its data
+//
+//	local.element - float, the element to remove
+// -----------------------------------------------------------------------------------
+
+	//--- set all the alpha's for this element to 0
+	huddraw_alpha level.dWatchElement_Col1Hud[ local.element ] 0
+	huddraw_alpha level.dWatchElement_Col2Hud[ local.element ] 0
+	huddraw_alpha level.dWatchElement_Col3Hud[ local.element ] 0
+	huddraw_alpha level.dWatchElement_Col4Hud[ local.element ] 0
+	huddraw_alpha level.dWatchElement_Col5Hud[ local.element ] 0
+
+	//--- blank all the elements data
+	level.dWatchElement_Type[ local.element ] 			= NIL		//stores the type of variable
+	level.dWatchElement_Name[ local.element ] 			= NIL		//stores the name of the variable
+	level.dWatchElement_Value[ local.element ] 			= NIL		//stores the value of the variable
+	level.dWatchElement_ArrayIndex[ local.element ] 	= NIL		//stores the array index of the variable (if it's an array)
+	level.dWatchElement_Targetname[ local.element ] 	= NIL		//stores the targetname of the object (if it's an object)
+	level.dWatchElement_DoRemove[ local.element ] 		= FALSE		//sets the flag to remove this variable from the watch window
+	level.dWatchElement_DoFullRefresh[ local.element ] 	= FALSE		//sets the flag to refresh the entire element instead of just the value
+	level.dWatchElement_IsLongestName[ local.element ] 	= FALSE		//sets the flag that this has the longest name
+	level.dWatchElement_IsLongestType[ local.element ] 	= FALSE		//sets the flag that this has the longest type
+	level.dWatchElement_IsLongestValue[ local.element ]	= FALSE		//sets the flag that this has the longest value	
+end
+
+
+// -----------------------------------------------------------------------------------
+DWatchMain_ElementMove local.elementToMove local.elementNew:
+//
+//	This function moves all the data from the move element into the new element
+//
+//	local.elementToMove - float, the element to move
+//	local.elementNew 	- float, the new element to move the data into
+// -----------------------------------------------------------------------------------
+	level.dWatchElement_Type[ local.elementNew ] 			= level.dWatchElement_Type[ local.elementToMove ]
+	level.dWatchElement_Name[ local.elementNew ] 			= level.dWatchElement_Name[ local.elementToMove ]
+	level.dWatchElement_Value[ local.elementNew ] 			= level.dWatchElement_Value[ local.elementToMove ]
+	level.dWatchElement_ArrayIndex[ local.elementNew ] 		= level.dWatchElement_ArrayIndex[ local.elementToMove ]
+	level.dWatchElement_Targetname[ local.elementNew ] 		= level.dWatchElement_Targetname[ local.elementToMove ] 
+	level.dWatchElement_DoRemove[ local.elementNew ] 		= level.dWatchElement_DoRemove[ local.elementToMove ]
+	level.dWatchElement_DoFullRefresh[ local.elementNew ] 	= TRUE
+	level.dWatchElement_IsLongestName[ local.elementNew ] 	= level.dWatchElement_IsLongestName[ local.elementToMove ]
+	level.dWatchElement_IsLongestType[ local.elementNew ] 	= level.dWatchElement_IsLongestType[ local.elementToMove ]
+	level.dWatchElement_IsLongestValue[ local.elementNew ]	= level.dWatchElement_IsLongestValue[ local.elementToMove ]
+end
+
+
+//===============================================================================================================================================
+//===============================================================================================================================================
+//		ASSERT FUNCTIONS
+//===============================================================================================================================================
+//===============================================================================================================================================
+
+// -----------------------------------------------------------------------------------
+ScriptAssert local.strAssertMessage:
+//
+//	This function will print the passed in message, and if the scr_DebugAllowAssert cvar is
+//	set to one, will disconnect the level to dump to the console.
+//
+//	local.strAssertMessage - string, the message to print to the console
+// -----------------------------------------------------------------------------------
+
+	println "============================================================="
+	println "^~^~^ SCRIPT ASSERT: " local.strAssertMessage
+	println "============================================================="
+
+	//--- if the cvar is set, disconnect the game
+	if( getcvar( scr_DebugAllowAssert ) == "1" )
+	{
+		waitframe
+		stuffcmd "pause\n"
+	}
+
+end

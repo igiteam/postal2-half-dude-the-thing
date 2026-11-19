@@ -1,0 +1,955 @@
+// --------------------------------------------------------------------------------
+// aispawn.scr
+//
+//	
+//	Before level waittill prespawn "exec global/aispawn.scr".
+//	
+//	Place an enemy, give him targetname "aispawner". If you want him to charge at the player at spawn, set his #playerseek to 1. 
+//
+//	You can make him run to a specific destination by having him target the node you want him to run to.
+//
+//	You can create a trigger_multiple with targetname "aispawnertrigger" to set off the spawning. Give it the same #set value
+//	as whichever spawners you want it to set off. Or you can do "thread global/aispawn.scr::spawn #" where # is the #set value you
+//	want to set off.
+//
+//	You can do "thread global/aispawn.scr::spawngroup #1 #2" where #1 is the #set value you want to set off and #group is the group
+//	value you want to set off.
+//
+//	You can set off spawners multiple times, but each trigger only can set them off once.
+//	
+//
+//
+// --------------------------------------------------------------------------------
+level waittill prespawn		// make sure we're at least at the prespawn time when we do this
+
+	// dprintlnln "****** INITIALIZING SPAWN TRIGGERS"
+	waitthread InitializeSpawnTriggers
+	waitthread InitializeSpawners
+//	waitthread InitializeSpawners_New
+//	waitthread InitializeSpawners_New2
+
+	// Initialize the fauna manager
+	//exec global/faunaspawn.scr
+
+level waittill spawn
+
+
+	thread axiscounter_init
+
+end
+
+
+//-----------------------------------------------------------
+spawnset local.set local.enemyname local.get_there local.run_to_target local.use_difficulty local.delay_between_spawn:
+//
+//	Simplified "spawn" command.  (Most commonly used parameters to spawn)
+//
+// NOTE: If you use delay_between_spawn, you must:
+//	1.) Call thread, NOT waitthread on spawnset
+//	    (unless you are spawning in an independant thread)
+//	2.) Realize that you should not run anything that is
+//	    supposed to run on the guys you spawn until AFTER the spawn completes
+//      Recommended delay = 0.1
+//	This only needs to be used on prohibitively large spawnsets
+//-----------------------------------------------------------
+
+//	setcvar g_scripttrace 1
+
+	if ( local.get_there==NIL )
+		local.get_there = 0
+	if ( local.use_difficulty==NIL )
+		local.use_difficulty = 0
+
+	waitthread spawn local.set NIL NIL NIL NIL local.enemyname local.get_there local.run_to_target local.use_difficulty NIL local.delay_between_spawn
+
+//	setcvar g_scripttrace 0
+
+end
+
+
+//-----------------------------------------------------------
+spawnset_convertactorname local.set:
+//
+//	ADDED:	by Benson Russell 4-19-2004
+//	Simplified "spawn" command.  (Most commonly used parameters to spawn)
+//	Special version that tells the spawner to convert targetnames to actornames upon spawn
+//-----------------------------------------------------------
+
+	//--- call the spawn command with the extra parameter for use_actorname
+	waitthread spawn local.set NIL NIL NIL NIL NIL NIL NIL NIL 1
+
+end
+
+
+//-----------------------------------------------------------
+spawngroup local.set local.group local.enemyname local.use_difficulty:
+// 
+//	use this when specifying groups to spawn...
+//-----------------------------------------------------------
+	if ( local.use_difficulty == NIL )
+		local.use_difficulty = 0
+	waitthread spawn local.set NIL NIL NIL local.group local.enemyname 0 1 local.use_difficulty
+end
+
+//-----------------------------------------------------------
+spawn local.set local.pause local.thread local.off local.group local.enemyname local.get_there local.run_to_target local.use_difficulty local.use_actorname local.delay_between_spawn:
+//
+//	Does the actual spawn...
+//
+//	ADDED:	by Benson Russell 4-19-2004
+//			added extra flag local.use_targetname to tell the spawner to convert the actorname to targetname upon spawn
+//-----------------------------------------------------------
+
+	if ( local.get_there==NIL )
+		local.get_there = 0
+
+	if ( local.run_to_target==NIL )
+		local.run_to_target = 0
+		
+	if ( local.use_difficulty==NIL )
+		local.use_difficulty = 0
+		
+	if ( local.delay_between_spawn == NIL )
+		local.delay_between_spawn = 0
+
+	if ( local.use_actorname==NIL )
+		local.use_actorname = 0
+
+//	if (getcvar(debug) == "1")
+	println "aispawn.scr spawned set#" local.set " enemyname:" local.enemyname " use_actorname:" local.use_actorname
+
+	if (local.pause != NIL)
+		wait local.pause
+
+	local.nSpawned = 0
+
+	if (NIL == level.nPossiblySpawned)
+		level.nPossiblySpawned = 0
+
+	local.spawnname = "aispawner_" + local.set
+
+	println "Spawnset:" local.set " has " $(local.spawnname).size " normal spawners."
+
+	if ( $(local.spawnname).size>0 )
+	{
+		$(local.spawnname) waitthread SpawnNormal local.thread local.enemyname local.use_actorname local.delay_between_spawn local.get_there local.run_to_target
+	}
+
+	local.spawnname = "fastspawner_" + local.set
+
+	println "Spawnset:" local.set " has " $(local.spawnname).size " FAST spawners."
+
+	if ( $(local.spawnname).size>0 )
+	{
+		$(local.spawnname) waitthread SpawnFast local.thread local.enemyname local.use_actorname local.delay_between_spawn local.get_there local.run_to_target
+	}
+
+	end
+
+//-----------------------------------------------------------
+SpawnNormal local.thread local.enemyname local.use_actorname local.delay_between_spawn local.get_there local.run_to_target:
+//-----------------------------------------------------------
+
+	if ( (local.use_difficulty == 1) && ( getcvar(skill) == "0" ))
+	{		
+		level.nPossiblySpawned++
+		
+		// One out of three don't spawn in easy mode
+		if ((level.nPossiblySpawned % 3) == 0)
+		{
+			//dprintln "Skipping a spawn " level.nPossiblySpawned
+			end
+		}
+	}
+
+	// spawn him in!
+	local.ent = waitthread global/spawner.scr::spawner_activate self
+	local.ent waitthread PostSpawn local.thread local.enemyname local.use_actorname local.get_there local.run_to_target
+
+	if ( local.delay_between_spawn )
+	{
+		//dprintln "Waiting " local.delay_between_spawn
+		wait local.delay_between_spawn
+	}
+
+end
+
+//-----------------------------------------------------------
+SpawnFast local.thread local.enemyname local.use_actorname local.delay_between_spawn local.get_there local.run_to_target:
+//-----------------------------------------------------------
+
+	println "SpawnFAST ENEMYNAME:" local.enemyname
+
+	if ( (local.use_difficulty == 1) && ( getcvar(skill) == "0" ))
+	{		
+		level.nPossiblySpawned++
+		
+		// One out of three don't spawn in easy mode
+		if ((level.nPossiblySpawned % 3) == 0)
+		{
+			//dprintln "Skipping a spawn " level.nPossiblySpawned
+			self delete
+			end
+		}
+	}
+
+	self waitthread SpawnYourselfFast local.enemyname
+	self waitthread PostSpawn local.thread local.enemyname local.use_actorname local.get_there local.run_to_target
+
+	if ( local.delay_between_spawn )
+	{
+		//dprintln "Waiting " local.delay_between_spawn
+		wait local.delay_between_spawn
+	}
+
+end
+
+//-----------------------------------------------------------
+PostSpawn local.thread local.enemyname local.use_actorname local.get_there local.run_to_target:
+//-----------------------------------------------------------
+
+	println "POSTSPAWN ENEMYNAME:" local.enemyname " use actorname:" local.use_actorname " self.actorname=" self.actorname
+
+	if ( tolower( self.team ) != "american" )
+	{
+		self thread axiscounter_register
+	}
+	
+	if (self.enemyname != -1)
+	{
+		// println "Assigning targetname:" self.enemyname
+		self.targetname = self.enemyname
+		println "spawned with map forced enemyname: " self.enemyname
+	}
+	else
+	{
+		if ( local.enemyname!=NIL )
+		{
+			self.targetname	= local.enemyname
+			println "spawned with enemyname: " local.enemyname
+		}
+	}
+
+	//--- ADDED by Benson Russell 4-19-2004
+	//--- if use_actorname is set, convert it to the targetname
+	if (local.use_actorname == 1 )
+	{
+		if( self.actorname != NIL && self.actorname != "" )
+		{
+			self.targetname = self.actorname
+		}
+	}
+	
+	if (level.active_think==1)
+	{
+		self ambush
+//				dprintln "Spawned Ambush Guy"
+	}
+	else
+	{
+//				dprintln "Spawned Regular Guy"
+	}
+
+//jsl-->Not using?	if ($(local.spawnname)[local.i].fnum != NIL)
+//		level.aifnum[$(local.spawnname)[local.i].fnum] = local.ent
+
+//	local.ent.origin = self.origin
+	self.creator = self
+	
+	if ((level.dontdropweapons != NIL) && (level.dontdropweapons == 1))
+		self dontdropweapons
+
+	self forceactivate
+	//local.ent thread aispawned local.off local.get_there local.run_to_target
+	self waitthread InitSpawnedAI
+
+	if (self.thread != NIL)
+		self thread level.script::self.thread
+
+	if (local.thread != NIL)
+		self thread level.script::local.thread
+
+	if ( local.run_to_target && self.target )
+	{
+		if ( local.get_there )
+		{
+			println "AI Spawner running and shooting to target."
+			self runandshoot self.target
+		}
+		else
+		{
+			println "AI Spawner running (no shoot) to target."
+			self runto self.target
+		}
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+//	NOTE: do NOT call any of these threads externally.  They are to be used by the
+//	threads in this script file only!  
+// --------------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------
+InitSpawnedAI:
+//-----------------------------------------------------------
+	if ( self.ammo_grenade==0 )
+	{
+		// make sure AI have grenades.
+		if ( level.team=="american" )
+		{
+			println "Giving allied guy grenades:" level.alliedGrenadeCount
+			self ammo_grenade level.alliedGrenadeCount
+		}
+		else
+		{
+			println "Giving axis guy grenades:" level.alliedGrenadeCount
+			self ammo_grenade level.axisGrenadeCount
+		}
+	}
+
+end
+
+/*
+
+ jsl-->Not used anymore...
+
+//-----------------------------------------------------------
+aispawned local.off local.get_there local.run_to_target:
+// jsl--> local.get_there means, use runandshoot so the ai will get to their target.  
+//-----------------------------------------------------------
+
+	if ( local.run_to_target==NIL )
+		local.run_to_target = 0
+
+	if ( self.ammo_grenade==0 )
+	{
+		// make sure AI have grenades.
+		if ( level.team=="american" )
+		{
+			println "Giving allied guy grenades:" level.alliedGrenadeCount
+			self ammo_grenade level.alliedGrenadeCount
+		}
+		else
+		{
+			println "Giving axis guy grenades:" level.alliedGrenadeCount
+			self ammo_grenade level.axisGrenadeCount
+		}
+	}
+
+	if (self.creator.type != NIL)
+	{
+		if (self.creator.type == "sniper")
+		{
+			self.accuracy = 100
+			self.noticescale = 1
+			self gun KAR98sniper
+			self item weapons/KAR98sniper.tik
+			self gun "KAR98sniper"
+			self useweaponclass rifle
+
+		}
+	}
+
+	if ( local.get_there==NIL )
+		local.get_there = 0
+
+//	self.angles = self.creator.angles
+//	self.angle = self.creator.angle
+
+
+	local.targ = NIL
+	if (self.creator.spawn_target != "")
+	{
+		local.targ = $(self.creator.spawn_target)
+//		println ("local.targ is " + local.targ + " and creator target is " + self.creator.target)
+//		println (" oh and local.targ's origin is " + local.targ.origin)
+	}
+
+
+	if (self.creator.pause != NIL)
+		wait self.creator.pause
+
+	if ( local.targ && local.run_to_target )
+	{
+		if ( local.targ.classname=="TurretGun" )
+		{
+			//self usemg local.targ
+			self turret local.targ
+			self type_attack machinegunner
+			self type_idle machinegunner
+		}
+		else 
+		{
+			local.break = 0
+
+	//		self tether local.targ
+
+			local.disabledAI = 0
+
+			if (self.type_attack == "balcony_attack" || level.disableAI==1)
+			{
+				local.disabledAI = 1
+				exec global/disable_ai.scr
+			}
+
+			while (local.break == 0)
+			{
+				if (isalive self)
+				{
+					self runto local.targ
+
+					if ( local.get_there==1 )
+						self type_attack runandshoot
+
+					self waittill movedone
+
+	//				if (parm.movedone == 1)
+					if (vector_length (self.origin - local.targ.origin) < 80)
+						local.break = 1
+					else
+						wait 1
+				}
+				else
+					local.break = 1
+			}
+
+//			if ( local.get_there==1 && isAlive self )
+//			{
+	//			println self.targetname ": got there, turning ai back on!!!"
+//				self exec global/enable_ai.scr
+//			}
+
+			self tether local.targ
+
+			if (local.disabledAI==1)
+				exec global/enable_ai.scr
+
+			if (getcvar(debug) == "1")
+				println (self + " ran to and reached " + self.creator.set + "/" + self.creator.group)
+		}
+	}
+
+
+//	println ("playerseek is " + self.creator.playerseek)
+
+	if (self.creator.playerseek != 0)
+		self.nosurprise = 1
+
+	
+	if (self.creator.playerseek == 1)
+	{
+
+		local.ent = spawn script_origin
+		local.ent.origin = self.origin
+		if (local.off != NIL)
+		{
+			self exec global/disable_ai.scr
+			self.nosurprise = 1
+//			self hearing 0
+//			self sight 0
+		}
+
+		while (isalive self)
+		{
+			self runto $player
+
+			if (local.off != NIL)
+			{
+				wait local.off
+				self exec global/enable_ai.scr
+				self exec global/aimat.scr $player
+//				self sight 2500
+//				self hearing 2500
+				local.off = NIL
+			}
+
+			self waittill movedone
+
+			self runto local.ent
+			self waittill movedone
+			waitframe
+		}
+
+		local.ent delete
+
+	}
+	else
+	if (self.creator.playerseek == 2)
+	{
+
+		local.range = randomint(250) + 350
+		self.movedoneradius = local.range - 35
+		self exec global/disable_ai.scr
+		while ((isalive self) && (vector_length (self.origin - $player.origin) > local.range))
+		{
+			self runto $player
+			self waittill movedone
+			waitframe
+		}
+
+		self exec global/enable_ai.scr
+
+		while ((isalive self) && (self.thinkstate != "attack"))
+		{
+			self runto $player
+			self waittill movedone
+			waitframe
+		}
+
+	}
+	else
+	if (self.creator.playerseek == 3)
+	{
+		wait 3.5
+
+		while ((isalive self) && (self.thinkstate != "attack"))
+		{
+			self runto $player
+			self waittill movedone
+			waitframe
+		}
+	}
+end
+*/
+
+// --------------------------------------------------------------------------------
+Rename local.newname:
+// --------------------------------------------------------------------------------
+
+	/// jsl--> don't know why someone put this here? self.enemyname	= self.targetname
+	self.targetname = local.newname
+
+end
+
+
+// --------------------------------------------------------------------------------
+SetActiveThink local.active_think:
+// --------------------------------------------------------------------------------
+	// dprintln "ACTIVE THINK: " local.active_think
+	
+	self.active_think = local.active_think
+
+end
+
+
+// --------------------------------------------------------------------------------
+UpdateSet local.newset:
+// --------------------------------------------------------------------------------
+
+	self.set	= local.newset
+
+end
+
+
+// --------------------------------------------------------------------------------
+DeleteSet local.set:
+// --------------------------------------------------------------------------------
+
+	if ( self.set==local.set )
+		self delete
+
+end
+
+// --------------------------------------------------------------------------------
+DoAiSpawnTrigger:
+//
+//	waits to be triggered and then does the spawn and deletes ourself...
+// --------------------------------------------------------------------------------
+	// dprintlnln "AI Spawner Trigger BEGIN!"
+	
+	if (getcvar(notrigger) == "1")
+	{
+		wait 4
+		// dprintlnln "AI Spawner Trigger DELETE!"
+		self delete
+		end
+	}
+
+	if ( !self.set )
+	{
+		// dprintlnln "AI Spawner Trigger with no set#!"
+		end
+	}
+
+	// if friendly is set, only do the trigger if a friendly was the one that hit us...
+	if ( self.friendly!=NIL )
+	{
+		// dprintlnln "AI Spawner Trigger AWAIT ACTIVATION 1!"
+		while ( 1 )
+		{
+			self waittill trigger
+			
+			// dprintlnln "AI Spawner Trigger Activated 1"
+			
+			if ( parm.other==$player || parm.other.team=="american" )
+			{
+				// dprintlnln "AI Spawner Spawning 1"
+				thread spawn self.set
+				break
+			}
+			else
+			{
+				// dprintlnln "AI Spawner Can't Spawn"
+			}
+		}
+	}
+	else
+	{
+	//	dprintln "AI Spawner Trigger AWAIT ACTIVATION 2"
+		self waittill trigger
+		level.active_think	= self.ambush
+		
+		println "AMBUSH VALUE: " self.ambush
+		thread spawn self.set NIL NIL NIL NIL self.enemyname
+				
+	//	dprintln "AI Spawner Trigger Activated 2!"
+	}
+
+	// dprintlnln "AI Spawner Trigger Deleting"
+	// make sure we get rid of all triggers with our set #.... (including us btw!)
+	$aispawnertrigger thread DeleteSet self.set
+	
+
+end
+
+// --------------------------------------------------------------------------------
+InitializeSpawnTriggers:
+// --------------------------------------------------------------------------------
+
+	if ( $enemyspawnertrigger )
+		$enemyspawnertrigger waitthread Rename "aispawnertrigger"
+
+	local.newset = 3152930
+
+	if ($aispawnertrigger == NULL)
+		level.aispawnertriggers = 0
+	else
+		level.aispawnertriggers = $aispawnertrigger.size
+	
+	if (level.aispawnertriggers > 0)
+	{
+		for (local.i=1;local.i<=$aispawnertrigger.size;local.i++)
+		{
+			if ($aispawnertrigger[local.i].target)
+			{
+
+				if ( $aispawnertrigger[local.i].set==NIL || $aispawnertrigger[local.i].set==NULL )
+					$aispawnertrigger[local.i].set = local.newset
+				else
+					local.newset = $aispawnertrigger[local.i].set
+
+				local.string		= $aispawnertrigger[local.i].target
+				local.ent = $($aispawnertrigger[local.i].target)
+				$aispawnertrigger[local.i].target = ""
+
+				if ( local.ent.size >0 )
+				{
+					local.ent waitthread UpdateSet local.newset
+					// dprintlnln local.ent.target
+					local.ent waitthread Rename "aispawner"
+				}
+				else
+				{
+					local.origin = $aispawnertrigger[local.i].origin
+					local.error = ("Error, an aispawnertrigger at " + local.origin + " has bogus target")					
+					exec global/error.scr local.error
+				}
+			}
+			else
+			{
+				println "aispawnertrigger with no target!"
+			}
+
+			local.newset++
+		}
+	}
+	else
+	{
+		// dprintlnln "****** NO SPAWN TRIGGERS FOUND"
+	}
+
+
+	if (level.aispawnertriggers > 0)
+	{
+		$aispawnertrigger thread DoAiSpawnTrigger
+	}
+
+	println ("There are " + level.aispawnertriggers + " aispawnertriggers")
+
+end
+
+// --------------------------------------------------------------------------------
+InitializeSpawners:
+//
+//	Go through and store all the aispawner actors.  Then remove them...
+// --------------------------------------------------------------------------------
+
+// for backward compatibility
+	if ( $enemyspawner )
+		$enemyspawner waitthread Rename "aispawner"
+
+	if ($aispawner== NULL)
+		level.aispawners = 0
+	else
+		level.aispawners = $aispawner.size
+
+	if (level.aispawners > 0)
+	{
+		local.aispawner = exec global/makearray.scr $aispawner
+
+		for (local.i=1;local.i<level.aispawners+1;local.i++)
+		{
+			
+			if (local.aispawner[local.i].enemyname == NIL)
+			{
+				//println "No enemy name!"
+				local.aispawner[local.i].enemyname = -1
+			}
+
+			if (local.aispawner[local.i].playerseek == NIL)
+				local.aispawner[local.i].playerseek = 0
+
+			if (local.aispawner[local.i].model == NIL)
+			{
+				local.origin = local.aispawner[local.i].origin
+				local.error = ("Error, aispawner at " + local.origin + " has no model")			
+				exec global/error.scr local.error 0
+			}
+
+			if (local.aispawner[local.i].set == NIL)
+			{
+				local.origin = local.aispawner[local.i].origin
+				local.error = ("Error, aispawner at " + local.origin + " has no #set")
+				exec global/error.scr local.error 0
+			}
+			else
+				local.set = local.aispawner[local.i].set
+
+			if (local.aispawner[local.i].group == NIL)
+			{
+				// jsl-->unnecessary warning message
+				// println ("Warning, aispawner at " + local.aispawner[local.i].origin + " has no #group")
+				local.group = -1
+			}
+			else
+				local.group = local.aispawner[local.i].group
+
+			local.enemyname = local.aispawner[local.i].enemyname
+			local.playerseek = local.aispawner[local.i].playerseek
+
+			switch ( local.aispawner[local.i].classname )
+			{
+			case	Actor:
+			case	Medic:
+				break
+			default:
+				// not sure what this is, but it's not an actor!
+				println "Bad aispawner at" local.aispawner[local.i].origin " classname:" local.aispawner[local.i].classname
+				local.aispawner[local.i] delete
+				continue
+				break
+			}
+
+			if (getcvar(fastspawn) == "0")
+				local.aispawner[local.i].fastspawn = 0
+			else if (getcvar(fastspawn)=="99")
+				local.aispawner[local.i].fastspawn = 1
+
+			if ( local.aispawner[local.i].fastspawn==NIL )
+				local.aispawner[local.i].fastspawn	= 0
+			
+			if ( local.aispawner[local.i].fastspawn==0 )
+			{
+				local.aispawner[local.i] = waitthread global/spawner.scr::spawner_create local.aispawner[local.i]
+			}
+
+			local.aispawner[local.i].enemyname = local.enemyname
+			local.aispawner[local.i].playerseek = local.playerseek
+			
+			if (local.set)
+				local.aispawner[local.i].set = local.set
+			
+			if (local.group)
+				local.aispawner[local.i].group = local.group
+
+
+			if ( local.aispawner[local.i].fastspawn==1 )
+			{
+				local.spawnname = "fastspawner_" + local.set
+				local.aispawner[local.i] waitthread InitFastSpawner
+			}
+			else
+			{
+				local.spawnname = "aispawner_" + local.set
+			}
+
+			println "Local.spawnname=" local.spawnname
+			local.aispawner[local.i].targetname = local.spawnname
+		}
+
+		println ("There are " + level.aispawners + " aispawners")
+	}
+
+end
+
+
+//--------------------------------------------------
+axiscounter_init:
+//
+//	Level
+//--------------------------------------------------
+
+	level.axiscounter_axisalivecount = 0
+	level.axiscounter_axisactivecount = 0
+
+	end		// MJG: comment out this line to get stats as the numbers change
+
+	local.axisalivecount = -1
+	local.axisactivecount = -1
+
+	while (1)
+	{
+		while ( (local.axisalivecount == level.axiscounter_axisalivecount) && (local.axisactivecount == level.axiscounter_axisactivecount) )
+		{
+			wait 0.1
+		}
+		dprintln "~~~~ level.axisalivecount is " level.axiscounter_axisalivecount ", level.axisactivecount is " level.axiscounter_axisactivecount
+		waitframe
+		local.axisalivecount = level.axiscounter_axisalivecount
+		local.axisactivecount = level.axiscounter_axisactivecount
+	}
+
+end
+
+
+//--------------------------------------------------
+axiscounter_register:
+//
+//	Actor (Axis spawners only)
+//--------------------------------------------------
+
+	self thread axiscounter_countalive
+	self thread axiscounter_countactive
+
+end
+
+
+//--------------------------------------------------
+axiscounter_countalive:
+//
+//	Actor (Axis spawners only)
+//--------------------------------------------------
+
+	if ( level.axiscounter_axisalivecount == NIL )
+		level.axiscounter_axisalivecount = 0
+	level.axiscounter_axisalivecount++
+	self waittill death
+	level.axiscounter_axisalivecount--
+
+end
+
+
+//--------------------------------------------------
+axiscounter_countactive:
+//
+//	Actor (Axis spawners only)
+//--------------------------------------------------
+
+	if ( level.axiscounter_axisactivecount == NIL )
+		level.axiscounter_axisactivecount = 0
+	self waittill hasenemy
+	level.axiscounter_axisactivecount++
+	self waittill death
+	level.axiscounter_axisactivecount--
+
+
+end
+
+//-----------------------------------------------------------
+SpawnYourselfFast local.targetname:
+//-----------------------------------------------------------
+
+	self.targetname = local.targetname
+	self ai_on
+	self show
+	self solid
+
+	end
+
+// --------------------------------------------------------------------------------
+InitFastSpawner:
+// --------------------------------------------------------------------------------
+
+	local.spawnname = "fastspawner_" + self.set
+	self.targetname = local.spawnname
+	self ai_off
+	self hide
+	self notsolid
+
+
+	end
+
+
+// jsl-->R&D
+/*
+// --------------------------------------------------------------------------------
+InitializeSpawners_New2:
+// --------------------------------------------------------------------------------
+
+	$aispawner waitthread InitFastSpawner
+	
+end
+
+
+// --------------------------------------------------------------------------------
+InitializeSpawners_New:
+// --------------------------------------------------------------------------------
+// for backward compatibility
+	if ( $enemyspawner )
+		$enemyspawner waitthread Rename "aispawner"
+
+//	for (local.i=$aispawner.size;local.i>0;local.i--)
+//	{
+//		$aispawner[local.i] setspawner $aispawner[local.i].set
+//	}
+
+	$aispawner waitthread InitSpawner
+
+end
+
+//-----------------------------------------------------------
+InitSpawner:
+//-----------------------------------------------------------
+
+	switch ( self.classname )
+	{
+	case	Actor:
+	case	Medic:
+		break
+	default:
+		end	// legacy aispawner node of some sort?
+	}
+	self setspawner self.set
+	self delete
+	end
+
+//-----------------------------------------------------------
+spawnsetTEST local.set local.targetname:
+//-----------------------------------------------------------
+	local.spawnname = "aispawner_" + local.set
+	$(local.spawnname) waitthread SpawnYourselfFast local.targetname
+
+	end
+
+
+//-----------------------------------------------------------
+spawnsetNEW1 local.set local.enemyname:
+//-----------------------------------------------------------
+
+	aispawnset local.set local.enemyname
+
+	end
+*/

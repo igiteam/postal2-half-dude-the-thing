@@ -1,0 +1,1 @@
+class LPDamageTypeBeetleLeg extends LPDamageTypeBeetleMelee;

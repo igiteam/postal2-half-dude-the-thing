@@ -1,0 +1,1 @@
+class LPUICond_SwitchWidget extends SPUICond_SwitchWidget;

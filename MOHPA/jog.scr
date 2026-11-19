@@ -1,0 +1,20 @@
+// --------------------------------------
+// jog.scr
+// --------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = run
+
+	while (1)
+	{
+		self.blendtime = 0.30
+		waitexec anim/motionblend.scr::PlayAnim jog
+	}
+
+	end

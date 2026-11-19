@@ -1,0 +1,399 @@
+// 
+// CCARON 1/20
+//
+// camerafly.scr
+//
+// utility to perform camera fly-throughs
+//
+// there are 2 methods for doing flythroughs
+//
+// method 1 uses a pair of spline paths and method 2
+// uses a single spline path and uses the angles of the
+// nodes to point the camera.
+//
+
+
+//----------------------------------------------------------------------------
+main:
+//-----------------
+
+	// Execute this file AFTER exec global/invader.scr
+
+	// these vars are assumed to be set prior to executing this script
+	dprintln "obj1Win  = " level.cameraPathObjWin[1]
+	dprintln "obj1Fail = " level.cameraPathObjFail[1]
+	dprintln "obj2Win  = " level.cameraPathObjWin[2]
+	dprintln "obj2Fail = " level.cameraPathObjFail[2]
+	dprintln "obj3Win  = " level.cameraPathObjWin[3]
+	dprintln "obj3Fail = " level.cameraPathObjFail[3]
+	dprintln "obj4Win  = " level.cameraPathObjWin[4]
+	dprintln "obj4Fail = " level.cameraPathObjFail[4]
+	dprintln "Victory  = " level.cameraPathVictory
+	dprintln "Flythrough = " level.cameraPathFlythrough
+
+	level.gametype = int( getcvar( g_gametype ) )
+	level.forceflythrough = int( getcvar( g_forceflythrough ) )
+	if (level.gametype == 0 || level.forceflythrough)
+		waitthread do_level_flythrough
+	else if (level.gametype == 6)
+		waitthread do_invader_camera
+
+end
+
+
+//----------------------------------------------------------------------------
+do_invader_camera:
+//-----------------
+
+	// wait for more than 1 player?
+	//level waittill roundstart
+
+	wait 5
+
+	//dprintln "level.roundcomplete = " level.roundcomplete 
+	//dprintln "Waiting for round to complete"
+
+	level waittill roundcomplete
+	
+	//wait 3 
+	
+	//dprintln "The round has completed!!!"
+	
+	local.team = level.getteamwin
+	
+	dprintln "getteamwin = " local.team
+	
+	// choose the proper flythrough
+	//dprintln "level.attackers = " level.attackers
+	//dprintln "level.getwinteam = " level.getteamwin
+	
+	if (level.attackers == level.getteamwin)
+		local.str = "win"
+	else
+		local.str = "fail"
+	
+	if (level.currentObjective > 4)
+		local.pathname = level.cameraPathVictory
+		
+	else if (level.attackers == level.getteamwin)
+		local.pathname = level.cameraPathObjWin[level.currentObjective]
+		
+	else
+		local.pathname = level.cameraPathObjFail[level.currentObjective]		
+						
+	//dprintln "Choosing path " local.pathname
+
+	local.path = $(local.pathname)
+
+	//dprintln "Choosing path " local.path
+
+	wait 3
+
+	if (local.path == NIL || local.path == NULL)
+	{
+		//local.pathname = "objective " + level.currentObjective + " " + local.str
+		dprintln "Camera Path " local.pathname " DNE"
+		end
+	}
+	
+	local.cam = spawn func_camera
+	cuecamera local.cam
+
+	// since we found a valid path, dont let the round transition
+	// until the players signal, or some max time occurs
+	setcvar "dm_waitfortransitionflag" "1"
+
+	//thread wait_for_players_to_signal_transition
+	thread wait_for_maxtime_to_signal_transition 60 // seconds
+
+	while (1) {
+		// fly the same path over and over again
+		waitthread camera_flyby local.path local.cam
+	}
+	
+	cueplayer
+
+	
+end
+
+//----------------------------------------------------------------------------
+wait_for_maxtime_to_signal_transition local.t:
+//-----------------
+
+	wait local.t
+	setcvar "dm_waitfortransitionflag" "0"
+
+end
+
+//----------------------------------------------------------------------------
+wait_for_players_to_signal_transition:
+//-----------------
+
+	// wait for at least half of the players to signal
+	// they want to continue
+	
+	// TODO : determine if some players (like the server) should
+	//        have priority to continue emmediately
+	
+	while (1)
+	{
+		local.need = int(($player.size+1)/2)
+		
+		local.num = 0
+		for (local.i=1; local.i<=$player.size; local.i++)
+		{
+			local.player = $player[local.i]
+			
+			if (local.player.hitKey != 1)
+				local.player.hitKey = local.player.useheld
+				
+			if (local.player.hitKey != 1)
+				local.player.hitKey = local.player.fireheld
+
+			local.num += local.player.hitKey
+		}
+		
+		if (local.num >= local.need)
+		{
+			setcvar "dm_waitfortransitionflag" "0"
+			break
+		}
+
+		if ((local.need-local.num) != local.lastneed)
+		{
+			local.lastneed = local.need-local.num			
+			iprintln "Need " local.need " players to hit <Use> or <Fire> Key to end round"
+		}
+
+		waitframe
+	}
+	
+end
+
+//----------------------------------------------------------------------------
+do_level_flythrough:
+//-----------------
+
+
+	// This thread used to comtrol camera path creation.
+	// only used for gametype 0
+
+	// Look for the camera_path to be defined in the map.
+	// If it isn't, start the creator script
+	
+	local.path = $(level.cameraPathFlythrough)
+
+	if (local.path  == NIL || local.path  == NULL)
+	{
+		dprintln "(" level.cameraPathFlythrough ") not found, starting spline path creator"
+		//dprintln "---------------------------------------------------"
+		exec global/spline_path_creator.scr
+		
+		wait 1.0
+		// Please set the 
+		dprintln "Setting CVAR spline_path_name too " level.cameraPathFlythrough
+		setcvar "spline_path_name" level.cameraPathFlythrough
+		dprintln "type : spline_path_name <name>, at the console to change the path name"
+	}
+	else
+	{
+		dprintln "" level.cameraPathFlythrough " found, starting camera flythrough"
+		iprintlnbold "Use the 'e' key to toggle from camera to player view"
+		iprintlnbold "Double click the use key to jump back on the camera path from player view"
+		
+		level.camera = spawn func_camera
+		level.view = "camera"
+		thread look_for_use_key $player[1]
+
+		cuecamera level.camera
+		
+		if (local.path == NIL || local.path == NULL)
+			dprintln "Could not find path"
+		else
+		{
+			while (1)
+			{
+				//fadein 1 0 0 0 1
+				waitthread camera_flyby local.path level.camera
+				//fadeout 1 0 0 0 1
+				wait 1
+			}	
+		}
+	}
+	
+
+end
+
+
+//-----------------------------------------------------------------------------
+look_for_use_key local.player:
+//-----------------
+
+
+	// Wait for the user to type 'e' to toggle the POV
+
+	local.usedown = 0
+
+	while (local.player != NIL && local.player != NULL)
+	{
+		if (level.view == "camera")
+		{
+			if (local.player.useheld)
+			{
+				if (local.usedown == 0)
+				{
+					local.usedown = 1
+					thread toggle_view local.player
+				}
+			}
+			else
+				local.usedown = 0
+		}
+		else
+		{
+			// looking for a double click
+			if (local.player.useheld)
+			{
+				local.start = level.time
+				while (local.player.useheld)
+					waitframe
+				if (level.time - local.start > 0.5)
+					continue
+				// wait a 1.2 a sec for another down click
+				local.start = level.time
+				while (level.time - local.start < 0.5)
+				{
+					if (local.player.useheld)
+					{
+						local.start = level.time
+						while (local.player.useheld)
+							waitframe
+						if (level.time - local.start < 0.5)
+							thread toggle_view local.player
+						break
+					}
+					waitframe
+				}
+			
+			
+			}
+		}
+	
+		waitframe
+	}
+
+end
+
+
+
+
+
+//-----------------------------------------------------------------------------
+toggle_view local.player:
+//-----------------
+
+
+	// Toggle the current camera
+	
+	if (level.view == "camera")
+	{
+		level.view = "player"
+		local.player nodamage
+		local.player.origin = level.camera.origin
+		local.player.viewangles = level.camera.angles
+		cueplayer
+	}
+	else
+	{
+		level.view = "camera"
+		cuecamera level.camera
+	}
+
+end
+
+
+//-----------------------------------------------------------------------------
+camera_flyby local.camera_path local.cam:
+//-----------------
+
+
+	// the camera flys along a path and uses the angles
+	// of the nodes to orient (woks well with VD's tool)
+	
+	if (local.camera_path == NIL || local.camera_path == NULL)
+	{
+		dprintln "Failed to fly due to invalid camera_path"
+		end
+	}
+
+	if (local.cam == NIL || local.cam == NULL)
+	{
+		dprintln "Failed to fly due to invalid camera"
+		end
+	}
+
+	local.obj = spawn script_model
+	local.obj2 = spawn script_object		
+
+	local.obj thread fly_path local.camera_path	
+	
+	
+	while (local.obj.doneFlying != 1)
+	{
+		local.v = angles_toforward local.obj.angles
+		local.o = local.cam.origin + local.v * 100
+		local.obj2.origin = local.o
+			
+		local.cam lookat local.obj2
+		local.cam moveto local.obj
+			
+		waitframe
+	}
+	
+	local.obj remove
+	local.obj2 remove
+
+end
+
+
+//-----------------------------------------------------------------------------
+fly_path local.path:
+//------------------
+
+
+	// performs a follow path on self along local.path
+	self.origin = local.path.origin
+
+	local.lastNode = local.path waitthread get_last_node
+	
+	self followpath local.path  
+	self waitmove
+	
+	while (local.lastNode.loop) {
+		dprintln "in loop"
+		self followpath $(local.lastNode.loop)
+		self waitmove
+	}
+
+	dprintln "done flying"
+	self.doneFlying = 1
+
+end
+
+
+//-----------------
+get_last_node:
+//-----------------
+
+	// self is a spline_path node in a path
+	
+	if (!self)
+		end NULL
+	
+	local.node = self
+	while (local.node.target)
+		local.node = local.node.target
+		
+end local.node
+
+

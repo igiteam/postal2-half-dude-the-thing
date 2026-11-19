@@ -1,0 +1,1 @@
+class LPAICmd_StalkerAkridFireFromOpen extends LPAICmd_AkridFireFromOpen within LPAIControllerAkrid;

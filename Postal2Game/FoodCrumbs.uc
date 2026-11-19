@@ -1,0 +1,15 @@
+///////////////////////////////////////////////////////////////////////////////
+// FoodCrumbs.
+//
+// Food crumbs made when some pawn eats something.
+//
+///////////////////////////////////////////////////////////////////////////////
+class FoodCrumbs extends P2Emitter;
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    Emitters[0]=SpriteEmitter'SpriteEmitter267'
+    LifeSpan=10.0000000
+}

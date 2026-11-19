@@ -1,0 +1,1 @@
+class LightWeapon extends RangedWeapon;

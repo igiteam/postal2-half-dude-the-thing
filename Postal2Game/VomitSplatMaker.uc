@@ -1,0 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+// VomitSplatMaker
+// vomit ball hits a wall,this gets made
+//
+// Thing that makes the splat on the client
+///////////////////////////////////////////////////////////////////////////////
+class VomitSplatMaker extends SplatMaker;
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    mysplatclass=Class'VomitSplat'
+}

@@ -1,0 +1,1 @@
+class LPUIEvent_OnEnterState extends SPUIEvent_OnEnterState;

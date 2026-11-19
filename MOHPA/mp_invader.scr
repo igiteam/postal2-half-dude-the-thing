@@ -1,0 +1,745 @@
+//
+// invader.scr
+//
+// General functions used when playing invader mode.
+//
+// In order to use this library a map script must first set the
+// level.spawnSetCount variable to indicate the number of objectives
+// the level will contain. Then the map script must invoke this script
+// with a "exec global/invader.scr" before the first "level waittill
+// ..." command is issued.
+//
+// Durring initialization the set_objective_position function should
+// be called so that all compasses will point to the first
+// objective. Furthermore the level.alliedAttackers should be set to
+// one (1) if the allied forces are the attackers. Also the arrays
+// level.attackerObjective and level.defenderObjective should be set
+// with text values that describe what each team should be doing for
+// each objective.
+//
+// After each objective is taken two functions should be called. First
+// the progress_objectives function is called, then the
+// progress_spawn_set function is called, and lastly the
+// set_objective_position function is called to move the compass to
+// the new objective.
+//
+// When the last objective is taken, only the progress_objectives
+// function need be called, as this will signal the end of the match.
+//
+// Some maps will have an initial set of spawn locations that should
+// be used instead of the objective #1 spawn set for the very first
+// wave of player spawns. If this is the case then sometime before
+// the "level waittill spawn" command the level script should call 
+// global/invader.scr::init_init_spawn_set. Shortly after the "level 
+// waittill spawn" command is issued the game should progress to objective 
+// 1 so that future deaths will respawn in the correct location.
+//
+// CCARON 7/16/2004 - Added Functions for win sequence
+
+
+//-----------------------------------------------------------------------------
+main:
+//------------------
+
+	// This code is exicuted when someone execs the file
+	// itself. This should happen before the very first
+	// "level waittill ..." command in a level's own main function.
+
+	waitthread init_objectives
+	waitthread team_based_thread
+end
+
+
+//-----------------------------------------------------------------------------
+team_based_thread:
+//------------------
+
+	// Can specify different scoreboard messages for round based
+	// games here.
+
+	thread init_spawn_sets
+	
+	level waittill spawn
+
+	thread monitor_spawn_pool
+
+	level waittill roundstart
+
+	thread activate_medic_tent
+end
+
+
+//-----------------------------------------------------------------------------
+init_spawn_sets:
+//------------------
+
+	level setspawnpool 100 100
+	
+	// disable all spawn sets initially
+	waitthread disable_all_spawn_sets
+
+	// flag spawn set 1 as spawnable
+	waitthread progress_spawn_set 1
+
+	waitthread set_spawnpool_size
+end
+
+
+//-----------------------------------------------------------------------------
+set_spawnpool_size:
+//------------------
+
+	// Currently we have an artifically large spawnpool while we
+	// wait for players to join the game
+
+	level waittill roundstart
+	level setspawnpool 100 100
+	wait 5.0
+
+	// Now compute the actual spawnsize and set it... take into
+	// account anyone who's died in the last 5 seconds when doing so.
+
+	local.multiple = int(getcvar(g_spawnmultiple))
+
+	if (local.multiple == NULL || local.multiple < 1)
+	{
+		if (level.spawnmultiple != NIL && level.spawnmultiple != NULL)
+			local.multiple = level.spawnmultiple
+		else
+			local.multiple = 6
+	}
+
+	local.n = $player.size * local.multiple
+
+	if (local.n < 5)
+		local.n = 5
+
+	local.axis = level.axisspawnpool + local.n - 100
+	local.allies = level.alliesspawnpool + local.n - 100
+
+	if (local.axis < 0)
+		local.axis = 0
+	if (local.allies < 0)
+		local.allies = 0
+
+	level setspawnpool local.allies local.axis
+	level.spawnpool_started = 1
+end
+
+
+//------------------
+disable_all_spawn_sets:
+//------------------
+
+	// Easy way to turn off all the multiplayer spawn locations for
+	// both teams.
+ 
+	for (local.i = 1; local.i <= level.spawnSetCount; local.i++)
+	{
+		local.axisSpawnName = "axis_spawn_" + local.i
+		local.alliedSpawnName = "allies_spawn_" + local.i
+
+		thread disable_spawn_set local.axisSpawnName
+		thread disable_spawn_set local.alliedSpawnName
+	}
+
+	local.axisSpawnName = "axis_spawn_init"
+	local.alliedSpawnName = "allies_spawn_init"
+
+	if ($(local.axisSpawnName) != NULL)
+		$(local.axisSpawnName) disablespawn
+	if ($(local.alliedSpawnName) != NULL)
+		$(local.alliedSpawnName) disablespawn
+
+	local.leftoverAxis = level playerspawncount mp enabled axis
+	local.leftoverAllied = level playerspawncount mp enabled allies
+
+	if (local.leftoverAxis > 0)
+	{
+		for (local.i = local.leftoverAxis; local.i > 0; local.i--)
+		{
+			local.sp = level playerspawn local.i mp enabled axis
+			println ("INFO: Non invader Axis spawnpoint (" + local.sp.targetname + "), at " + local.sp.origin + " being disabled.")
+			local.sp disablespawn
+		}
+	}
+
+	if (local.leftoverAllied > 0)
+	{
+		for (local.i = local.leftoverAllied; local.i > 0; local.i--)
+		{
+			local.sp = level playerspawn local.i mp enabled allies
+			println ("INFO: Non invader Allied spawnpoint (" + local.sp.targetname + "), at " + local.sp.origin + " being disabled.")
+			local.sp disablespawn
+		}
+	}
+end
+
+
+//------------------
+disable_spawn_set local.spawnName:
+//------------------
+
+	// Turns off all the spawn locations for the named spawn set. This
+	// includes all the varient spawn locations for this set (incase there
+	// are "big" and "small" spawn locations for this set as well).
+
+	local.small = local.spawnName + "_small"
+	local.big = local.spawnName + "_big"
+	if ($(local.spawnName) == NULL)
+	{
+		if ($(local.small) == NULL && $(local.big) == NULL)
+			println ( "ERROR: lacks spawnpoint " + local.spawnName )
+		else if ($(local.big) == NULL)
+		{
+			println ( "ERROR: side has small but lacks big spawnpoint " + local.big )
+			$(local.small) disablespawn
+		}
+		else if ($(local.small) == NULL)
+		{
+			println ( "ERROR: side has big but lacks small spawnpoint " + local.small )
+			$(local.big) disablespawn
+		}
+		else
+		{
+			$(local.small) disablespawn
+			$(local.big) disablespawn
+		}
+	}
+	else
+	{
+		$(local.spawnName) disablespawn
+		if ($(local.big) != NULL)
+		{
+			println ( "ERROR: " + local.spawnName + " has big spawnpoints which are ignored because of default spawnpoints")
+			$(local.big) disablespawn
+		}
+		if ($(local.small) != NULL)
+		{
+			println ( "ERROR: " + local.spawnName + " has small spawnpoints which are ignored because of default spawnpoints")
+			$(local.small) disablespawn
+		}
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+init_init_spawn_set:
+//------------------
+
+	// Called if the map has a set of spawn points that should be used
+	// for the initial spawn, and only the initial spawn. 
+
+	local.axisSpawnName = "axis_spawn_init"
+	local.alliedSpawnName = "allies_spawn_init"
+
+	if ($(local.axisSpawnName) == NULL)
+		println ( "ERROR: Axis lacks spawnpoint #init" )
+	else
+		$(local.axisSpawnName) enablespawn
+	if ($(local.alliedSpawnName) == NULL)
+		println ( "ERROR: Allies lacks spawnpoint #init" )
+	else
+		$(local.alliedSpawnName) enablespawn
+end
+
+
+//-----------------------------------------------------------------------------
+progress_spawn_set local.setNo:
+//------------------
+
+	// Called when the attackers have completed one of the objectives and
+	// we need to progress the spawn locations from the previous set to
+	// the current one. We do something a little tricky here, in that we
+	// advance the defenders first, so as to give a few of them the chance
+	// at spawning closer to the newer objective.
+
+	if (local.setNo == 1 && level.roundstarted)
+	{
+		println ( "ERROR: " )
+		println ( "ERROR: " )
+		println ( "ERROR: Never call progress_spawn_set with an argument of 1 once round starts" )
+		println ( "ERROR: This is a naughty invader script that's calling this no doubt..." )
+		println ( "ERROR: " )
+		println ( "ERROR: " )
+	}
+
+	// flag this set as spawnable
+	level.spawnableSets[local.setNo] = 1
+
+	// find the last contiguous spawn set and spawn there (in case someone
+	//    completed objectives out of order)
+	local.setToDisable = 1
+	local.setToEnable = 1
+	while (level.spawnableSets[local.setToEnable + 1] != NIL) 
+	{
+		local.setToDisable = local.setToEnable
+		local.setToEnable++
+	}
+
+	// disable all spawn sets 
+	waitthread disable_all_spawn_sets
+
+	// now enable the one set we want
+	local.axisSpawnName = "axis_spawn_" + local.setToEnable	
+	local.alliedSpawnName = "allies_spawn_" + local.setToEnable	
+
+	local.axisDisableSpawnName = "axis_spawn_" + local.setToDisable	
+	local.alliedDisableSpawnName = "allies_spawn_" + local.setToDisable
+
+	// Disable dm_attackerAdvanceDelay when we are trying to spawn
+	// players at the first spawn set.
+	if (local.setToEnable == 1)
+	{
+		local.storeAttackerAdvanceDelay = level.dm_attackerAdvanceDelay
+		level.dm_attackerAdvanceDelay = 0
+	}
+
+	if (level.alliedAttackers == 1)
+	{
+		// give defenders an edge
+		thread enable_spawn_set local.axisSpawnName "Axis" NULL local.setToEnable
+		thread enable_spawn_set local.alliedSpawnName "Allies" local.alliedDisableSpawnName local.setToEnable
+	}
+	else
+	{
+		thread enable_spawn_set local.axisSpawnName "Axis" local.axisDisableSpawnName local.setToEnable
+		// give defenders an edge
+		thread enable_spawn_set local.alliedSpawnName "Allies" NULL local.setToEnable
+	}
+
+	// Re-enable the dm_attackerAdvanceDelay for spawn sets after
+	// the first spawn set.
+	if (local.setToEnable == 1)
+	{
+		level.dm_attackerAdvanceDelay = local.storeAttackerAdvanceDelay 
+	}
+end
+
+
+//------------------
+enable_spawn_set local.spawnName local.sideName local.delaySpawns local.setToEnable:
+//------------------
+
+	// Turns on all the spawn locations for the named spawn set. This
+	// includes all the varient spawn locations for this set (in case
+	// there are "big" and "small" spawn locations for this set as well).
+	// If the "delaySpawns" value is not null, then we don't instantly
+	// switch over to the new spawn location, but instead wait for
+	// "level.dm_attackerAdvanceDelay" seconds and then turn 'em on. We
+	// do this to let some defenders get set up in their new location (and
+	// moreso to make sure no attackers get the jump on defenders).
+
+	if ( local.delaySpawns !=NULL && local.setToEnable != 1 )
+	{
+		// We give the defenders a little while to start spawning
+		// at their new defensive possition. In this time the attackers
+		// continue to spawn at their old location...
+
+		waitthread enable_spawn_set local.delaySpawns local.sideName NULL local.setToEnable
+		thread do_defender_retreat
+		if (level.dm_attackerAdvanceDelay > 0)
+			wait level.dm_attackerAdvanceDelay
+		thread disable_spawn_set local.delaySpawns
+	}
+
+	local.small = local.spawnName + "_small"
+	local.big = local.spawnName + "_big"
+
+	if ($(local.spawnName) == NULL)
+	{
+		if ($(local.small) == NULL && $(local.big) == NULL)
+			println ( "ERROR: " + local.sideName + " lacks spawnpoint " + local.spawnName )
+		else if ($(local.big) == NULL)
+			println ( "ERROR: " + local.sideName + " has small but lacks big spawnpoint " + local.big )
+		else if ($(local.small) == NULL)
+			println ( "ERROR: " + local.sideName + " has big but lacks small spawnpoint " + local.small )
+		else
+		{
+			if ($player.size >= level.dm_largePlayerCount)
+				$(local.big) enablespawn
+			else
+				$(local.small) enablespawn
+		}
+	}
+	else
+	{
+		$(local.spawnName) enablespawn
+		if ($(local.big) != NULL)
+			println ( "ERROR: " + local.sideName + " has big spawnpoint which is ignored because of " + local.spawnName )
+		if ($(local.small) != NULL)
+			println ( "ERROR: " + local.sideName + " has small spawnpoint which is ignored because of " + local.spawnName )
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+monitor_spawn_pool:
+//------------------
+
+	local.playercount = 0
+	local.periodic = 0
+
+	// Don't show the spawnpool until it's actually set
+	while (level.spawnpool_started != 1)
+		wait 0.5
+
+	while (1)
+	{
+		if (local.playercount != $player.size || local.periodic % 5 == 0)
+		{
+			huddraw_alpha 101 1
+			huddraw_virtualsize 101 1
+			huddraw_align 101 left top
+			huddraw_font 101 "facfont-20"
+			huddraw_color 101 1 1 1
+			huddraw_rect 101 5 180 0 0
+
+			huddraw_alpha 102 1
+			huddraw_virtualsize 102 1
+			huddraw_align 102 left top
+			huddraw_font 102 "facfont-20"
+			huddraw_color 102 1 1 1
+			huddraw_rect 102 5 200 0 0
+
+			local.playercount = $player.size
+		}
+
+		wait 0.5
+		local.periodic += 1
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+activate_medic_tent:
+//------------------
+
+	while (1)
+	{
+
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+			local.player = $player[local.i]
+			for (local.m = 1; local.m <= $medictent.size; local.m++)
+			{
+				if (local.player isinside $medictent[local.m])
+				{
+					if (Isalive local.player) 
+					{
+						if (local.player.health < 100)
+						{
+							local.player iprint ( "You're healing" )
+							local.player heal 0.15
+						}
+					}
+				}
+			}
+		}
+
+		wait 1.0
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+init_objectives:
+//------------------
+
+	// DScott, need to reset this every match or else we create a HUGE string
+	setcvar "dm_objective_taken_string" ""
+
+	// objectives title depends on who is attacking and who is defending
+	if (level.alliedAttackers == 1) {
+		setcvar "g_obj_attackername" "Allied Objectives"
+		setcvar "g_obj_defendername" "Axis Objectives"
+	}
+	else {
+		setcvar "g_obj_attackername" "Axis Objectives"
+		setcvar "g_obj_defendername" "Allied Objectives"
+	}
+
+	// MOHPA TKO, CCARON - set cvar that tells game when allies 
+	//                     are attackers
+
+	if (level.alliedAttackers == 1) {
+		setcvar "g_allied_side" "1"
+	}
+	else {
+		setcvar "g_allied_side" "0"
+	}
+	
+	setcvar "g_obj1_attackers" ""
+	setcvar "g_obj2_attackers" ""
+	setcvar "g_obj3_attackers" ""
+	setcvar "g_obj4_attackers" ""
+
+	setcvar "g_obj1_defenders" ""
+	setcvar "g_obj2_defenders" ""
+	setcvar "g_obj3_defenders" ""
+	setcvar "g_obj4_defenders" ""
+	
+	// scoreboard/win screen stuff
+
+	setcvar "g_num_objectives" level.spawnSetCount
+
+
+	level.currentObjective = 0
+	setcvar "g_invobjno" level.currentObjective
+
+	waitthread progress_objectives_priv
+end
+
+
+//-----------------------------------------------------------------------------
+progress_objectives:
+//------------------
+
+	// CCARON - update the string for the win sequence
+	waitthread update_win_string 0.75
+
+progress_objectives_priv:	
+
+	waitthread global/mp_flags.scr::flag_change level.currentObjective
+
+	level.currentObjective++;
+	setcvar "g_invobjno" level.currentObjective
+
+	setcvar "g_invcurrentobjective" level.currentObjective
+
+	// setup objective messages
+	setcvar ("g_obj" + level.currentObjective + "_attackers") level.attackerObjective[level.currentObjective]
+	setcvar ("g_obj" + level.currentObjective + "_defenders") level.defenderObjective[level.currentObjective]
+
+	thread play_objective_completed_boom
+
+	if (level.currentObjective > level.spawnSetCount) {
+		if (level.alliedAttackers == 1) 
+			teamwin allies						
+		else 
+			teamwin axis						
+	}
+
+	thread update_game_info
+end
+
+
+//------------------
+update_game_info:
+//------------------
+
+	// CCARON - This is neccessary to keep the client info in
+	//          sync with server
+
+	wait 2.0
+
+	stuffcmd updategameinfo
+	
+end
+
+
+//-----------------------------------------------------------------------------
+set_objective_position local.origin:
+//------------------
+
+	addobjective 1 1 "" local.origin
+	setcurrentobjective 1
+end
+
+// CCARON - functions to build the win sequence string
+
+// ---------------------------------------- 
+update_win_string local.t:
+// ---------------------------------------- 
+
+	// CCARON - append the time the attackers took the objective to the win string
+	local.string = getcvar ( dm_objective_taken_string )
+	
+	// STRING FORMAT : <obj1_time> <obj1_sound> <obj1_delay>, <obj2_time> <obj2_sound> <obj2_delay>, ...
+	
+	//             take time, sound, post_time
+	local.string = local.string + level.time + " win_seq_a " + local.t + ", "	
+	setcvar "dm_objective_taken_string" local.string
+		
+	//dprintln "setting dm_objective_taken_string too " local.string
+
+end	
+
+// ---------------------------------------- 
+append_string local.msg:
+// ---------------------------------------- 
+
+	local.string = getcvar "dm_objective_taken_string"
+	
+	local.string += "(" + local.msg + ")"
+	
+	setcvar "dm_objective_taken_string" local.string
+
+end
+
+// ---------------------------------------- 
+play_objective_completed_boom:
+// ---------------------------------------- 
+
+	local.i = 0
+	
+	for( local.i = 1; local.i <= $player.size; local.i++)
+	{
+		if( $player[local.i] )
+			$player[local.i] playclientsound win_seq_b local
+	}		 
+
+end
+
+// ---------------------------------------- 
+do_defender_retreat:
+// ---------------------------------------- 
+
+	// Offer the defending team a chance to respawn at the next
+	// objective, to better set up a defense against any swarming
+	// attackers.
+
+	if (level.alliedAttackers == 1)
+		local.defenders = "axis"
+	else
+		local.defenders = "allies"
+
+	// The admin might not like this feature. Early out in that case.
+
+	local.retreatEnable = int(getcvar(g_retreat_enable))
+	if (local.retreatEnable == 0)
+		end
+
+	local.retreatCost = int(getcvar(g_retreat_cost))
+	local.retreatTime = int(getcvar(g_retreat_time))
+	if (local.retreatTime < 0.5)
+		local.retreatTime = 0.5
+
+	// loop through all the defenders and try to show then the retreat icon
+
+	for (local.i=1; local.i<=$player.size; local.i++)
+	{
+		println "player " local.i "'s team is " $player[local.i].dmteam
+		if ($player[local.i].dmteam == local.defenders)
+			$player[local.i] thread do_player_retreat local.retreatTime local.retreatCost
+	}
+
+end
+
+// ---------------------------------------- 
+do_player_retreat local.retreatTime local.retreatCost:
+// ---------------------------------------- 
+
+	// The defending player has the option of retreating to a spawn
+	// spot near the next objective. For a while keep a retreat use
+	// icon on the player's screen, and if they make use of it, let
+	// them then re-appear at their next objective.
+
+	// self is the defending player
+
+	println "Doing retreat on player " self
+
+	// If the player happens to be on a turret, give them 3/4ths of
+	// a second when they get off to see the retreat icon and react to
+	// it (ie: taking their finger off the use key if they don't want
+	// to retreat). Otherwise players retreat as soon as they get off
+	// a turret.
+
+	local.pause = 0
+	if (self.turret != NULL && self.turret != "")
+		local.pause = level.time + 0.75
+	
+	local.t = level.time
+	
+	// Wait for player to release use key if they have it down
+	while (self.useheld)
+		waitframe
+	
+	while (level.time - local.t < local.retreatTime)
+	{
+		if ((self compareuseslot "retreat") >= 0 && (level.time > local.pause))
+		{
+			self useslot "retreat"
+			
+			if (self.useheld)
+			{
+				// The player has commited to respawning
+				self thread do_respawn
+				break
+			}
+		}
+		else
+		{
+			self removeuseslot "retreat"
+			if ((self compareuseslot "retreat") < 0)
+				local.pause = level.time + 0.75
+		}
+
+		waitframe
+
+		// Make sure the player is still in the game and still alive
+
+		if (self == NULL)
+			break
+		if (!(Isalive self))
+			break
+		if (level.roundcomplete != 0)
+			break
+
+		// Update the turret time if a player is still on it
+
+		if (self.turret != NULL && self.turret != "")
+			local.pause = level.time + 0.75
+
+		// Make sure the defending team still has a positive spawn
+		// pool if the admin has dictated that retreating will cost
+		// the defending team a spawn.
+
+		if (local.retreatCost > 0)
+		{
+			if (level.alliedAttackers == 1 && level.axisspawnpool < 1)
+				break
+			if (level.alliedAttackers == 0 && level.alliesspawnpool < 1)
+				break
+		}
+	}
+
+	self removeuseslot "retreat"
+
+end
+
+// ---------------------------------------- 
+do_respawn:
+// ---------------------------------------- 
+
+	// The defending player has opted to retreat to the next objective.
+	// What we need to do is wait for a short amount of time, and then
+	// move the defender (via respawn) to his new location.
+
+	// self is the player
+
+	local.retreatDelay = int(getcvar(g_retreat_delay))
+	if (local.retreatDelay < 0)
+		local.retreatDelay = 0
+
+	// Make sure the defender doesn't die while waiting to be moved. We
+	// don't move him immediately as he might just be using the retreat
+	// key to get out of a pickle.
+
+	local.t = level.time
+	while (level.time - local.t < local.retreatDelay)
+	{
+		if (self == NULL)
+			end
+		if (!(Isalive self))
+			end
+		if (level.roundcomplete != 0)
+			end
+		waitframe
+	}
+
+	// The cost of the retreat is computed by the engine when we add
+	// the retreat option to the respawn command
+
+	self retreat
+end

@@ -1,0 +1,1 @@
+class LPAICmd_BeetleFootStompStrike extends LPAICmd_BeetleBaseStrike within LPAIControllerBaseBeetle;

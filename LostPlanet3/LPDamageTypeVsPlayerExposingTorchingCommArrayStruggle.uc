@@ -1,0 +1,1 @@
+class LPDamageTypeVsPlayerExposingTorchingCommArrayStruggle extends LPDamageTypeVsPlayerExposingCommArrayStruggle;

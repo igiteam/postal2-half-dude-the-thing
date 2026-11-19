@@ -1,0 +1,1930 @@
+// ------------------------------------------------------------
+//	turret.scr
+//
+//	Implementation of turret mode thinker animations
+//
+// ------------------------------------------------------------
+
+// ------------------------------------------------------------
+main:
+// ------------------------------------------------------------
+
+	// self waitexec Attack
+
+	end
+
+// ------------------------------------------------------------
+Init:
+// ------------------------------------------------------------
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	self.snipershoot	= 0
+
+	self waitthread InitAttackVars
+	self waitexec anim/turret.scr::AttackSay
+
+	end
+
+
+// ------------------------------------------------------------
+InitFast:
+//
+//	In fast mode, we simply just don't do a lot of the
+//	cool time-consuming stuff....
+//
+// ------------------------------------------------------------
+	self.aimdodge = 0
+	self.ainododge = 1
+	self.ainostrafe = 1
+	self.ainocrouchdodge = 1
+	self.ainopronedodge = 1
+	self.ainohopforward = 1
+	self.ainohopbackward = 1
+
+	end
+
+
+
+// ------------------------------------------------------------
+FastAttack:
+//
+//	Shoot as fast as you can....
+// ------------------------------------------------------------
+	
+	self waitthread Init
+	self waitthread InitFast
+
+	self.debugstring = "Fast"
+
+	self waitexec anim/turret.scr::AttackSetupMediumRange
+
+	waitexec anim/turret.scr::AttackStandUp
+	while (1)
+	{
+		waitexec anim/turret.scr::CheckIntervalDir
+		waitexec anim/shoot.scr::Shoot
+	}
+
+
+	end
+
+// ------------------------------------------------------------
+AttackLongRange:
+// ------------------------------------------------------------
+	self waitthread Init
+	self waitexec anim/turret.scr::AttackSetupLongRange
+
+	while (1)
+	{
+		self.debugstring = "AttackLongRange"
+
+		// See if we need to spread out from the squad.
+		waitexec anim/turret.scr::CheckIntervalDir
+
+		local.noprone = 0
+		local.distance = self.distancetoenemy
+		if ( (local.distance >= self.pronedistance) && (self.aicrouchpronechance < self.aipronechance) )
+		{
+			self.collideresult = 0
+			if (self.position != prone)
+			{
+				waitexec anim/turret.scr::AttackCheckProne
+			}
+
+			if ( (self.collideresult > 0) || (self.position == prone) )
+			{
+				waitexec anim/turret.scr::AttackProneDown
+				waitexec anim/turret.scr::AttackLongRangeProne
+			}
+			else
+			{
+				local.noprone = 1
+			}
+		}
+		else
+		{
+			local.noprone = 1
+		}
+
+		local.nocrouch = 0
+
+		if ( ((local.distance < self.pronedistance) || (local.noprone == 1)) && (self.aicrouchpronechance < self.aicrouchchance) && (self.aicrouchpronechance > self.aipronechance) )
+		{
+			self.collideresult = 0
+			if (self.position != crouch)
+			{
+				waitexec anim/turret.scr::AttackCheckCrouch
+			}
+
+			if ( (self.collideresult > 0) || (self.position == crouch) )
+			{
+				waitexec anim/turret.scr::AttackCrouchDown
+				waitexec anim/turret.scr::AttackLongRangeCrouch
+			}
+			else
+			{
+				local.nocrouch = 1
+			}
+		}
+		else
+		{
+			local.nocrouch = 1
+		}
+
+		if ( (local.noprone == 1) && (local.nocrouch == 1) )
+		{
+			//can't crouch or prone.. so let's just stand
+			waitexec anim/turret.scr::AttackStandUp
+			waitexec anim/turret.scr::AttackLongRangeStand
+		}
+	}
+
+	end
+
+// ------------------------------------------------------------
+AttackMediumRange:
+// ------------------------------------------------------------
+	thread DPrintln "Attack Medium Range"
+
+	self waitthread Init
+
+	self.debugstring = "MediumRange"
+
+	self waitexec anim/turret.scr::AttackSetupMediumRange
+
+	waitexec anim/turret.scr::DoMediumRange
+
+
+end
+
+// ------------------------------------------------------------
+AttackShortRange:
+// ------------------------------------------------------------
+
+	self waitthread Init
+
+	self.debugstring = "ShortRange"
+
+	self waitexec anim/turret.scr::AttackSetupShortRange
+
+	waitexec anim/turret.scr::DoMediumRange
+
+	end
+
+// ------------------------------------------------------------
+DoMediumRange:
+// ------------------------------------------------------------
+
+	waitexec anim/turret.scr::AttackStandUp
+	while (1)
+	{
+		waitexec anim/turret.scr::CheckIntervalDir
+		waitexec anim/turret.scr::AttackStandDodge
+	}
+
+	end
+	
+// ------------------------------------------------------------
+AttackDoMelee:
+// ------------------------------------------------------------
+	self.debugstring = "MeleeAttack"
+
+	self waitthread Init
+
+	self.blendtime = 0.25
+	
+	if ( self.team != "american" )				
+	{
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}
+	
+	self playsound rifle_whip
+//	self setupperanim (self getalias butt)
+	self endactionanim
+
+	self setmotionanim (self getalias butt "" stand)
+
+	wait 0.38
+// can't make AI unkillable this way		self.enemy normal_damage 25
+	if ( self.enemy != $player )
+		self.enemy damage self 75 self (0 0 0) (0 0 0) (0 0 0) 1 9 0 0
+	else
+	{
+		local.dir = $player.origin - self.origin;
+		self.enemy damage self 75 self (0 0 0) local.dir (0 0 0) 1 9 0 0
+	}
+	self playsound rifle_hit
+	self waittill flaggedanimdone
+end
+
+
+// ------------------------------------------------------------
+FakeEnemy:
+// ------------------------------------------------------------
+	self waitthread Init
+
+	self waitexec anim/aim.scr::Aim
+	self waittill flaggedanimdone
+
+
+	end
+
+// ------------------------------------------------------------
+SideStepShort:
+//
+//	implements side-stepping for short distances
+//
+// ------------------------------------------------------------
+	self waitthread Init
+
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		self waitexec anim/crouch.scr::transition
+		break
+	}
+
+//	self waitthread anim/crouch.scr::transition
+
+	self waitexec anim/motionblend.scr::Start walk 0 50
+
+
+	end
+
+// ------------------------------------------------------------
+SideStepMedium:
+// ------------------------------------------------------------
+	self waitthread Init
+
+	self waitexec anim/stand.scr::transition
+	self waitexec anim/motionblend.scr::Start run 0 65
+
+	end
+
+// ------------------------------------------------------------
+SideStepLong:
+//
+//	implements side-stepping for short distances
+//
+// ------------------------------------------------------------
+
+	self waitthread Init
+
+	self waitexec anim/stand.scr::transition
+
+	self waitexec anim/motionblend.scr::Start run 0 75
+
+	end
+
+// ------------------------------------------------------------
+RunAway:
+// ------------------------------------------------------------
+
+	self waitthread Init
+
+	// make sure we stand up.
+	self waitexec anim/stand.scr::transition
+
+	// run and shoot...
+	self waitexec anim/motionblend.scr::Start run 1 100
+
+
+	end
+
+// ------------------------------------------------------------
+Suppress:
+// ------------------------------------------------------------
+	self waitthread Init
+	self waitexec anim/turret.scr::SetPosition
+
+	self waitexec anim/shoot.scr
+	self waitexec anim/aim.scr::Aim
+
+//	local.waittime = .5 + randomfloat(1)
+
+//	wait local.waittime
+
+
+	end
+
+// ------------------------------------------------------------
+//						PRIVATE SECTION
+// ------------------------------------------------------------
+
+
+// ------------------------------------------------------------
+CheckIntervalDir local.say:
+//
+//		If we need to move away from a squadmate, do it...
+// ------------------------------------------------------------
+
+	if (local.say==NIL)
+		local.say = 1
+
+	local.intervaldir = self.intervaldir
+
+	if (local.intervaldir != (0 0 0))
+	{
+		self.debugstring = "interval"
+
+		//thread DPrintln "Moving to interval dir: " self.intervaldir
+
+		local.stoodup = 0
+		local.spawnedshootthread = 0
+		self weaponcommand mainhand attachtohand mainhand
+
+		while (local.intervaldir != (0 0 0))
+		{
+			self.debugstring = "intervalattack"
+
+			//check to see if we can move
+			local.movepos = (self.intervaldir * 93) + self.origin
+			self.collideresult = 0
+			local.movetoresult = self canmoveto local.movepos
+			if (local.movetoresult == 1)
+			{
+				self.collideresult = self sighttrace self.origin local.movepos 1 ( -16 -16 16) ( 16 16 96)
+			}
+
+			if (self.collideresult > 0)
+			{
+				if ( local.say==1 )
+				{									
+					//6 is squad chatter priority will not always play
+					self aid_hldsprd 6
+				}
+
+				self.movingtointervaldir = 1
+
+				if (local.stoodup == 0)
+				{
+					self waitthread StandUp
+					local.stoodup = 1
+				}
+
+
+///				if (local.spawnedshootthread == 0)
+///				{
+///					thread CheckIntervalDirShoot
+///					self.shootthread = parm.previousthread
+///					local.spawnedshootthread = 1
+///				}
+
+				self.blendtime = 0.20
+
+				// Determine interval dir in model space (i.e. x axis is forward, y is left).
+				local.costheta = self.forwardvector * self.intervaldir
+				local.sintheta = self.leftvector * self.intervaldir
+
+				//sanity checks
+				if (local.costheta < -1.0)
+				{
+					println "CheckIntervalDir: costheta is less than -1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.costheta = -1.0
+				}
+				if (local.costheta > 1.0)
+				{
+					println "CheckIntervalDir: costheta is more than 1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.costheta = 1.0
+				}
+				if (local.sintheta < -1.0)
+				{
+					println "CheckIntervalDir: sintheta is less than -1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.sintheta = -1.0
+				}
+				if (local.sintheta > 1.0)
+				{
+					println "CheckIntervalDir: sintheta is more than 1, how did that happen!?"
+					println "self.movedir " self.movedir
+					println "self.forward " self.forwardvector
+					local.sintheta = 1.0
+				}
+
+				if (local.costheta >= 0.707)
+				{
+					self.lastmovement = "walk_forward"
+				}
+				else if (local.costheta <= -0.707)
+				{
+					self.lastmovement = "walk_backward"
+				}
+				else
+				{
+					if (local.sintheta >= 0.707)
+					{
+						self.lastmovement = "strafe_left"
+					}
+					else if (local.sintheta <= -0.707)
+					{
+						self.lastmovement = "strafe_right"
+					}
+				}
+
+				self setanim (self getalias walk "" "" "") 0 1
+				self setlocomotionblend local.costheta local.sintheta interval
+				self.movedtointervaldir = 1
+				wait 0.2
+			}
+			else
+			{
+				//thread DPrintln "Could not move to interval dir!"
+				break
+			}
+
+			local.intervaldir = self.intervaldir
+		}
+	}
+
+
+	end
+
+// ------------------------------------------------------------
+StandUp:
+// ------------------------------------------------------------
+
+	switch ( self.position )
+	{
+//	case	stand:
+//		break
+	case	prone:
+	case	pronewalk:
+		self setmotionanim (self getalias trans crouch)
+		wait 0.25
+		break
+	default:
+		self.position	= crouch
+		waitthread anim/aim.scr::Aim
+		wait 0.5
+		break
+	}
+
+	end
+
+// ------------------------------------------------------------
+SetPosition:
+// ------------------------------------------------------------
+	self.shortrange = 150
+	self.mediumrange = 650
+	self.pronedistance = 850
+
+	local.distance = self.distancetoenemy
+
+	if (local.distance > self.pronedistance && self.team != american)
+	{
+		waitexec anim/prone.scr
+	}
+	else if (local.distance > self.mediumrange)
+	{
+		waitexec anim/crouch.scr::transition
+	}
+	else
+	{
+		waitexec anim/stand.scr::transition
+	}
+
+	end
+
+// ------------------------------------------------------------
+AttackSay:
+//
+//	Potentially say something...
+//
+// ------------------------------------------------------------
+	
+
+	// Now say something aggressive
+
+	//thread DPrintln "=================Saying attack line====================="
+	if (self.team != "american")
+	{	
+		//3 is enemy attack chatter
+		self aid_combat	3 self.team
+	}	
+	
+
+	end
+
+// ------------------------------------------------------------
+InitAttackVars:
+//
+//	Initialize our standard attack variables if needed.
+//
+// ------------------------------------------------------------
+
+	//defines
+
+	self.meleerange		= 85
+
+	if ( level.aiattackshortrange != NIL )
+		self.shortrange = level.aiattackshortrange
+	else
+		self.shortrange = 150
+
+	if ( level.aiattackmediumrange != NIL )
+		self.mediumrange = level.aiattackmediumrange
+	else
+		self.mediumrange = 650
+
+	if ( level.aipronedistance != NIL )
+		self.pronedistance = level.aipronedistance
+	else
+		self.pronedistance = 850
+
+	if ( self.aipronechance == NIL )
+	{
+		if ( level.aipronechance != NIL )
+			self.aipronechance = level.aipronechance
+		else
+			self.aipronechance = 25
+	}
+
+	if ( self.aicrouchchance == NIL )
+	{
+		if ( level.aicrouchchance != NIL )
+			self.aicrouchchance = level.aicrouchchance
+		else
+			self.aicrouchchance = 60
+	}
+
+	if ( self.aicrouchpronechance == NIL )
+		waitexec anim/turret.scr::AttackRandomizeCrouchProne
+
+	if ( self.ainocrouch == NIL )
+		self.ainocrouch = 0
+	if ( self.ainoprone == NIL )
+		self.ainoprone = 0
+	if ( self.ainododge == NIL )
+		self.ainododge = 0
+	if ( self.ainostrafe == NIL )
+		self.ainostrafe = 0
+	if ( self.ainocrouchdodge == NIL )
+		self.ainocrouchdodge = 0
+	if ( self.ainopronedodge == NIL )
+		self.ainopronedodge = 0
+	if ( self.ainointerval == NIL )
+		self.ainointerval = 0
+	if ( self.ainohopforward == NIL )
+		self.ainohopforward = 0
+	if ( self.ainohopbackward == NIL )
+		self.ainohopbackward = 0
+
+	self.dist_walkforward = 110
+	self.dist_walkbackward = 90
+	self.dist_walkleft = 80
+	self.dist_walkright = 80
+	self.dist_dodgeleft = 70
+	self.dist_dodgeright = 70
+	self.dist_crouchleft = 15
+	self.dist_crouchright = 15
+	self.dist_prone_roll_left = 50
+	self.dist_prone_roll_right = 50
+
+	//attack parameters default value - set based on distance below
+
+	//percent chance of dodging (while player is not aiming at me)
+	self.dodgepct = 50
+	//percent chance of moving forward
+	self.aggresiveness = 10
+	//percent chance of backing away
+	self.backawaypct = 90
+	//percent chance of doing a strafe during dodge - should really be name self.strafedodgepct
+	self.strafepct = 20
+	//percent chance of shooting while dodging - should really be named self.dodgeshootpct
+	self.shootpct = 100
+	//boolean whether to dodege when player is aiming at me
+	self.aimdodge = 1
+	//amount of time to spend aiming before shooting
+	self.aimtime = 1
+
+	self.enemyaimingme = 0
+	self.collideresult = 0
+	self.movedtointervaldir = 0
+	self.movingtointervaldir = 0
+//	self.needreload = 0
+	self.lastmovement = "none"
+
+	self.debugstring = "init"
+
+
+	end
+
+// ------------------------------------------------------------
+CheckWater:
+// ------------------------------------------------------------
+	
+	local.waterdepth = int(self.waterdepth)
+
+	if ( local.waterdepth==0 )
+		end
+
+	level.waterlevel = int(getcvar( g_aiInWaterLevel ))
+
+
+	if ( local.waterdepth < level.waterlevel )
+	{
+		// just don't go prone in water...
+		self.aipronechance	= 0
+		end
+	}
+
+	self.aipronechance	= 0
+
+	// okay, no proning, no dodging, no strafing, etc...
+
+	self.aimdodge = 0
+	self.ainododge = 1
+	self.ainostrafe = 1
+	self.ainocrouchdodge = 1
+	self.ainopronedodge = 1
+	self.ainohopforward = 1
+	self.ainohopbackward = 1
+
+	end
+
+
+// ------------------------------------------------------------
+AttackSetupLongRange:
+// ------------------------------------------------------------
+
+	//thread DPrintln "long range"
+	self.dodgepct = 20
+	self.aggresiveness = 10
+	self.backawaypct = 5
+	self.strafepct = 50
+	self.shootpct = 100
+	self.aimdodge = 1
+	self.aimtime = 0.50
+
+	self.instandshoot = 0
+	self.movedtointervaldir = 0
+	self.movingtointervaldir = 0
+//	self.inreload = 0
+
+	if ( self.type_attack=="fastturret" )
+	{
+		// need to turn off some things!
+		self waitthread InitFast
+	}
+
+
+	self waitthread CheckWater
+
+
+	if ( self.sniper )
+	{
+		self.snipershoot	= 1
+		self.aimtime		= 1 + randomfloat(0.5)
+	}
+
+	
+	//6 is squad chatter priority (Handled by the AID system)
+	self aid_sight 6
+
+	end
+
+// ------------------------------------------------------------
+AttackSetupMediumRange:
+// ------------------------------------------------------------
+	switch (self.weapongroup)
+	{
+		case rifle:
+			self.dodgepct = 30
+			self.aggresiveness = 5
+			self.backawaypct = 50
+			self.strafepct = 50
+			self.shootpct = 100
+			self.aimdodge = 1
+			self.aimtime = 0.30
+			break
+		case pistol:
+			self.dodgepct = 35
+			self.aggresiveness = 5
+			self.backawaypct = 50
+			self.strafepct = 8
+			self.shootpct = 100
+			self.aimdodge = 1
+			self.aimtime = 0.30
+			break
+		default:
+			self.dodgepct = 50
+			self.aggresiveness = 50
+			self.backawaypct = 25
+			self.strafepct = 65
+			self.shootpct = 100
+			self.aimdodge = 1
+			self.aimtime = 0.05
+			break
+	}
+
+
+	self waitthread CheckWater
+
+
+	if ( self.sniper )
+	{
+		self.snipershoot	= 1
+		self.aimtime		= 1 + randomfloat(0.5)
+	}
+
+
+	if ( self.type_attack=="fastturret" )
+	{
+		// need to turn off some things!
+		self waitthread InitFast
+
+	}
+
+	end
+
+// ------------------------------------------------------------
+AttackSetupShortRange:
+// ------------------------------------------------------------
+
+	switch (self.weapongroup)
+	{
+		case rifle:
+		case pistol:
+			self.dodgepct = 10
+			self.aggresiveness = 0
+			self.backawaypct = 90
+			self.strafepct = 50
+			self.shootpct = 100
+			self.aimdodge = 1
+			self.aimtime = 0.20
+			break
+		default:
+			self.dodgepct = 80
+			self.aggresiveness = 0
+			self.backawaypct = 20
+			self.strafepct = 75
+			self.shootpct = 100
+			self.aimdodge = 1
+			self.aimtime = 0.05
+			break
+	}
+
+	self.instandshoot = 0
+	self.movedtointervaldir = 0
+	self.movingtointervaldir = 0
+//	self.inreload = 0
+
+	if ( self.type_attack=="fastturret" )
+	{
+		// need to turn off some things!
+		self waitthread InitFast
+	}
+
+
+end
+
+
+
+// ------------------------------------------------------------
+AttackLongRangeStand:
+// ------------------------------------------------------------
+	waitexec anim/turret.scr::CheckIntervalDir
+	waitexec anim/turret.scr::AttackStandDodge
+	//waitexec anim/turret.scr::AttackStand
+end
+
+// ------------------------------------------------------------
+AttackLongRangeCrouch:
+// ------------------------------------------------------------
+	waitexec anim/turret.scr::AttackCrouchDodge
+	waitexec anim/turret.scr::AttackCrouch
+end
+
+// ------------------------------------------------------------
+AttackLongRangeProne:
+// ------------------------------------------------------------
+	waitexec anim/turret.scr::AttackProneDodge
+	waitexec anim/turret.scr::AttackProne
+end
+
+// ------------------------------------------------------------
+AttackCheckProne:
+//
+//	Checks ahead to see if it's possible to go prone
+// ------------------------------------------------------------
+
+	//check height
+	if ( self.ainoprone != 0 )
+	{
+		self.collideresult = 0
+		end
+	}
+	local.height = self.enemy.origin[2] - self.origin[2]
+	if (local.height < 160)
+	{
+		local.start = self.origin
+		local.end = self.enemy.origin
+		local.start[2] = local.start[2] + 22
+		local.end[2] = local.end[2] + 22
+		self.collideresult = self sighttrace local.start local.end 1
+	}
+	else
+	{
+		self.collideresult = 0
+		//println "~^~^ Can't prone - target is higher"
+	}
+end
+
+
+// ------------------------------------------------------------
+AttackProneDown:
+//
+//	called whenever the actor needs to go to prone
+//
+// ------------------------------------------------------------
+
+	self.debugstring = "pronedown"
+
+	switch (self.position)
+	{
+		walk:
+		run:
+		stand:
+			self.blendtime = 0.50
+			self waitexec anim/aim.scr::Aim
+			self setmotionanim (self getalias idle "" crouch)
+//			self waittill flaggedanimdone
+			wait 0.5	// Time enough to crouch - not dependent on the length of the looping
+						// animation <weapon>_crouch, which could be any length.
+
+			self.position = crouch
+			self.weaponpos = up
+
+			self endactionanim
+			self.blendtime = 0.30
+			self setmotionanim (self getalias trans prone crouch)
+			self waittill flaggedanimdone
+
+			self.position = prone
+			break
+
+		crouchwalk:
+		crouchrun:
+		crouch:
+			self endactionanim
+			self.blendtime = 0.30
+			self setmotionanim (self getalias trans prone)
+			self waittill flaggedanimdone
+			self.position = prone
+			self.weaponpos = up
+			break
+		pronewalk:
+		prone:
+			//already in prone
+			self.position = prone
+			break
+		knees:
+		crawl:
+		floor:
+		default:
+			println ("^~^~^ Default case for position " + self.position + "in turret.scr::AttackProneDown script")
+			break
+	}
+end
+
+
+// ------------------------------------------------------------
+AttackProneDodge:
+// ------------------------------------------------------------
+
+	thread DPrintln "AttackProneDodgeCheck"
+	if ( self.ainopronedodge != 0 )
+		end
+
+	local.randnum = randomint 100
+//	waitexec anim/turret.scr::AttackIsEnemyAimingAtMe
+
+//	if (local.randnum < self.dodgepct || self.enemyaimingme > 0)
+	if (local.randnum < self.dodgepct)
+	{
+		self.debugstring = "pronedodge"
+
+		self weaponcommand mainhand attachtohand mainhand
+
+		local.randnum = randomint 100
+
+		if (local.randnum < 50)
+		{
+			waitexec anim/turret.scr::AttackCheckLeft self.dist_prone_roll_left
+			if (self.collideresult > 0)
+			{
+				self endactionanim
+				thread DPrintln "prone rolling left"
+				self.blendtime = 0.3
+				self setmotionanim (self getalias roll "" prone left)
+				self waittill flaggedanimdone
+				self.lastmovement = "prone_roll_left"
+			}
+		}
+		else
+		{
+			waitexec anim/turret.scr::AttackCheckRight self.dist_prone_roll_right
+			if (self.collideresult > 0)
+			{
+				self endactionanim
+				thread DPrintln "prone rolling right"
+
+				self.blendtime = 0.3
+				self setmotionanim (self getalias roll "" prone right)
+				self waittill flaggedanimdone
+				self.lastmovement = "prone_roll_right"
+			}
+		}
+	}
+	else
+	{
+		thread DPrintln "AttackProneDodgeCheck - nope!"
+	}
+end
+
+// ------------------------------------------------------------
+AttackProne:
+// ------------------------------------------------------------
+
+	thread DPrintln "Attack prone"
+
+	self.position = prone
+	if (self.needreload == 1)
+	{
+////		waitexec anim/reload.scr::Reload 0
+	}
+	else
+	{
+		self.playedreloadanim = 0
+		self.playedrechamberanim = 0
+	}
+	self.debugstring = "attackprone"
+
+
+	self weaponcommand mainhand attachtohand mainhand
+
+	//aim till we're ready to fire
+	local.i = 1
+	//while (!(self ReadyToFire) || local.i > 0)
+	while (local.i > 0)
+	{
+		self.blendtime = 0.20
+		
+		if (self.team != "american")
+			self aid_combat 3 self.team
+		
+//		self setmotionanim (self getalias idle legs)
+//		self setmotionanim (self getalias idle)
+		self waitexec anim/aim.scr::Aim
+		wait self.aimtime
+
+		local.i = local.i - 1
+	}
+
+	self.lastmovement = "prone"
+
+	if ((self cansee self.enemy) > 0)
+	{
+		self.blendtime = 0.1		
+		
+//		self setmotionanim (self getalias idle legs)
+//		self setmotionanim (self getalias idle)
+		self waitexec anim/shoot.scr::Shoot
+
+//		self.needreload = 0
+		//so that we don't get interrupted
+		self.instandshoot = 0
+		//per Boon--no reload during prone
+		//waitexec anim/reload.scr::Reload 0
+	}
+
+	self interrupt_point
+end
+
+
+
+// ------------------------------------------------------------
+AttackCheckRight local.checkdist:
+//
+//	Checks ahead to see if it's possible to move right without colliding
+//
+// ------------------------------------------------------------
+
+	local.movepos = (self.rightvector * local.checkdist) + self.origin
+	self.collideresult = 0
+	local.movetoresult = self canmoveto local.movepos
+	if (local.movetoresult == 1)
+	{
+		self.collideresult = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+	}
+	//thread DPrintln "CheckRight got :" self.collideresult "Dist :" local.checkdist
+end
+
+// ------------------------------------------------------------
+AttackCheckLeft local.checkdist:
+//
+//	Checks ahead to see if it's possible to move left without colliding
+//
+// ------------------------------------------------------------
+	local.movepos = (self.leftvector * local.checkdist) + self.origin
+	self.collideresult = 0
+	local.movetoresult = self canmoveto local.movepos
+	if (local.movetoresult == 1)
+	{
+		self.collideresult = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+	}
+	//thread DPrintln "CheckLeft got :" self.collideresult "Dist :" local.checkdist
+end
+
+// ------------------------------------------------------------
+AttackCheckFront local.checkdist:
+//
+//	Checks ahead to see if it's possible to move forward without colliding
+// ------------------------------------------------------------
+	local.movepos = (self.forwardvector * local.checkdist) + self.origin
+	self.collideresult = 0
+	local.movetoresult = self canmoveto local.movepos
+	if (local.movetoresult == 1)
+	{
+		self.collideresult = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+	}
+	//thread DPrintln "CheckFront got :" self.collideresult "Dist :" local.checkdist
+end
+
+// ------------------------------------------------------------
+AttackCheckBack local.checkdist:
+//
+//	Checks ahead to see if it's possible to move backward without colliding
+//
+// ------------------------------------------------------------
+	local.tempvec = ( -self.forwardvector[0] -self.forwardvector[1] -self.forwardvector[2] )
+	local.movepos = (local.tempvec * local.checkdist) + self.origin
+	self.collideresult = 0
+	local.movetoresult = self canmoveto local.movepos
+	if (local.movetoresult == 1)
+	{
+		self.collideresult = self sighttrace self.origin local.movepos 0 ( -16 -16 16) ( 16 16 128)
+	}
+	//thread DPrintln "CheckBack got :" self.collideresult "Dist :" local.checkdist
+	//thread DPrintln "Start: " self.origin "End : " local.movepos
+end
+
+
+// ------------------------------------------------------------
+AttackCheckCrouch:
+//
+//	Checks ahead to see if it's possible to crouch
+// ------------------------------------------------------------
+
+	if ( self.ainocrouch != 0 )
+	{
+//		println "ainocrouch is turned on!"
+		self.collideresult = 0
+		end
+	}
+	local.start = self.origin
+//	local.end = self.enemy.controid	//origin
+	local.start[2] = local.start[2] + 45
+//	local.end[2] = local.end[2] + 45
+//	self.collideresult = self sighttrace local.start local.end 1
+	self.collideresult = self canshootenemyfrom local.start
+
+end
+
+// ------------------------------------------------------------
+AttackCrouchDown:
+//
+//	called whenever the actor needs to crouch
+//
+// ------------------------------------------------------------
+
+	self.debugstring = "crouchdown"
+
+	switch (self.position)
+	{
+		walk:
+		run:
+		stand:
+			self.blendtime = 0.50
+			self.position = crouch
+			self setmotionanim (self getalias idle "" crouch)
+			self waitexec anim/aim.scr::Aim
+			// Let's set our state variables when we're halfway through blending, since we can.
+			wait 0.25
+			self.weaponpos = up
+			wait 0.25
+			break
+		crouchwalk:
+		crouchrun:
+		crouch:
+			//already crouched
+			self.position = crouch
+			self.weaponpos = up
+			break
+		pronewalk:
+		prone:
+			self.blendtime = 0.25
+			self setmotionanim (self getalias trans crouch)
+			self waittill flaggedanimdone
+			self.position = crouch
+			self.weaponpos = up
+			break
+		knees:
+		crawl:
+		floor:
+		default:
+			println ("^~^~^ Default case for position " + self.position + "in turret.scr::AttackCrouchDown script")
+			break
+	}
+end
+
+// ------------------------------------------------------------
+AttackCrouchDodge:
+// ------------------------------------------------------------
+
+	thread DPrintln "attackcrouchdodge"
+
+	if ( self.ainocrouchdodge != 0 )
+		end
+
+	local.randnum = randomint 100
+	waitexec anim/turret.scr::AttackIsEnemyAimingAtMe
+
+	if ( (local.randnum < self.dodgepct) || (self.enemyaimingme > 0) )
+	{
+		self.debugstring = "CrouchDodge"
+
+// TODO (Boon) Perhaps play panic face here?
+		self weaponcommand mainhand attachtohand mainhand
+
+		local.randnum = randomint 100
+
+		if (local.randnum < 50)
+		{
+			waitexec anim/turret.scr::AttackCheckLeft self.dist_crouchleft
+			if (self.collideresult > 0)
+			{
+				self.blendtime = 0.0				
+				
+				if (self.team != "american")
+					self aid_combat 3 self.team
+				
+				self waitexec anim/aim.scr::Aim walk
+				self setmotionanim (self getalias walk "" crouch )
+				self setlocomotionblend 0 1
+				self waittill flaggedanimdone
+			}
+		}
+		else
+		{
+			waitexec anim/turret.scr::AttackCheckRight self.dist_crouchright
+			if (self.collideresult > 0)
+			{
+				self.blendtime = 0.0
+				
+				if (self.team != "american")
+					self aid_combat 3 self.team
+				
+				self waitexec anim/aim.scr::Aim walk
+				self setmotionanim (self getalias walk "" crouch )
+				self setlocomotionblend 0 -1
+				self waittill flaggedanimdone
+				self.lastmovement = "crouch_right"
+			}
+		}
+	}
+	else
+	{
+		thread DPrintln "attackcrouchdodge - nope!"
+	}
+end
+
+// ------------------------------------------------------------
+AttackCrouch:
+// ------------------------------------------------------------
+
+	thread DPrintln "ATTACK CROUCH"
+
+	self.debugstring = "AttackCrouch"
+
+	self setmotionanim (self getalias idle)
+
+	if (self.needreload == 1)
+	{
+////			waitexec anim/reload.scr::Reload 1
+	}
+	else
+	{
+		self.playedreloadanim = 0
+		self.playedrechamberanim = 0
+	}
+
+	self weaponcommand mainhand attachtohand mainhand
+
+	if (self.lastmovement != crouch)
+	{
+		//aim till we're ready to fire
+		self.blendtime = 0.20
+		
+		if (self.team != "american")			
+			self aid_combat 3 self.team
+		
+		self waitexec anim/aim.scr::Aim
+		wait self.aimtime
+	}
+
+	if ( isAlive self )
+	{
+		if ( (self.enemy != NIL) && (isAlive self.enemy)  && (self cansee self.enemy) > 0)
+		{
+			self.blendtime = 0.05
+			
+			if (self.team != "american")			
+				self aid_combat 3 self.team
+		
+			self waitexec anim/shoot.scr::Shoot
+		}
+		else if (self.lastmovement == crouch)
+		{
+			//Just aim if we can't shoot and did not aim from above
+			self.blendtime = 0.20
+			
+			if (self.team != "american")				
+				self aid_combat 3 self.team
+			
+			self waitexec anim/aim.scr::Aim
+			wait self.aimtime
+		}
+	}
+
+	if ( isAlive self )
+	{
+		self.lastmovement = "crouch"
+		self interrupt_point
+	}
+
+end
+
+// ------------------------------------------------------------
+AttackStandUp:
+//
+//	called whenever the actor needs to stand
+//
+// ------------------------------------------------------------
+
+	self.debugstring = "Standup"
+
+
+	switch (self.position)
+	{
+		stand:
+			break
+		pronewalk:
+		prone:
+			self.blendtime = 0.25
+			self setmotionanim (self getalias trans crouch)
+			self waittill flaggedanimdone
+
+			self.position = crouch
+
+		// *Deliberately drop through to the crouch case so we can stand from crouching*
+
+		walk:
+		run:
+//		stand:
+		crouchwalk:
+		crouchrun:
+		crouch:
+			waitexec anim/turret.scr::AttackRandomizeCrouchProne
+//			println "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ METHINKS " self.targetname " JUST STOOD UP. RESET PRONE/CROUCH HERE? ~~~~~~~~~~~~~~~~"
+			self.blendtime = 0.50
+			waitexec anim/aim.scr::Aim
+//			self setmotionanim (self getalias idle legs)
+			self setmotionanim (self getalias idle)
+//			self waittill flaggedanimdone
+			wait self.blendtime	// Time enough to stand up - not dependent on the length of the looping
+								// animation stand_alert_legs, which could be any length.
+			self.weaponpos = up
+			self.position = stand
+			break
+		knees:
+		crawl:
+		floor:
+		default:
+			println ("^~^~^ Default case for position " + self.position + "in turret.scr::AttackStandUp script")
+			break
+	}
+end
+
+
+// ------------------------------------------------------------
+AttackRandomizeCrouchProne:
+//
+// called to reset the random crouch/prone factor
+//
+// ------------------------------------------------------------
+	self.aicrouchpronechance = randomint 100
+end
+
+// ------------------------------------------------------------
+AttackStandDodge:
+// ------------------------------------------------------------
+	self.instandshoot = 0
+
+	thread DPrintln "AttackStandDodge"
+
+	local.randnum = randomint 100
+	waitexec anim/turret.scr::AttackIsEnemyAimingAtMe
+
+	if ( (local.randnum < self.dodgepct) || (self.enemyaimingme > 0) )
+	{
+// TODO (Boon) Perhaps play panic face here?
+		//dodge left or right
+
+		self.debugstring = "StandDodge"
+
+		local.randnum = randomint 100
+
+		if (local.randnum < 50)
+		{
+			//strafe left or hop left
+			local.randnum = randomint 100
+
+			if ( ((local.randnum < self.strafepct) || (self.ainododge != 0) ) && (self.ainostrafe == 0) )
+			{
+				waitexec anim/turret.scr::AttackDodgeStrafeLeft 1
+			}
+			else if ( self.ainododge == 0 )
+			{
+				waitexec anim/turret.scr::AttackDodgeLeft 1
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+		}
+		else
+		{
+			//strafe right or dodge right
+			local.randnum = randomint 100
+
+			if ( ((local.randnum < self.strafepct) || (self.ainododge != 0) ) && (self.ainostrafe == 0) )
+			{
+				waitexec anim/turret.scr::AttackDodgeStrafeRight 1
+			}
+			else if ( self.ainododge == 0 )
+			{
+				waitexec anim/turret.scr::AttackDodgeRight 1
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+		}
+	}
+	else
+	{
+		local.randnum = randomint 100
+		if ( (local.randnum < self.aggresiveness) && (self.ainohopforward == 0) )
+		{
+			waitexec anim/turret.scr::AttackCheckFront self.dist_walkforward
+			if (self.collideresult > 0)
+			{
+				self.blendtime = 0.25
+
+				self.lastmovement = "walk_forward"
+				waitexec anim/turret.scr::AttackShootInMotion walk 1 forward
+
+				self interrupt_point
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+		}
+		else
+		{
+			local.randnum = randomint 100
+			if ( (local.randnum < self.backawaypct) && (self.ainohopbackward == 0) )
+			{
+				waitexec anim/turret.scr::AttackCheckBack self.dist_walkbackward
+				if (self.collideresult > 0)
+				{
+					self.blendtime = 0.25
+
+					self.lastmovement = "walk_backward"
+					waitexec anim/turret.scr::AttackShootInMotion walk 2 back
+
+					self interrupt_point
+				}
+				else
+				{
+					waitexec anim/turret.scr::AttackStand
+				}
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+		}
+	}
+end
+
+// ------------------------------------------------------------
+AttackDodgeStrafeLeft local.oppositestrafe:
+// ------------------------------------------------------------
+	if ( (self.weapongroup == pistol) || (self.weapongroup == rifle) )
+	{
+		//local.i = randomint(1) + 1
+		local.i = 1
+	}
+	else
+	{
+		local.i = randomint(4) + 1
+	}
+
+	local.j = local.i
+
+	while (local.i > 0)
+	{
+		waitexec anim/turret.scr::AttackCheckLeft self.dist_walkleft
+		if (self.collideresult > 0)
+		{
+			self.debugstring = "attackstrafeleft"
+
+			if ( (self.lastmovement == strafe_right) && (self.playedreloadanim == 0) )
+			{
+				//stop first if we strafe right last time around so that the feet won't look funny
+				//thread DPrintln "Standing first before strafing left"
+				waitexec anim/turret.scr::AttackStandAndAim
+			}
+
+			self.blendtime = 0.25
+
+			self.lastmovement = "strafe_left"
+
+			waitexec anim/turret.scr::AttackShootInMotion walk 6 left
+
+			self interrupt_point
+		}
+		else
+		{
+			//only strafe the other way if it's the first time
+			if ( (local.i == local.j) && (local.oppositestrafe == 1) )
+			{
+				//thread DPrintln "Strafing the other way to Right"
+				//wait a frame so that we don't do multiple trace checks
+				waitframe
+				waitexec anim/turret.scr::AttackDodgeStrafeRight 0
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+			break
+		}
+
+		local.i = local.i - 1
+	}
+end
+
+// ------------------------------------------------------------
+AttackDodgeLeft local.oppositedodge:
+// ------------------------------------------------------------
+
+	waitexec anim/turret.scr::AttackCheckLeft self.dist_dodgeleft
+	if (self.collideresult > 0)
+	{
+		self.debugstring = "dodgeleft"
+
+		self.blendtime = 0.25
+
+		self.lastmovement = "dodge_left"
+
+		// jsl-->New anims weren't designed to shoot during the dodge.
+//		waitexec anim/turret.scr::AttackShootInMotion (self getalias dodge "" "" left) 3 ""
+
+		self endactionanim
+		self setmotionanim (self getalias dodge "" "" left)
+		self waittill flaggedanimdone
+
+		// see if we want to shoot...
+		local.randnum = randomint 100
+		if ( self && self.enemy && (local.randnum < self.shootpct) && (self cansee self.enemy) )
+		{
+			self setmotionanim (self getalias idle)
+			self waitexec anim/aim.scr::Aim
+			self waitexec anim/shoot.scr::Shoot
+		}
+
+
+		if (self.needreload == 1)
+		{
+////			waitexec anim/reload.scr::Reload 0
+		}
+
+		self interrupt_point
+
+	}
+	else
+	{
+		if (local.oppositedodge > 0)
+		{
+			//wait a frame so that we don't do multiple trace checks
+			waitframe
+			waitexec anim/turret.scr::AttackDodgeRight 0
+		}
+		else
+		{
+			waitexec anim/turret.scr::AttackStand
+		}
+	}
+end
+
+// ------------------------------------------------------------
+AttackDodgeRight local.oppositedodge:
+// ------------------------------------------------------------
+
+	waitexec anim/turret.scr::AttackCheckRight self.dist_dodgeright
+	if (self.collideresult > 0)
+	{
+		self.debugstring = "dodgeright"
+
+		self.blendtime = 0.25
+
+		self.lastmovement = "dodge_right"
+
+		// jsl-->New anims weren't designed to shoot during the dodge.
+//		waitexec anim/turret.scr::AttackShootInMotion (self getalias dodge "" "" right) 4 ""
+		self endactionanim
+		self setmotionanim (self getalias dodge "" "" right)
+		self waittill flaggedanimdone
+
+		// see if we want to shoot...
+		local.randnum = randomint 100
+		if ( self && self.enemy && (local.randnum < self.shootpct) && (self cansee self.enemy) )
+		{
+			self setmotionanim (self getalias idle)
+			self waitexec anim/aim.scr::Aim
+			self waitexec anim/shoot.scr::Shoot
+		}
+
+
+		if (self.needreload == 1)
+		{
+////			waitexec anim/reload.scr::Reload 0
+		}
+
+		self interrupt_point
+
+	}
+	else
+	{
+		if (local.oppositedodge)
+		{
+			//wait a frame so that we don't do multiple trace checks
+			waitframe
+			waitexec anim/turret.scr::AttackDodgeLeft 0
+		}
+		else
+		{
+			waitexec anim/turret.scr::AttackStand
+		}
+	}
+end
+
+// ------------------------------------------------------------
+AttackDodgeStrafeRight local.oppositestrafe:
+// ------------------------------------------------------------
+	if ( (self.weapongroup == pistol) || (self.weapongroup == rifle) )
+	{
+		//local.i = randomint(1) + 1
+		local.i = 1
+	}
+	else
+	{
+		local.i = randomint(4) + 1
+	}
+
+	local.j = local.i
+
+	while (local.i > 0)
+	{
+		waitexec anim/turret.scr::AttackCheckRight self.dist_walkright
+		if (self.collideresult > 0)
+		{
+			self.debugstring = "attackstraferight"
+
+			if ( (self.lastmovement == strafe_left) && (self.playedreloadanim == 0) )
+			{
+				//stop first if we strafe right last time around so that the feet won't look funny
+				//thread DPrintln "Standing first before strafing right"
+				waitexec anim/turret.scr::AttackStandAndAim
+			}
+
+			self.blendtime = 0.25
+
+			self.lastmovement = "strafe_right"
+
+			waitexec anim/turret.scr::AttackShootInMotion walk 5 right
+
+			self interrupt_point
+		}
+		else
+		{
+			//only strafe the other way if it's the first time
+			if ( (local.i == local.j) && (local.oppositestrafe == 1) )
+			{
+				//thread DPrintln "Strafing the other way to left"
+				//wait a frame so that we don't do multiple trace checks
+				waitframe
+				waitexec anim/turret.scr::AttackDodgeStrafeLeft 0
+			}
+			else
+			{
+				waitexec anim/turret.scr::AttackStand
+			}
+
+			break
+		}
+
+		local.i = local.i - 1
+	}
+end
+
+
+// ------------------------------------------------------------
+AttackShootInMotion local.animtype local.id local.direction:
+// ------------------------------------------------------------
+	// println "ATTACK SHOOT IN MOTION"
+
+	local.animname = self getalias local.animtype
+
+	self weaponcommand mainhand attachtohand mainhand
+
+	// jsl-->Make sure we do this prior to playing our movement animation.
+	switch (local.direction)
+	{
+		case "forward":
+			local.costheta = 1.0
+			local.sintheta = 0.0
+			self setlocomotionblend 1.0 0.0
+			break
+		case "back":
+			local.costheta = -1.0
+			local.sintheta = 0.0
+			self setlocomotionblend -1.0 0.0
+			break
+		case "left":
+			local.costheta = 0.0
+			local.sintheta = 1.0
+			self setlocomotionblend 0.0 1.0
+			break
+		case "right":
+			local.costheta = 0.0
+			local.sintheta = -1.0
+			self setlocomotionblend 0.0 -1.0
+			break
+		case "":
+		default:
+			// don't set blend
+			break
+	}
+
+
+	local.randnum = randomint 100
+	if ( self && self.enemy && (local.randnum < self.shootpct) && (self cansee self.enemy) )
+	{
+		
+		if (self.team != "american")		
+			self aid_combat 3 self.team
+
+		// turn on our new spiffy shootinmotion system...
+		self interrupt_point "shootinmotion"
+
+//		self.shootinmotion = 1
+		self setmotionanim local.animname
+		self waittill flaggedanimdone
+
+		self interrupt_point "shootinmotion_off"
+	}
+	else
+	{
+		
+		if (self.team != "american")		
+			self aid_combat 3 self.team
+		
+//		self.needreload = 0
+		
+		waitexec anim/aim.scr::Aim local.animtype
+		
+		self setmotionanim local.animname
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+// ------------------------------------------------------------
+AttackStand:
+// ------------------------------------------------------------
+
+	thread DPrintln "ATTACKSTAND"
+
+	if (self.needreload == 1)
+	{
+////		waitexec anim/reload.scr::Reload 0
+	}
+	else
+	{
+		self.playedreloadanim = 0
+		self.playedrechamberanim = 0
+	}
+
+	self.instandshoot = 1
+	self weaponcommand mainhand attachtohand mainhand
+
+	waitexec anim/shoot.scr::CanShoot
+
+	if (self.canshoot == 1)
+	{
+		self.debugstring = "StandAttack"
+
+		// jsl->Added self.just_reloaded to prevent guys from shooting out to nowhere after the reload (most obvious with the bazooka!)
+		if (self.lastmovement != stand || self.just_reloaded==1)
+		{
+			self.blendtime = 0.20
+			
+			
+			if (self.team != "american")
+				self aid_combat 3 self.team
+					
+			//self setmotionanim (self getalias idle legs)
+			self setmotionanim (self getalias idle)
+			waitexec anim/aim.scr::Aim
+			wait self.aimtime
+		}
+		
+		self.just_reloaded = 0
+
+		waitexec anim/shoot.scr::CanShoot
+
+		if (self.canshoot == 1)
+		{
+			//self.blendtime = 0.05
+			
+			if (self.team != "american")			
+				self aid_combat 3 self.team			
+
+			self waitexec anim/shoot.scr::Shoot
+//			self.needreload = 1
+			//so that we don't get interrupted
+			self.instandshoot = 0
+			self.just_reloaded = 1
+		}
+		else
+		{
+			//println "~^~^~^AttackStand can't shoot after aim!"
+			if (self.lastmovement == stand)
+			{
+				//just aim if we can't shoot
+				self.blendtime = 0.20
+				
+				if (self.team != "american")				
+					self aid_combat 3 self.team
+				
+				waitexec anim/aim.scr::Aim
+				wait self.aimtime
+			}
+			else
+			{
+				//wait a frame here so that we don't do multiple sight trace
+				//in one frame
+				waitexec anim/aim.scr::Aim
+				waitframe
+			}
+		}
+		
+		self.lastmovement = "stand"
+	}
+	else
+	{
+//		println "~^~^~^AttackStand can't shoot!"
+//		self.needreload = 0
+		self.instandshoot = 0
+		self.blendtime = 0.30
+//		self endactionanim
+//		self setmotionanim (self getalias idle)
+		waitexec anim/aim.scr::Aim
+		self.lastmovement = "stand_alert"
+		wait self.blendtime
+	}
+
+	self.instandshoot = 0
+	self interrupt_point
+end
+
+
+// ------------------------------------------------------------
+AttackIsEnemyAimingAtMe:
+//
+//	this is temporary until someone makes this a function call for the script
+// ------------------------------------------------------------
+	if ( (self.aimdodge == 1) && self.enemy && (isAlive self.enemy) )
+	{
+		local.vec = (self.origin - self.enemy.origin)
+		local.vec = vector_normalize (local.vec)
+		local.dotvec = local.vec * self.enemy.forwardvector
+		if (local.dotvec > 0.980)
+		{
+			self.enemyaimingme = 1
+		}
+		else
+		{
+			self.enemyaimingme = 0
+		}
+	}
+	else
+	{
+		self.enemyaimingme = 0
+	}
+end
+
+// ------------------------------------------------------------
+AttackStandAndAim:
+// ------------------------------------------------------------
+
+	// println "ATTACKSTANDandAIM"
+
+	if (self.needreload == 1)
+	{
+////		waitexec anim/reload.scr::Reload 0
+	}
+	else
+	{
+		self.playedreloadanim = 0
+		self.playedrechamberanim = 0
+	}
+
+	self weaponcommand mainhand attachtohand mainhand
+	self.blendtime = 0.30
+	self setmotionanim (self getalias idle)
+
+	waitexec anim/shoot.scr::CanShoot
+	if (self.canshoot)
+	{
+		waitexec anim/aim.scr::Aim
+		self.lastmovement = "stand"
+	}
+	else
+	{
+		//println "~^~^~^AttackStandAndAim can't shoot!"
+		self.lastmovement = "stand_alert"
+//		self setupperanim (self getalias idle)
+	}
+
+	wait self.blendtime
+	self interrupt_point
+end
+
+
+// ------------------------------------------------------------
+DPrintln local.text1 local.text2 local.text3 local.text4 local.text5:
+//
+//	thread DPrintln - for debug prints
+//
+// ------------------------------------------------------------
+	if (level.debug_mode == 1 )
+	{
+		if (local.text1 != NIL)
+		{
+			print local.text1
+			if (local.text2 != NIL)
+			{
+				print local.text2
+				if (local.text3 != NIL)
+				{
+					print local.text3
+					if (local.text4 != NIL)
+					{
+						print local.text4
+						if (local.text5 != NIL)
+						{
+							print local.text5
+						}
+					}
+				}
+			}
+		}
+		println
+	}
+end

@@ -1,0 +1,296 @@
+// --------------------------------------------------------------------------------
+// global/medicconfig.scr
+//
+// --------------------------------------------------------------------------------
+
+main:
+
+level waittill prespawn
+
+	local.script = tolower level.script
+	println "~~~~~~~~~~ Medic config for: " local.script
+
+	switch ( local.script )
+	{
+////////Boot Camp
+	case "maps/1_1_bootcamp_chunk1.scr":
+		waitthread MedConfig_1_1
+		break
+	case "maps/1_1_bootcamp_chunk2.scr":
+		waitthread MedConfig_1_1
+		break
+
+////////Pearl
+	case "maps/2_1_pearl_a_chunk1.scr":
+		waitthread MedConfig_2_1
+		break
+	case "maps/2_1_pearl_b_chunk1.scr":
+		waitthread MedConfig_2_1
+		break
+	case "maps/2_1_pearl_b_chunk2.scr":
+		waitthread MedConfig_2_1
+		break
+	case "maps/2_1_pearl_b_chunk3.scr":
+		waitthread MedConfig_2_1
+		break
+
+////////Makin
+	case "maps/4_1_nightmoves_chunk1.scr":
+		waitthread MedConfig_4_1
+		break
+	case "maps/4_1_nightmoves_chunk2.scr":
+		waitthread MedConfig_4_1
+		break
+	case "maps/4_1_nightmoves_chunk3.scr":
+		waitthread MedConfig_4_1
+		break
+	case "maps/4_2_mandown_chunk1.scr":
+		waitthread MedConfig_4_2
+		break
+	case "maps/4_2_mandown_chunk2.scr":
+		waitthread MedConfig_4_2
+		break
+	case "maps/4_2_mandown_chunk3.scr":
+		waitthread MedConfig_4_2
+		break
+	case "maps/4_4_sittingducks.scr":
+		waitthread MedConfig_4_4
+		break
+
+////////Guadalcanal
+	case "maps/5_1_henderson_chunk1.scr":
+		waitthread MedConfig_5_1
+		break
+	case "maps/5_1_henderson_chunk2.scr":
+		waitthread MedConfig_5_1
+		break
+	case "maps/5_1_henderson_chunk3.scr":
+		waitthread MedConfig_5_1
+		break
+	case "maps/5_1_henderson_chunk4.scr":
+		waitthread MedConfig_5_1
+		break
+	case "maps/5_2_bloodyridge_chunk1.scr":
+		waitthread MedConfig_5_2
+		break
+	case "maps/5_2_bloodyridge_chunk2.scr":
+		waitthread MedConfig_5_2
+		break
+	case "maps/5_2_bloodyridge_chunk3.scr":
+		waitthread MedConfig_5_2
+		break
+	case "maps/5_3_riverwalk_chunk1.scr":
+		waitthread MedConfig_5_3_1
+		break
+	case "maps/5_3_riverwalk_chunk2.scr":
+		waitthread MedConfig_5_3_2
+		break
+	case "maps/5_5_village_chunk1.scr":
+		waitthread MedConfig_5_5
+		break
+	case "maps/5_5_village_chunk2.scr":
+		waitthread MedConfig_5_5
+		break
+	case "maps/5_5_village_chunk3.scr":
+		waitthread MedConfig_5_5
+		break
+	case "maps/5_5_village_chunk4.scr":
+		waitthread MedConfig_5_5
+		break
+
+////////Tarawa
+	case "maps/7_1_tarawa_a_chunk1.scr":
+		waitthread MedConfig_7_1
+		break
+	case "maps/7_1_tarawa_a_chunk2.scr":
+		waitthread MedConfig_7_1
+		break
+	case "maps/7_1_tarawa_b_chunk1.scr":
+		waitthread MedConfig_7_1
+		break
+	case "maps/7_1_tarawa_b_chunk2.scr":
+		waitthread MedConfig_7_1
+		break
+
+////////Demo
+	case "maps/mohpa_demo.scr":
+		waitthread MedConfig_Demo
+		break
+
+	default:
+		waitthread MedConfig_Default
+	}
+
+//	println "~~~~~~~~~~~~~~~ set level.MEDIC_EXPERIENCE_LEVEL to " level.MEDIC_EXPERIENCE_LEVEL
+//	println "~~~~~~~~~~~~~~~ set level.MEDIC_MAX_PLAYER_HEALS to " level.MEDIC_MAX_PLAYER_HEALS
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_1_1:
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 1
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_2_1:
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_4_1:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_4_2:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_4_4:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_5_1:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_5_2:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_5_3_1:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 1
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_5_3_2:
+//
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 1
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_5_5:
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 1
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_7_1:
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 1
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_Demo:
+// -----------------------------------------------------
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+MedConfig_Default:
+//
+// -----------------------------------------------------
+
+	println "~~~~~~~~~~ Using default medic config for : " local.script
+
+	waitthread SetMaxPlayerHeals 5 4 2 1
+	level.MEDIC_EXPERIENCE_LEVEL = 0
+
+end
+
+
+// -----------------------------------------------------
+SetMaxPlayerHeals local.d0 local.d1 local.d2 local.d3:
+//
+// Set # of Player heals based on the difficulty
+// Number passed is for highest difficulty and actual number set
+//	is scaled up on easier difficulty
+// -----------------------------------------------------
+
+	local.skill = int( getcvar skill )
+	switch ( local.skill )
+	{
+	case 0:
+		level.MEDIC_MAX_PLAYER_HEALS = local.d0
+		break
+	case 1:
+		level.MEDIC_MAX_PLAYER_HEALS = local.d1
+		break
+	case 2:
+		level.MEDIC_MAX_PLAYER_HEALS = local.d2
+		break
+	default:
+		level.MEDIC_MAX_PLAYER_HEALS = local.d3
+		break
+	}
+
+end
+

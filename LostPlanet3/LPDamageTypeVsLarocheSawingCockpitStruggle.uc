@@ -1,0 +1,1 @@
+class LPDamageTypeVsLarocheSawingCockpitStruggle extends LPDamageTypeVSSaw;

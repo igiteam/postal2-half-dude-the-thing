@@ -1,0 +1,27 @@
+///////////////////////////////////////////////////////////////////////////////
+// AWNukePickup
+// Copyright 2004 Running With Scissors, Inc.  All Rights Reserved.
+//
+// Nuclear warhead pickup.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+class AWNukePickup extends OwnedPickup;
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Default properties
+///////////////////////////////////////////////////////////////////////////////
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    bPaidFor=true
+    bUseForErrands=true
+    bAllowMovement=false
+    InventoryType=Class'AWNukeInv'
+    PickupMessage="You picked up a thermo-nuclear warhead."
+    DrawType=8
+    StaticMesh=StaticMesh'AW_Meshes.Misc.Nuke'
+}

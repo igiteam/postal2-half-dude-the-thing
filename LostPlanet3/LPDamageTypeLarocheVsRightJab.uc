@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsRightJab extends LPDamageTypeLarocheVsMelee;

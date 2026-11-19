@@ -1,0 +1,1 @@
+class LPUIEvent_OnDoubleClick extends SPUIEvent_OnDoubleClick;

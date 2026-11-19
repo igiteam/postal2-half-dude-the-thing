@@ -1,0 +1,1 @@
+class LPDamageTypeCarrierTalonStabVs extends LPDamageTypeCarrierMelee;

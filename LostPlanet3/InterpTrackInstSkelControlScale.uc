@@ -1,0 +1,1 @@
+class InterpTrackInstSkelControlScale extends InterpTrackInst;

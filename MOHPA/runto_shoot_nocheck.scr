@@ -1,0 +1,51 @@
+// ----------------------------------------------------------------------------
+//	runto_shoot_nocheck.scr
+//
+//	Run path while firing weapon (no angle check)
+//
+// ----------------------------------------------------------------------------
+start:
+
+//	dprintln "Running runto_shoot_nocheck.scr with move dir " self.movedir
+	
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	thread runanimation
+	group.runAnimationThread = parm.previousthread
+
+	waitthread fireweapon
+
+end
+
+
+// runanimation calls a standard running script with a waitexec.  It's done from a seperate thread like this to 
+// keep all threads in the same threadgroup, so that they will all end together if the group is terminated.
+runanimation:
+
+	self.position = run
+	waitexec anim/motionblend.scr::Start run 0 0
+
+end
+
+
+//
+fireweapon:
+
+	while (1)
+	{
+		waitexec anim/shoot.scr::Shoot run
+//		self waittill upperanimdone
+
+		local.hold = level.time + 0.75 + (randomfloat 0.5)
+		
+		while ( level.time < local.hold )
+		{
+			waitexec anim/aim.scr::Aim run
+//			self waittill upperanimdone
+			self waittill flaggedanimdone
+		}
+		waitframe
+	}
+
+end

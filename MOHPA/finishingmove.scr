@@ -1,0 +1,136 @@
+// ---------------------------------------------------------------------------
+//	finishingmove.scr
+//
+//	Performs a finishing move on a guy who's in the undead state.
+//
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+main:
+// ---------------------------------------------------------------------------
+
+
+end
+
+// ---------------------------------------------------------------------------
+TransToIdle:
+// ---------------------------------------------------------------------------
+
+	while (1)
+	{
+		self setmotionanim xxxxx_finishing_transtoidle
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+FaceEnemy:
+// ---------------------------------------------------------------------------
+
+	self threatbias ignoreme
+	self nodamage
+	self.enablePain = 0
+	self.enableEnemy = 0
+
+//	self.mood = alert
+//	self setmotionanim (self getalias idle)
+	// MJG: temp use an animation that has more action
+	while (1)
+	{
+		self setmotionanim xxxxx_finishing_idle
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+FinishingMove:
+// ---------------------------------------------------------------------------
+
+	self threatbias ignoreme
+	self nodamage
+	self.enablePain = 0
+	self.enableEnemy = 0
+
+	level.finished_him = 0
+
+//	waitthread ShootHim
+	waitthread MeleeHim
+
+end
+
+
+// ---------------------------------------------------------------------------
+MeleeHim:
+// ---------------------------------------------------------------------------
+
+	local.o = self.origin
+
+	thread WaitTillFinishPlayer
+
+//	self setmotionanim xxxxx_finishing_melee
+	self setmotionanim xxxxx_finishingmove
+	self waittill flaggedanimdone
+
+	if ( level.finished_him == 0 )
+		self waitthread FinishPlayer 0
+
+//	self.origin = local.o
+//	goto MeleeHim
+
+end
+
+
+// ---------------------------------------------------------------------------
+ShootHim:
+// ---------------------------------------------------------------------------
+
+	self.mood	= alert
+
+		// aim at him for a bit (and make him squirm)
+	self waitthread anim/aim.scr::Aim aim
+
+	wait 3
+
+	self thread FinishPlayer 0.15
+	self waitthread anim/shoot.scr::Shoot shoot
+
+	self waitthread anim/aim.scr::Aim aim
+
+	// keep the gun aiming at him for second...
+	wait 3
+
+end
+
+
+// ---------------------------------------------------------------------------
+WaitTillFinishPlayer:
+// ---------------------------------------------------------------------------
+
+	self waittill animevent
+	self waitthread FinishPlayer 0
+
+end
+
+
+// ---------------------------------------------------------------------------
+FinishPlayer local.waittime:
+// ---------------------------------------------------------------------------
+
+	level.finished_him = 1
+
+	wait local.waittime
+
+//	dprintln "killing player!"
+//	local.damage = $player.health * 2
+
+//	$player damage self local.damage self (0 0 0) (1 0 0) (0 0 0) 1 9 0 0
+
+	fadeout .001 0 0 0 1
+//	drawhud 0
+
+end
+

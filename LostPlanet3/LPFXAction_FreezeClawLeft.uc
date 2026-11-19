@@ -1,0 +1,1 @@
+class LPFXAction_FreezeClawLeft extends LPFXAction_FreezeClaw;

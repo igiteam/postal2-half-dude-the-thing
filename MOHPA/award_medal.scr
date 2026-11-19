@@ -1,0 +1,120 @@
+//================================================================================
+//
+// global/award_medal.scr
+//
+// Author: shawn sheridan
+//
+// Description:
+//
+// - Awards medal(s) at end of mission based on Number of Objectives
+//
+//================================================================================
+
+main local.mission:
+
+DebugPrintLn("Awarding Medal for Mission " + local.mission)
+
+	// One Medal for finishing Mission
+	local.NumMedals = 1
+
+	// Number Hidden Objects Completed
+	local.NumHiddenTotal = getobjectivecount local.mission 2
+	local.NumHiddenCompleted = getobjectivecountcompleted local.mission 2
+	local.PercentComplete = float(local.NumHiddenCompleted) / float(local.NumHiddenTotal)
+
+	debugprintln "-----------------------------"
+	debugprintln "Total: " local.NumHiddenTotal
+	debugprintln "Completed: " local.NumHiddenCompleted
+	debugprintln "Percent: " local.PercentComplete
+	debugprintln "-----------------------------"
+
+
+	// Award Medals based on Mission
+	if (local.mission == 1)
+	{
+		// Medal1
+		givemedalnumber local.mission 1 1
+
+		// Medal2
+		if (local.NumHiddenCompleted >= 3)
+			givemedalnumber local.mission 4
+		if (local.NumHiddenCompleted >= 2)
+			givemedalnumber local.mission 3
+		if (local.NumHiddenCompleted >= 1)
+			givemedalnumber local.mission 2
+	}
+	else if (local.mission == 2)
+	{		
+		// Medal1
+		givemedalnumber local.mission 5
+	
+		// Medal2
+		if (local.NumHiddenCompleted >= local.NumHiddenTotal)
+			givemedalnumber local.mission 6
+	}
+	else if (local.mission == 4)
+	{
+		// Medal1
+		givemedalnumber local.mission 7
+
+		if (local.NumHiddenTotal == local.NumHiddenCompleted)
+			givemedalnumber local.mission 9
+		if (local.PercentComplete >= .50)
+			givemedalnumber local.mission 8
+	}
+	else if (local.mission == 5)
+	{
+		// Medal1
+		givemedalnumber local.mission 10
+
+		DebugPrintLn "Percent: " local.PercentComplete
+
+		// Medal2
+		if (local.NumHiddenTotal == local.NumHiddenCompleted)
+			givemedalnumber local.mission 14
+		if (local.PercentComplete >= .75)
+			givemedalnumber local.mission 13
+		if (local.PercentComplete >= .50)
+			givemedalnumber local.mission 12
+		if (local.PercentComplete >= .25)
+			givemedalnumber local.mission 11
+	}
+	else if (local.mission == 7)
+	{
+		// Medal 1
+		givemedalnumber local.mission 15
+
+		// Medal2
+		if (local.PercentComplete > .75)
+			givemedalnumber local.mission 17
+		if (local.PercentComplete >= .50)
+			givemedalnumber local.mission 16
+
+		// Completed Game Message
+		switch (getcvar(skill))
+		{
+		case "0":
+			givemedalnumber local.mission 19
+			break;
+		case "1":
+			givemedalnumber local.mission 20
+			break;
+		case "2":
+			givemedalnumber local.mission 21
+			break;
+		case "3":
+			givemedalnumber local.mission 22
+			break;
+		}
+
+		// Give Purple Heart?
+		local.deaths2 = hasdiedinmission 2
+		local.deaths4 = hasdiedinmission 4
+		local.deaths5 = hasdiedinmission 5
+		local.deaths7 = hasdiedinmission 7
+
+		if (local.deaths2 > 0 && local.deaths4 > 0 && local.deaths5 > 0 && local.deaths7 > 0)
+			givemedalnumber local.mission 18
+	}
+
+end

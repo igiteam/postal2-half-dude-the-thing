@@ -1,0 +1,1 @@
+class LPDamageTypeStalkerPunch extends LPDamageTypeStalkerMelee;

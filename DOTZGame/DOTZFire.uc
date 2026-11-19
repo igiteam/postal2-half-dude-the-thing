@@ -1,0 +1,1 @@
+class DOTZFire Extends Fire;

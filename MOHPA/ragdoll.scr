@@ -1,0 +1,7 @@
+//	ragdoll.scr
+//	basically used to stop the guy from moving...
+
+self endactionanim
+
+pause
+

@@ -1,0 +1,1 @@
+class LPAICmd_BeetleTaunt extends LPAICmd_Strike within LPAIControllerBaseBeetle;

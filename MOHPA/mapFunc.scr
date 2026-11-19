@@ -1,0 +1,53 @@
+//
+// mapFunc.scr
+//
+// Generic routines for handling things in maps for the engine. These routines
+// are here, rather than in the actual engine code so that the modding 
+// community can take advantage of them if need be.
+//
+// Some useful items to know:
+//
+//   start's "self" is a trigger that's been placed 1500 units below the lowest
+//	part of the terrain, and stretches across the entire map. Normally it
+//	is used to kill off any player that somehow slips through the cracks 
+//	in a map and would fall forever.
+
+//-----------------------------------------------------------------------------
+start:
+//------------------
+
+	// This routine is called by the engine once the level has been loaded.
+	// The "self" points to the kill trigger that has been planted below
+	// the terrain in the world.
+
+	wait 0.2
+
+	// Set up the kill-box that hovers below the terrain to call our own
+	// script when a player falls through it.
+
+	self setthread global/mapFunc.scr::fall_below_terrain_event
+end
+
+
+//-----------------------------------------------------------------------------
+fall_below_terrain_event local.player:
+//------------------
+
+	// If the player is falling through the bottom of the map, kill them.
+
+	dprintln ("Killing " + local.player.netname + ", who fell through the earth")
+        if (isalive local.player)
+        {
+                local.player damage $world 15000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+                wait 0.1
+        }
+        if (isalive local.player)
+	{
+		// If the player doesn't die, then teleport them up above the
+		// terrain, maybe this time they'll stick.
+
+		local.loc = local.player.origin
+		local.h = terrain_height 0 local.loc[0] local.loc[1]
+		local.player.origin = ( local.loc[0] local.loc[1] local.h ) + ( 0 0 60 )
+	}
+end

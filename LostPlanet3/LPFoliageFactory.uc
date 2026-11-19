@@ -1,0 +1,1 @@
+class LPFoliageFactory extends SPFoliageFactory;

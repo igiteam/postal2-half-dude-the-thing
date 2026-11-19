@@ -1,0 +1,186 @@
+// --------------------------------------------------------------------------------
+// faunaspawn.scr
+//
+//	Before level waittill prespawn "exec global/faunaspawn.scr".
+//	
+//	Place a trigger down and call it "faunaspawnertrigger". Lay down fauna script models and connect the trigger to them.
+//  When the trigger is activated, the fauna will do it's thing. (Birds will fly, snakes will slither...etc).
+//	
+//	They will recycle once you leave the area and return.
+// 
+// The trigger should have a $destination which will be the targetname of entity the
+// fauna will move to and removethemselves. The fauna should have a $lifetime, which is the number
+// of seconds they will move in circles before heading towards the $destination. The trigger
+// should also have a $group field which acts as a unique handle to the flock of fauna.
+//
+// --------------------------------------------------------------------------------
+
+	// dprintlnln "****** INITIALIZING SPAWN TRIGGERS"
+	waitthread InitializeSpawnTriggers
+
+end
+
+// --------------------------------------------------------------------------------
+//	NOTE: do NOT call any of these threads externally.  They are to be used by the
+//	threads in this script file only!  
+// --------------------------------------------------------------------------------
+
+// ------------------------------------------------
+PerformLifetime local.group:
+// ------------------------------------------------
+
+	if (self.lifetime==NIL)
+	{
+		end
+	}
+	
+	local.lifetime = int(self.lifetime)
+	if (local.lifetime > 0)
+	{
+		wait local.lifetime
+	
+		self group_disband	
+	}
+
+end
+
+
+// ------------------------------------------------
+HideAllTargets:
+// ------------------------------------------------
+
+//	$(self.target) hide
+	$(self.target) notsolid
+
+	if (self.group!=NIL)
+	   $(self.target) waitthread DissolveGroup self.group	
+end
+
+// ------------------------------------------------
+ShowAllTargets:
+// ------------------------------------------------
+	
+	if (self.group!=NIL)
+	{
+		$(self.target) waitthread MakeGroup self.group self.lifetime
+		
+		if (self.destination!=NIL)
+		{
+			waitthread SetDestination $(self.target) self.group self.destination 
+		}	
+		
+		waitthread SetAnims $(self.target)  
+	}
+end
+
+// -----------------------------------------------
+MakeGroup local.group local.lifetime:
+// -----------------------------------------------
+
+	// The last entity of the group will become the leader
+	self group_lead local.group 
+	
+	self.lifetime = 5.0
+	
+	if (local.lifetime!=NIL)
+	    self.lifetime = local.lifetime
+	
+	self show
+	self notsolid
+	
+	// Default values
+	self group_speed		5.0	// Meters per second
+	self group_height		4	// Meters
+	
+	self turn_speed			35.0
+	
+	self follow_ratio		0.8	// Percentage of "group_speed" above
+	
+	// If it has a lifetime variable, use it
+	self thread PerformLifetime local.group
+	
+end
+
+// -----------------------------------------------
+SetAnims local.ents:
+// -----------------------------------------------
+
+	if (level.infaunaspawner==1)
+	{
+		end
+	}
+
+	level.infaunaspawner=1
+
+	dprintln "SETTING ANIMS ****************"
+	
+	for (local.i=1;local.i<=local.ents.size;local.i++)
+	{
+		// Special case - startle first bird
+	//	if (local.i==1)
+	//	{
+	//		dprintln "Startle first bird ********"
+	//		local.ents[local.i] anim startle
+	//		waitframe
+	//	}
+		
+		// Offset the animations
+		local.ents[local.i] anim fly_flap
+	}
+	
+	for (local.i=1;local.i<=local.ents.size;local.i++)
+	{
+		// Offset the animations
+		waitframe
+		local.ents[local.i] anim fly_flap
+	}
+
+	level.infaunaspawner=0
+
+end
+
+// -----------------------------------------------
+SetDestination local.ents local.group local.destination:
+// -----------------------------------------------
+
+		local.ents[1] group_destination local.group local.destination
+		//local.ents[1] group_disband	
+	
+end
+// -----------------------------------------------
+DissolveGroup local.group:
+// -----------------------------------------------
+
+	// Remove a bird from the group
+	self group_leave local.group 
+
+end
+
+// 10.253.6.81
+// ------------------------------------------------
+TriggerWaitOnLoop:
+	
+	self waittill trigger
+
+	
+	$player playsound Birds_Flock_Large01
+	self ai_event misc 2000
+	
+	self waitthread ShowAllTargets
+	
+	self remove
+end
+
+// --------------------------------------------------------------------------------
+InitializeSpawnTriggers:
+// --------------------------------------------------------------------------------
+
+	if ( $faunaspawnertrigger==NIL || $faunaspawnertrigger.size==0 )
+		end
+
+	$faunaspawnertrigger waitthread HideAllTargets
+	$faunaspawnertrigger thread TriggerWaitOnLoop
+	
+end
+
+

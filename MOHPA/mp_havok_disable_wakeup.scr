@@ -1,0 +1,31 @@
+//
+// mp_havok_disable_wakeup.scr
+//
+// Script file for disabling all havok entities, so that specific entities
+// can have their havok explicitly enabled.
+//
+// 07.02.04 VDODS - original version
+//
+
+//----------------------------------------------------------------------------
+main:
+//-----------------
+
+	// loop through all entities and call 'havok_disable_wakeup'
+	// or 'havok_enable_wakeup' depending on if the 'havok_enable'
+	// is set on the entity
+
+	for (local.i = 0; local.i <= level.getmaxentnum; local.i++)
+	{
+		local.ent = getentbyentnum local.i
+
+		// checking to see if entity exists 7-16-04 NW
+		if (local.ent != NIL && local.ent != NULL)
+		{
+			if (local.ent.havok_enable == 1)
+				local.ent havok_enable_wakeup
+			else
+				local.ent havok_disable_wakeup
+		}
+	}
+end

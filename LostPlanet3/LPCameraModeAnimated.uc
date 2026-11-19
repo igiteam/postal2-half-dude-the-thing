@@ -1,0 +1,1 @@
+class LPCameraModeAnimated extends SPCameraModeAnimated;

@@ -1,0 +1,97 @@
+//================================================================================
+// Handle Rain functionality
+//
+//================================================================================
+
+
+
+//================================================================================
+// Initialization of Rain
+
+//level.rainLight = 0
+//level.rainHeavy = 0
+
+InitRain local.rainType:
+
+	switch (local.rainType)
+	{
+	case "Light":
+		level.rainLight = spawn "models/vfx/raindrop.tik"
+		level.rainLight.origin = $player.origin
+		level.rainLight glue $player
+		
+		level.rainLight notsolid
+		DebugPrintLn "-> INIT rain light"
+		break
+
+	case "Heavy":
+		level.rainHeavy = spawn "models/vfx/raindrop_curtain.tik"
+		level.rainHeavy.origin = $player.origin
+		level.rainHeavy glue $player
+		
+		level.rainHeavy notsolid
+		DebugPrintLn "-> INIT rain heavy"
+		break
+	default:
+		break
+	}
+
+end
+
+//================================================================================
+// Start raining
+
+StartRain local.rainType:
+
+	switch (local.rainType)
+	{
+	case "Light":
+		if (level.rainLight != NIL && level.rainLight != NULL)
+		{
+			level.rainLight anim start
+		}
+		else
+			dprintln "Trying to start uninitialized Rain"
+		break
+	case "Heavy":
+		if (level.rainHeavy != NIL && level.rainHeavy != NULL)
+		{
+			level.rainHeavy anim start
+		}
+		else
+			dprintln "Trying to start uninitialized Rain"
+		break
+	default:
+		break
+	}
+
+end
+
+//================================================================================
+// Stop raining
+
+StopRain local.rainType:
+
+	switch (local.rainType)
+	{
+	case "Light":
+		if (level.rainLight != NIL && level.rainLight != NULL)
+		{
+			level.rainLight anim stop
+		}
+		else
+			dprintln "Trying to stop uninitialized Rain"
+		break
+	case "Heavy":
+		if (level.rainHeavy != NIL && level.rainHeavy != NULL)
+		{
+			level.rainHeavy anim stop
+		}
+		else
+			dprintln "Trying to stop uninitialized Rain"
+		break
+	default:
+		break
+	}
+
+end

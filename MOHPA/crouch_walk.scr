@@ -1,0 +1,22 @@
+//	-------------------------------------------------------------------
+//	Crouch_walk.scr
+//	
+//		Walk while crouching.  If not crouching, be sure to crouch first.
+//
+//	-------------------------------------------------------------------
+
+
+start:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	// make sure we're crouched
+	waitexec anim/crouch.scr::transition
+
+	self.position = crouchwalk
+
+	// start walking....
+	waitexec anim/walk.scr::Walk
+
+end

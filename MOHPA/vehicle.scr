@@ -1,0 +1,1197 @@
+//--------------------------------------------------------------------------------
+// vehicle.scr
+//
+//	Handles vehicle-related animation for AI.
+//
+//--------------------------------------------------------------------------------
+main:
+end
+
+//--------------------------------------------------------------------------------
+// default animation if specific thread doesn't exist
+//--------------------------------------------------------------------------------
+noanim:
+
+	//dprintln "********** ERROR in vehicle.scr: thinker specified non-existent thread."
+	self setmotionanim xvxxd_js_idle
+	self waittill flaggedanimdone
+
+end
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	raftlcrs (rubber raft)
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+enter_raftlcrs_driver:
+
+	self setmotionanim xvxxx_raftlcrs_mount_driver
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_driver:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_driver
+	self waittill flaggedanimdone
+
+end
+
+enter_raftlcrs_passenger_1:
+
+	self setmotionanim xvxxx_raftlcrs_mount_passenger1
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_passenger_1:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_passenger1
+	self waittill flaggedanimdone
+
+end
+
+enter_raftlcrs_passenger_2:
+
+	self setmotionanim xvxxx_raftlcrs_mount_passenger2
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_passenger_2:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_passenger2
+	self waittill flaggedanimdone
+
+end
+
+enter_raftlcrs_passenger_3:
+
+	self setmotionanim xvxxx_raftlcrs_mount_passenger3
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_passenger_3:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_passenger3
+	self waittill flaggedanimdone
+
+end
+
+enter_raftlcrs_passenger_4:
+
+	self setmotionanim xvxxx_raftlcrs_mount_passenger4
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_passenger_4:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_passenger4
+	self waittill flaggedanimdone
+
+end
+
+enter_raftlcrs_passenger_5:
+
+	self setmotionanim xvxxx_raftlcrs_mount_passenger_injured
+	self waittill flaggedanimdone
+
+end
+
+exit_raftlcrs_passenger_5:
+
+	self setmotionanim xvxxx_raftlcrs_dismount_passenger_injured
+	self waittill flaggedanimdone
+
+end
+
+// ON
+on_raftlcrs_driver:
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_driver
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_raftlcrs_passenger_1:
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_passenger1
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_raftlcrs_passenger_2:
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_passenger2
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_raftlcrs_passenger_3:
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_passenger3
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_raftlcrs_passenger_4:
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_passenger4
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_raftlcrs_passenger_5:		// the injured guy
+
+	if ( (self.raftanim != NIL) && (self.raftanim != "") )
+	{
+		self setmotionanim self.raftanim
+		self waittill flaggedanimdone
+		self animevent
+	}
+	else
+	{
+		self setmotionanim xvxxx_raftlcrs_idle_injured
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	Jeep
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+enter_jeep_driver:
+
+	self setmotionanim xuxxx_jeep_driver_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_jeep_driver:
+
+	self setmotionanim xuxxx_jeep_driver_dismount
+	self waittill flaggedanimdone
+
+end
+
+enter_jeep_passenger:
+
+	self setmotionanim xvxxp_js_mount	
+	self waittill flaggedanimdone
+
+end
+
+exit_jeep_passenger:
+
+	self setmotionanim xvxxp_js_dismount
+	self waittill flaggedanimdone
+
+end
+
+enter_jeep_turret:
+
+	self setmotionanim xuxxx_jeep_gun_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_jeep_turret:
+
+	self setmotionanim xuxxx_jeep_gun_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_jeep_driver:
+
+	switch ( self.mood )
+	{
+	case alert:
+		self setmotionanim xvxxd_js_idle_intense
+		self waittill flaggedanimdone
+		break
+	case atease:
+		self setmotionanim xvxxd_js_idle_casual
+		self waittill flaggedanimdone
+		break
+	default:
+		self setmotionanim xvxxd_js_idle
+		self waittill flaggedanimdone
+		break
+	}
+end
+
+on_jeep_passenger:
+
+
+	switch ( self.mood )
+	{
+	case alert:
+		self setmotionanim xvxxp_js_intense_idle
+		self waittill flaggedanimdone
+		break
+	case atease:
+		self setmotionanim xvxxp_js_casual_idle
+		self waittill flaggedanimdone
+		break
+	default:
+		self setmotionanim xvxxp_js_idle
+		self waittill flaggedanimdone
+		break
+	}
+
+end
+
+on_jeep_turret:
+
+	self setmotionanim xuxxx_jeep_driving_idle
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	Scout car
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+//============================================================================
+// Scout - driver (right drive vehicle)
+//============================================================================
+enter_scout_driver:
+
+	self setmotionanim xvxxd_scout_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_scout_driver:
+
+	self setmotionanim xvxxd_scout_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_scout_driver:
+
+	switch ( self.mood )
+	{
+	case alert:
+		self setmotionanim xvxxd_js_idle_intense
+		self waittill flaggedanimdone
+		break
+	default:
+		self setmotionanim xvxxd_js_idle
+		self waittill flaggedanimdone
+		break
+	}
+
+end
+
+on_scout_driver_hit:
+
+	self setmotionanim xvxxd_js_hit
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Scout - front passenger (left side)
+//============================================================================
+enter_scout_passenger:
+
+	self setmotionanim xvxxp_scout_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_scout_passenger:
+
+	self setmotionanim xvxxp_scout_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger:
+
+	self aimanimationlimits 37.5 82.5 82.5
+
+	while ( 1 )
+	{
+		switch ( self.mood )
+		{
+		case alert:
+			self setmotionanim xvxxp_js_intense_idle
+			self waittill flaggedanimdone
+			break
+		default:
+			self setmotionanim xvxxp_js_idle
+			self waittill flaggedanimdone
+			break
+		}
+	}
+
+end
+
+on_scout_passenger_idletoaim:
+
+	self setmotionanim xvxxp_scout_shootintro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_aimtoidle:
+
+	self setmotionanim xvxxp_scout_shootoutro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_aim:
+
+	while ( 1 )
+	{
+		self setmotionanim xvxxp_scout_aim
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_scout_passenger_shoot:
+
+	while ( 1 )
+	{
+		self setmotionanim xvxxp_scout_shoot
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_scout_passenger_reload:
+
+	self setmotionanim xvxxp_scout_shootoutro
+	self waittill flaggedanimdone
+
+	self setmotionanim xvxxp_js_reload
+	self waittill flaggedanimdone
+
+	self setmotionanim xvxxp_scout_shootintro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_hit:
+
+	self setmotionanim xvxxp_js_hit
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_hitaim:
+
+	self setmotionanim xvxxp_scout_hit_shoot
+	self waittill flaggedanimdone
+
+end
+
+
+//============================================================================
+// Scout - right rear passenger
+//============================================================================
+enter_scout_passenger_1:
+
+	self setmotionanim 	xvxxr_scout_mount		//xvxxr_js_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_scout_passenger_1:
+
+	self setmotionanim xvxxr_scout_dismount    //xvxxr_js_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1:
+
+	self aimanimationlimits -107.5 77.5 77.5 30.0 30.0
+
+	while ( 1 )
+	{
+		switch ( self.mood )
+		{
+		case alert:
+			self setmotionanim xvxxr_js_intense_idle
+			self waittill flaggedanimdone
+			break
+		default:
+			self setmotionanim xvxxr_js_idle
+			self waittill flaggedanimdone
+			break
+		}
+	}
+
+end
+
+on_scout_passenger_1_idletoaim:
+
+	self setmotionanim xvxxr_js_shootintro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_aimtoidle:
+
+	self setmotionanim xvxxr_js_shootoutro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_aim:
+
+	while ( 1 )
+	{
+		self setmotionanim xvxxr_js_aim
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_scout_passenger_1_shoot:
+
+	self setmotionanim xvxxr_js_shoot
+	self waittill flaggedanimdone
+
+	self setmotionanim xvxxr_js_rechamber
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_reload:
+
+	self setmotionanim xvxxr_js_reload
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_hit:
+
+	self setmotionanim xvxxr_js_hit
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_hitaim:
+
+	self setmotionanim xvxxr_js_hit_shoot
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_1_gtoss:
+
+	self setmotionanim xvxxr_js_throwgrenade
+	self waittill flaggedanimdone
+
+end
+
+
+//============================================================================
+// Scout - left rear passenger
+//============================================================================
+enter_scout_passenger_2:
+
+	self setmotionanim xvxxl_scout_mount	//xvxxl_js_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_scout_passenger_2:
+
+	self setmotionanim xvxxl_scout_dismount //xvxxl_js_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2:
+
+	self aimanimationlimits 122.5 72.5 72.5 45.0 45.0
+
+	while ( 1 )
+	{
+		switch ( self.mood )
+		{
+		case alert:
+			self setmotionanim xvxxl_js_intense_idle
+			self waittill flaggedanimdone
+			break
+		default:
+			self setmotionanim xvxxl_js_idle
+			self waittill flaggedanimdone
+			break
+		}
+	}
+
+end
+
+on_scout_passenger_2_idletoaim:
+
+	self setmotionanim xvxxl_js_shootintro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2_aimtoidle:
+
+	self setmotionanim xvxxl_js_shootoutro
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2_aim:
+
+	while ( 1 )
+	{
+		self setmotionanim xvxxl_js_aim
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_scout_passenger_2_shoot:
+
+	while ( 1 )
+	{
+		self setmotionanim xvxxl_js_shoot
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_scout_passenger_2_reload:
+
+	self setmotionanim xvxxl_js_reload
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2_hit:
+
+	self setmotionanim xvxxl_js_hit
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2_hitaim:
+
+	self setmotionanim xvxxl_js_hit_shoot
+	self waittill flaggedanimdone
+
+end
+
+on_scout_passenger_2_gtoss:
+
+	self setmotionanim xvxxl_js_throwgrenade
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	Catalina
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+on_catalina_driver:
+
+	self setmotionanim 61020104_Frank_basic_copilot_idle
+	self waittill flaggedanimdone
+
+end
+
+on_catalina_passenger:
+
+	self setmotionanim 61020104_Frank_basic_copilot_idle
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	Model94
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+//============================================================================
+// Truck - driver
+//============================================================================
+enter_model94_driver:
+
+	self setmotionanim xvxxd_truck_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_driver:
+
+	self setmotionanim xvxxd_truck_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_model94_driver:
+
+	switch ( self.mood )
+	{
+	case alert:
+		self setmotionanim xvxxd_js_idle_intense
+		self waittill flaggedanimdone
+		break
+	default:
+		self setmotionanim xvxxd_js_idle
+		self waittill flaggedanimdone
+		break
+	}
+
+end
+
+//============================================================================
+// Truck - front passenger
+//============================================================================
+enter_model94_passenger:
+
+	self setmotionanim xvxxp_truck_mount	// MJG: alias does not exist
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger:
+
+	self setmotionanim xvxxp_truck_dismount	// MJG: alias does not exist
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger:
+
+	self setmotionanim xvxxl_truck_intense_01  //This is temporary
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger L1 (slot 1)
+//============================================================================
+enter_model94_passenger_1:
+
+	self setmotionanim xvxxl_truck_mount_01
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_1:
+
+	self setmotionanim xvxxl_truck_dismount_01
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_1:
+
+	self setmotionanim xvxxl_truck_intense_01
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_1_hit:
+on_model94_passenger_3_hit:
+on_model94_passenger_5_hit:
+
+	self setmotionanim xvxxl_truck_hit
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger R1 (slot 2)
+//============================================================================
+enter_model94_passenger_2:
+
+	self setmotionanim xvxxr_truck_mount_01
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_2:
+
+	self setmotionanim xvxxr_truck_dismount_01
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_2:
+
+	self setmotionanim xvxxr_truck_intense_01
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_2_hit:
+on_model94_passenger_4_hit:
+on_model94_passenger_6_hit:
+
+	self setmotionanim xvxxr_truck_hit
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger L2 (slot 3)
+//============================================================================
+enter_model94_passenger_3:
+
+	self setmotionanim xvxxl_truck_mount_02
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_3:
+
+	self setmotionanim xvxxl_truck_dismount_02
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_3:
+
+	self setmotionanim xvxxl_truck_intense_02
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger R2 (slot 4)
+//============================================================================
+enter_model94_passenger_4:
+
+	self setmotionanim xvxxr_truck_mount_02
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_4:
+
+	self setmotionanim xvxxr_truck_dismount_02
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_4:
+
+	self setmotionanim xvxxr_truck_intense_02
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger L3 (slot 5)
+//============================================================================
+enter_model94_passenger_5:
+
+	self setmotionanim xvxxl_truck_mount_03
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_5:
+
+	self setmotionanim xvxxl_truck_dismount_03
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_5:
+
+	self setmotionanim xvxxl_truck_intense_03
+	self waittill flaggedanimdone
+
+end
+
+//============================================================================
+// Truck - rear passenger R3 (slot 6)
+//============================================================================
+enter_model94_passenger_6:
+
+	self setmotionanim xvxxr_truck_mount_03
+	self waittill flaggedanimdone
+
+end
+
+exit_model94_passenger_6:
+
+	self setmotionanim xvxxr_truck_dismount_03
+	self waittill flaggedanimdone
+
+end
+
+on_model94_passenger_6:
+
+	self setmotionanim xvxxr_truck_intense_03 //temp
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	PT20
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+//============================================================================
+// PT20 - Driver
+//============================================================================
+on_pt20_driver:
+
+	self setmotionanim xvxxx_pt20_idle_driver
+	self waittill flaggedanimdone
+
+end
+
+on_pt20_passenger:
+
+	self setmotionanim xvxxx_pt20_idle_passenger0
+	self waittill flaggedanimdone
+
+end
+
+on_pt20_passenger_1:
+
+	self setmotionanim xvxxx_pt20_idle_passenger1
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+//	LVT2
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
+
+//============================================================================
+// LVT2 Animations
+//============================================================================
+on_lvt2_driver:
+
+	self setmotionanim xvxxx_lvt2_idle_driver
+	self waittill flaggedanimdone
+
+end
+
+on_lvt2_passenger:
+
+	while(1)
+	{
+		self setmotionanim 71020100_captain_lvt_idle
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_1:
+
+	while(1)
+	{
+		// Note: HACK - in 7_1 this is the player
+		self setmotionanim xvxxx_lvt2_idle_passenger_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_2:
+
+	while(1)
+	{
+		self setmotionanim 71020130_marine01_lvt_idle_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_3:
+
+	while(1)
+	{
+		self setmotionanim 71020121_willy_lvt_idle_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_4:
+
+	while(1)
+	{
+		self setmotionanim 71020140_marine02_lvt_idle_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_5:
+
+	while(1)
+	{
+		self setmotionanim 71020150_marine03_lvt_idle_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+on_lvt2_passenger_6:
+
+	while(1)
+	{
+		self setmotionanim 71020150_marine03_lvt_idle_01
+		self waittill flaggedanimdone
+	}
+
+end
+
+
+//============================================================================
+// higgins Animations
+//============================================================================
+on_higgins_driver:
+
+	self setmotionanim xvxxx_higgins_idle_driver
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_1:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_2:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_3:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_4:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_5:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_6:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_7:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_8:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_9:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_a:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_b:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_c:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_d:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_e:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_f:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_g:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_h:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_i:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+on_higgins_passenger_j:
+
+	self setmotionanim xvxxx_higgins_idle_passenger
+	self waittill flaggedanimdone
+
+end
+
+
+//-------------------------------------------------------------
+//Steam Roller
+//
+//-------------------------------------------------------------
+enter_steamrollerjp_driver:
+
+	self setmotionanim xvxxx_SteamrollerJP_mount
+	self waittill flaggedanimdone
+
+end
+
+exit_steamrollerjp_driver:
+
+	self setmotionanim xvxxx_SteamrollerJP_dismount
+	self waittill flaggedanimdone
+
+end
+
+on_steamrollerjp_driver:
+
+//	self setmotionanim 41000000_Steamroller_Henderson
+	self setmotionanim xvxxx_SteamrollerJP_idle
+	self waittill flaggedanimdone
+
+end
+

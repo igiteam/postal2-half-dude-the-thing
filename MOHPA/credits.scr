@@ -1,0 +1,153 @@
+//================================================================================
+//
+//  Medal of Honor: Pacific Assault
+//
+//  Script Stuff by Mr. Sheridan
+//================================================================================
+
+
+//================================================================================
+// Start the Credit Slideshow
+
+RunCredits:
+
+	level.NUM_SCREENS = 30
+	level.TIME_ACTIVE = 5.0
+	level.TIME_FADEOUT = 1.5
+	level.showmenu = "showmenu credits"
+	level.hidemenu = "hidemenu credits"
+	level.image = "textures/credits/credits_"
+
+	// Start Music
+	thread MusicCredits
+
+	waitthread StartSlideShow
+end
+
+//================================================================================
+// Start the Propaganda Slideshow
+
+RunPropaganda:
+
+	level.NUM_SCREENS = 25
+	level.TIME_ACTIVE = 5.0
+	level.TIME_FADEOUT = 1.5
+	level.showmenu = "showmenu propaganada"
+	level.hidemenu = "hidemenu propaganada"
+	level.image = "textures/propaganda/poster_"
+
+	// Start Music
+	thread MusicPropaganda
+	
+	waitthread StartSlideShow
+end
+
+//================================================================================
+// MusicCredits
+
+MusicCredits:
+
+	$player playsound FRANK_GRABLE_BIT wait
+	$player waittill sounddone
+
+	if (level.SLIDESHOW_THREAD == NULL || level.SLIDESHOW_THREAD == NIL)
+		end
+
+	// Start Music
+	$player stufftext "tmstartloop sound/music/MoHPA_MainTheme_Full.mp3"
+end
+
+
+//================================================================================
+// MusicPropaganda
+
+MusicPropaganda:
+
+	// Start Music
+	$player stufftext "tmstartloop video/Poster_montage.mp3"	
+
+end
+
+
+//================================================================================
+// StartSlideShow
+
+StartSlideShow:
+
+	level.SLIDESHOW_THREAD = local
+
+	// Monitor Escape
+	thread EscapeCheck
+
+	// Lower Ambient
+	$player ducked_volume_target 0.2 0.5
+
+	// Loop Through each image
+	for (local.idx = 1; local.idx <= level.NUM_SCREENS; local.idx += 1)
+	{
+		local.image = level.image + local.idx
+		setcvar "ui_slideshow_number" local.image
+
+		// Show menu
+		$player stufftext level.showmenu
+		
+		// Display time
+		wait level.TIME_ACTIVE
+
+		// Hidemenu
+		$player stufftext level.hidemenu
+
+		// Give time to fadeout
+		wait level.TIME_FADEOUT
+	}
+
+	// Stop it
+	waitthread StopSlideShow
+end
+
+//================================================================================
+// Poll for ESC key
+
+EscapeCheck:
+
+	// Set cinematic mode to handle ESC
+	$player playinenginemovie
+
+	while (1)
+	{
+		// Check for escape
+		if (int( getcvar "ui_playing_in_engine_cinematic") == 0)
+		{
+			waitthread StopSlideShow
+			end
+		}
+
+		waitframe
+	}
+end
+
+//================================================================================
+// Stop StopSlideShow
+
+StopSlideShow:
+
+	// Clean up Thread
+	if (level.SLIDESHOW_THREAD != NULL && level.SLIDESHOW_THREAD != NIL)
+	{
+		level.SLIDESHOW_THREAD delete
+		level.SLIDESHOW_THREAD = NULL
+	}
+
+	$player stopinenginemovie
+	$player stufftext level.hidemenu
+
+	// Stop Dialog
+	$player stopsound 8
+
+	// Stop Music
+	$player stufftext "tmstop"
+
+	// Raise Ambient
+	$player ducked_volume_target 1.0 0.5
+
+end

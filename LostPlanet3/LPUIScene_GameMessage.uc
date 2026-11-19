@@ -1,0 +1,1 @@
+class LPUIScene_GameMessage extends SPUISceneGFx_GameMessage;

@@ -1,0 +1,20 @@
+//-------------------------------------------------------------
+//	surrender.scr
+//
+//-------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+
+	// make sure we're standing....
+	self waitexec anim/stand.scr::transition
+
+	self setmotionanim surrender_idle01
+	self waittill flaggedanimdone
+
+	if ( (randomint 100) < 25 )
+	{
+		self setmotionanim surrender_idle04
+		self waittill flaggedanimdone
+	}
+
+end

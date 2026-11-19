@@ -1,0 +1,322 @@
+// ------------------------------------------------------------------------------------
+//	run.scr
+//
+//		This script combines all the previous runto_*.scr files
+//
+// ------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------
+main:
+//
+//	Use the normal running if script is called directly...
+// ------------------------------------------------------------------------------------
+
+	self waitthread Normal
+end
+
+// ------------------------------------------------------------------------------------
+Init:
+// ------------------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = run
+
+	end
+
+// ------------------------------------------------------------------------------------
+CrouchInit:
+// ------------------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	//make sure we are standing...
+	waitexec anim/crouch.scr::transition
+
+	self.position = crouchrun
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+Alarm:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Cover
+
+	end
+
+// ------------------------------------------------------------------------------------
+Banzai:
+// ------------------------------------------------------------------------------------
+
+	waitexec anim/banzai.scr::BanzaiRun
+
+	end
+
+// ------------------------------------------------------------------------------------
+Bayonet:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self.shootpct	= 0
+	self.deathanim	= jxsxx_death_bayonetcharge
+
+	waitexec anim/motionblend.scr::Start ("banzai") 0 0
+
+	end
+
+// ------------------------------------------------------------------------------------
+Charge:
+//
+//	Does standing run but doesn't take mood into account (plays injured run if needed)
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	while ( 1 )
+	{
+		if ( self.normal_health < 60 )
+		{
+			waitexec anim/motionblend.scr::PlayAnim injurerun
+		}
+		else
+		{
+			waitexec anim/motionblend.scr::PlayAnim run x	// don't use run mood...
+		}
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------
+Casual:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+ 	if (self.normal_health < 60)	// TODO, should be 30, but it'd never fire.
+	{
+		waitexec anim/motionblend.scr::PlayAnim injurerun
+	}
+	else
+	{
+		waitexec anim/motionblend.scr::PlayAnim run
+	}
+
+	end
+
+
+
+// ------------------------------------------------------------------------------------
+Cover:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	local.rand = randomint (100)
+//	if ( local.rand < 35 )
+//	  	waitexec anim/motionblend.scr::LoopAnim dangerrun
+//	else
+	
+	self.position	= crouchrun
+	waitexec anim/motionblend.scr::LoopAnim run x
+
+	end
+
+// ------------------------------------------------------------------------------------
+CoverReload:
+// ------------------------------------------------------------------------------------
+////jsl-->This looks nasty, we'll have to find a better animation to do this....	thread CoverReloadInMotion
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		self waitexec anim/crouch.scr::transition
+		break
+	}
+
+	waitexec anim/motionblend.scr::PlayAnim run x
+
+	end
+
+// ------------------------------------------------------------------------------------
+CoverReloadInMotion:
+// ------------------------------------------------------------------------------------
+	self setupperanim (self getalias reload)
+	self waittill upperanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------
+Danger:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+	waitexec anim/motionblend.scr::LoopAnim dangerrun
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+Dive:
+// ------------------------------------------------------------------------------------
+
+	waitexec anim/runto_dive.scr
+
+	end
+
+// ------------------------------------------------------------------------------------
+Flee:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+//	self setmotionanim (self getalias scaredrun intro)
+//	self waittill flaggedanimdone
+
+	self waitthread Danger
+
+	end
+
+// ------------------------------------------------------------------------------------
+InOpen:
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	if (self.weapongroup == bazooka)
+	{
+		self.shootpct = 0
+	}
+	else
+	{
+		self.shootpct = 50
+	}
+
+	if ( self.holdfire==1 )
+		self.shootpct = 0
+
+
+	self.position = run
+	waitexec anim/motionblend.scr::Start run 1 self.shootpct
+
+	end
+
+// ------------------------------------------------------------------------------------
+Shoot:
+//
+//	Make sure we're playing an alert run so we can shoot
+//
+// ------------------------------------------------------------------------------------
+
+	// make sure we're crouched at least...
+	self waitthread CrouchInit
+	self waitexec anim/motionblend.scr::LoopAnim run alert
+
+	end
+
+// ------------------------------------------------------------------------------------
+CrouchShoot:
+//
+// Play an alert crouched run animation...
+//
+// ------------------------------------------------------------------------------------
+
+	self waitthread CrouchInit
+	self waitexec anim/motionblend.scr::LoopAnim run alert
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+Melee:
+// ------------------------------------------------------------------------------------
+
+	waitthread Init
+	if ( self.usingbayonet )
+		waitexec anim/motionblend.scr::LoopAnim banzai
+	else
+		waitexec anim/motionblend.scr::LoopAnim run
+
+	end
+
+// ------------------------------------------------------------------------------------
+Normal:
+//
+//	This thread is used by the runto command....
+//
+// ------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	while ( isAlive self )
+	{
+		// check for custom run alias ( doesn't do any mood / weapon checking )
+		if ( self.customrunalias && self.customrunalias!="" )
+		{
+			self waitexec anim/motionblend.scr::PlayAlias self.customrunalias
+			continue
+		}
+
+		// if we've got a custom walk animation, use it!
+		if ( self.customrun && self.customrun!="" )
+		{
+			self waitexec anim/motionblend.scr::LoopAnim self.customrun
+			continue
+		}
+
+		// if nothing custom, just do our normal runs....
+		// ( alert mood, we do a crouchrun beause it looks the best )
+		switch (self.mood)
+		{
+			alert:
+				self.position	= crouchrun
+				waitexec anim/motionblend.scr::PlayAnim run x
+				break
+			cautious:
+			atease:
+			default:
+				self waitthread Casual
+				break
+		}
+	}
+
+	end
+
+
+// ----------------------------------------------------------------------------
+Sprint:
+// ----------------------------------------------------------------------------
+	self waitthread Init
+
+	waitexec anim/motionblend.scr::LoopAnim sprint
+
+
+	end
+
+// ----------------------------------------------------------------------------
+Sword:
+// ----------------------------------------------------------------------------
+
+	self waitthread Init
+	waitexec anim/banzai.scr::BanzaiRun
+
+	end
+
+// ----------------------------------------------------------------------------
+Water:
+//
+//	Running in water...
+// ----------------------------------------------------------------------------
+
+	self waitthread Init
+	waitexec anim/motionblend.scr::LoopAnim run cautious water
+
+	end
+

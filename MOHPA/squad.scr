@@ -1,0 +1,1619 @@
+// -----------------------------------------------------------------------------
+//	squad.scr
+//
+//
+//	Description:
+//
+//		Friendly squad functions.
+//
+//
+// -----------------------------------------------------------------------------
+
+
+// -----------------------------------------------------------------------------
+main:
+//
+//	usage:
+//		exec maps/5_6/squad.scr
+//
+// -----------------------------------------------------------------------------
+
+	// special guys...
+	level.mills				= NULL
+	level.tyler				= NULL
+	level.minoso			= NULL
+	level.sullivan			= NULL
+	level.gaines			= NULL
+
+	level.captain			= NULL
+
+	level.medic				= NULL
+	level.misc_soldier1		= NULL
+	level.misc_soldier2		= NULL
+	level.misc_soldier3		= NULL
+	level.misc_soldier4		= NULL
+	level.misc_soldier5		= NULL
+	level.misc_soldier6		= NULL
+	level.soldier1			= NULL
+
+	level.misc_marine1		= NULL
+	level.misc_marine2		= NULL
+	level.misc_marine3		= NULL
+	level.misc_marine4		= NULL
+	level.misc_marine5		= NULL
+	level.misc_marine6		= NULL
+
+	level.pilot				= NULL
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SpawnSquad:
+//
+//	usage:
+//		waitthread maps/5_6/squad.scr::SpawnSquad
+//
+// -----------------------------------------------------------------------------
+
+	// skm: we need to waittill spawn, or the transitioned_to_current_map may not be
+	// loaded from the archive
+	level waittill spawn
+
+	// jsl-->If we've transitioned to this map, we can assume that the squad came with us?
+	if ( $player.transitioned_to_current_map==1 )
+	{
+		println "Not spawning squad, we transitioned into this map."
+
+		// MJG: if carrying over, remove any squaddies set at fastspawners
+		local.spawnname = "fastspawner_" + level.squad_spawnset
+		if ( $(local.spawnname).size > 0 )
+		{
+			$(local.spawnname) waitthread RemoveFastSquadSpawner
+		}
+	}
+	else
+	{
+		waitthread global/aispawn.scr::spawnset level.squad_spawnset squad 0 0
+	}
+
+	dprintln "SpawnSquad: spawning in friendlies..."
+
+	$squad waitthread InitSquad
+	$squad setCarryoverData
+	$squad waitthread FixUpSquadFromCarryoverData
+
+	//Save the original size of the squad to determine if anyone has died during the lvl.
+	level.startSquadSize = $squad.size
+
+	//Squad member death handler
+	$squad thread SquadMemberOnDeath
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+RemoveFastSquadSpawner:
+// ----------------------------------------------------------------------------------
+
+	self remove
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+InitSquad:
+// ----------------------------------------------------------------------------------
+
+	if ( self != NULL )
+	{
+		self squad_name playersquad
+		self.type_squad = squad_mover
+		self.type_curious = void		// don't want our squadmates getting all curious on us and doing weird things...
+
+		self waitthread IdleCoverOn		// default squadmates to use idle cover... (they won't use it if they are in "atease" mode...)
+
+		self.quicknotice = 1000		// notice guys in max of 1 second!
+
+		//self squad_morale 10
+		//self squad_usemorale 1
+		self health 250
+		self accuracy 10
+		
+		//Put this guy on the radar
+		self enable_draw_on_radar
+
+		println "Squad actorname:" self.actorname
+
+		switch ( self.actorname )
+		{
+			case	captain:
+				if ( level.captain )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				level.captain			= self
+				self squad_leader
+				self.enableCarryover = 1
+				break
+
+			case	mills:
+				if ( level.mills )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				level.mills				= self
+				self.enableCarryover = 1
+				break
+
+			case	tyler:
+				if ( level.tyler )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				level.tyler				= self
+				self.enableCarryover = 1
+				break
+
+			case	minoso:
+				if ( level.minoso )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				//self type_death undead
+				self.immortal			= 1
+				self.canDie				= 0
+				level.minoso			= self
+				self.enableCarryover = 1
+				break
+
+			case	sullivan:
+				if ( level.sullivan )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				// self type_death undead
+				self.immortal			= 1
+				self.canDie				= 0
+				self.forcefacemotion	= 1			// don't want jimmy aiming/shooting while running.  (Rick doesn't like it)
+				level.sullivan			= self
+				level.medic				= self
+				self.enableCarryover = 1
+
+				// configure Medic-specific
+				self experience			level.MEDIC_EXPERIENCE_LEVEL
+				self max_player_heals	level.MEDIC_MAX_PLAYER_HEALS
+				break
+
+			case	gaines:
+				if ( level.gaines )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				self.immortal			= 1
+				self.canDie				= 0
+				level.gaines			= self
+				self.enableCarryover = 1
+				break
+
+			case	conlin:
+				if ( level.conlin )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+					end
+				}
+				level.conlin			= self
+				//self type_death undead
+				self type_death undead
+				self.enableCarryover = 1
+				break
+
+			case	soldier1:
+			case	misc_soldier1:
+				if( level.misc_soldier1 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier1		= self
+				level.soldier1			= self
+				break
+
+			case	soldier2:
+			case	misc_soldier2:
+				if( level.misc_soldier2 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier2		= self
+				break
+
+			case	soldier3:
+			case	misc_soldier3:
+				if( level.misc_soldier3 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier3		= self
+				break
+
+			case	soldier4:
+			case	misc_soldier4:
+				if( level.misc_soldier4 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier4		= self
+				break
+
+			case	soldier5:
+			case	misc_soldier5:
+				if( level.misc_soldier5 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier5		= self
+				break
+
+			case	soldier6:
+			case	misc_soldier6:
+				if( level.misc_soldier6 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_soldier6		= self
+				break
+
+			case	marine1:
+			case	misc_marine1:
+				if( level.misc_marine1 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine1		= self
+				break
+
+			case	marine2:
+			case	misc_marine2:
+				if( level.misc_marine2 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine2		= self
+				break
+
+			case	marine3:
+			case	misc_marine3:
+				if( level.misc_marine3 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine3		= self
+				break
+
+			case	marine4:
+			case	misc_marine4:
+				if( level.misc_marine4 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine4		= self
+				break
+
+			case	marine5:
+			case	misc_marine5:
+				if( level.misc_marine5 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine5		= self
+				break
+
+			case	marine6:
+			case	misc_marine6:
+				if( level.misc_marine6 )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.misc_marine6		= self
+				break
+			case	pilot:
+			case	Pilot:
+			case	PBYPilot:
+				if( level.pilot )
+				{
+					dprintln "Duplicate actorname:" self.actorname
+				}
+				level.pilot				= self
+				break
+			default:
+				{
+					dprintln "Unhandled actorname:" self.actorname
+					end
+				}
+				break
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------
+FixUpSquadFromCarryoverData:
+// -----------------------------------------------------------------------------
+
+	// if for some reason the health that was carried over was 0, delete this
+	// squad member
+	//dprintln "Actorname: " self.actorname
+	//dprintln "Health is: " self.health
+
+	
+	if ( $player.transitioned_to_current_map==1 )
+	{
+		//We need to do this to be sure that the actorname is properly setup in code.  AID will play
+		//sound from only the generic guy unless we do this.
+		self.actorname = self.actorname
+
+		if( (self getPrevLevelLifeStatus) == 0 )
+		{
+			dprintln "Deleting: " self.actorname
+			self delete
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------
+SquadEnableMove local.interval:
+//
+//	Enables the squad movement thinkers
+// -----------------------------------------------------------------------------
+
+	if( local.interval == NIL || local.interval == NULL )
+	{
+    	self.interval		= 64
+	}
+	else
+	{
+		self.inverval		= local.interval
+	}
+
+	self type_idle idlecover
+	self type_squad squad_mover
+
+end
+
+
+// -----------------------------------------------------------------------------
+SquadDisableMove:
+//
+// Disable the squad movement thinkers
+// -----------------------------------------------------------------------------
+
+	self type_idle idle
+	self type_squad void
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SquadStop:
+//		Tells guy to stop going to the next squad node
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		thread anim/order.scr::order_holdsteady
+	}
+
+	self type_squad void
+	self type_idle idle
+
+end
+
+
+// -----------------------------------------------------------------------------
+SquadStopIfNotAtCover local.random:
+//		Tells guy to stop going to the next squad node (but only if he's not
+//		already there....)
+// -----------------------------------------------------------------------------
+
+	if ( local.random==random )
+	{
+		local.r = randomfloat 1.0
+		wait local.r
+	}
+
+	if ( self.isidlecover==0 )
+	{
+		self type_squad void
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------
+SquadTeleport local.spot local.rad local.off:
+//
+//		Set the player position first then the squad will spawn around the
+//		player
+//
+// Values:
+//			----- Use NIL for default (or omit trailing parameters)
+//	local.spot -- object to be surrounded by squadmates (player by default)
+//  local.rad -- distance squadmates should be placed from local.spot with offset (default to 200)
+//	local.off -- offset from local.spot in local.spot-space squadmates should be placed around (default (0 0 0))
+// -----------------------------------------------------------------------------
+
+	//Calculate offset in playerspace
+	if( local.off != NIL && local.off != NULL )
+	{
+		local.saveOff = (0 0 0)
+
+		if( local.off[0] != 0 )
+		{
+			local.tempVec = $player.rightvector
+			local.tempVec = vector_scale local.tempVec local.off[0]
+			local.saveOff = vector_add local.saveOff local.tempVec
+		}
+
+		if( local.off[1] != 0 )
+		{
+			local.tempVec = $player.forwardvector
+			local.tempVec = vector_scale local.tempVec local.off[1]
+			local.saveOff = vector_add local.saveOff local.tempVec
+		}
+
+		if( local.off[2] != 0 )
+		{
+			local.tempVec = $player.upvector
+			local.tempVec = vector_scale local.tempVec local.off[2]
+			local.saveOff = vector_add local.saveOff local.tempVec
+		}
+	}
+	else
+	{
+		local.saveOff = NIL
+	}
+	$squad waitthread SquadTeleportGuy local.spot local.rad local.saveOff
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SquadTeleportGuy local.spot local.rad local.off:
+// -----------------------------------------------------------------------------
+
+	if( local.spot == NIL || local.spot == NULL )
+	{
+		local.pos = $player.origin
+	}
+	else
+	{
+		local.pos = local.spot.origin
+	}
+
+	if( local.rad == NIL || local.rad == NULL )
+	{
+		local.rad = 200
+	}
+
+	if( local.off != NIL && local.off != NULL )
+	{
+		local.pos = vector_add local.pos local.off
+	}
+
+	//Calc the number of degrees to rotate around the player when teleporting actors
+	local.degrees = 360 / $squad.size
+
+	local.pos[2]	+= 100	// make our guy fall into place...
+
+	local.angle		= $player.angle
+	local.vF		= $player.forwardvector
+	local.vF		= vector_scale local.vF local.rad
+	local.pos		= vector_add local.pos local.vF
+	local.angle		+= local.degrees
+	$player.angle	= local.angle
+
+	local.pos[2] = terrain_height 0 local.pos[0] local.pos[1]
+	self.origin = local.pos
+
+	wait .5
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadMemberOnDeath:
+//
+//	When a squad member dies we will change his targetname to remove him from
+//  the squad.
+// ----------------------------------------------------------------------------------
+
+	if( self.canDie != NIL && self.canDie != NULL )
+	{
+		if( self.canDie == 0 )
+		{
+			end
+		}
+	}
+
+	self waittill dead
+	self setPrevLevelLifeStatus
+	self.targetname = "deadSquadGuy"
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadRunAndShoot local.where:
+// ----------------------------------------------------------------------------------
+
+	if( local.where == NIL || local.where == NULL )
+	{
+		println "<ERROR>No location to run and shoot to passed to Squad.scr::SquadRunAndShoot"
+		end
+	}
+
+	self runandshoot local.where
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+WaitForIdleCover local.squadnode:
+//
+//	This function won't return until self is at an idle cover position
+// ----------------------------------------------------------------------------------
+
+	if ( !isAlive self )
+		end
+
+	if ( local.squadnode == NIL )
+	{
+		local.squadnode = self.squad.squad_destination
+	}
+
+	self idlecover
+
+	local.isidlecover	= self isidlecover local.squadnode
+
+	while (local.isidlecover==0)
+	{
+		wait 0.2
+
+		if ( !isAlive self )
+			end
+
+		local.isidlecover	= self isidlecover local.squadnode
+	}
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+WaitForPlayerProximity local.home local.range local.assemble_icon:
+//
+//	Wait until the player is within <local.range> distance of the <local.home> location passed
+// ----------------------------------------------------------------------------------
+
+	if( local.home == NIL || local.home == NULL )
+	{
+		println "<ERROR global/squad.scr>No home origin passed to WaitForPlayerProximity"
+		end
+	}
+
+	if( local.range == NIL || local.range == NULL )
+	{
+		println "<ERROR global/squad.scr>No range passed to WaitForPlayerProximity"
+		end
+	}
+
+	if ( local.assemble_icon==NIL )
+		local.assemble_icon = 1
+
+	if ( local.assemble_icon )
+	{
+		// put up our assemble hand signal (and leave it up until player arrives)
+		waitthread global/hand_signals.scr::SetHandSignal assemble -1 1 1
+	}
+
+	local.dist = vector_length( $player.origin - local.home )
+
+	while ( local.dist > local.range )
+	{
+		wait 0.1
+		local.dist = vector_length( $player.origin - local.home )
+	}
+
+	if ( local.assemble_icon )
+	{
+		// put up our assemble hand signal (and leave it up until player arrives)
+		waitthread global/hand_signals.scr::ClearHandSignal
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------------
+WaitForPlayerProximityToEntity local.entity local.range local.assemble_icon:
+//
+//	Wait until the player is within <local.range> distance of the entity
+// I.e. this keeps track of movement of the entity.
+// ----------------------------------------------------------------------------------
+
+	if( local.entity == NIL || local.entity == NULL )
+	{
+		println "<ERROR global/squad.scr>No entity origin passed to WaitForPlayerProximityToEntity"
+		end
+	}
+
+	if( local.range == NIL || local.range == NULL )
+	{
+		println "<ERROR global/squad.scr>No range passed to WaitForPlayerProximityToEntity"
+		end
+	}
+
+	if ( local.assemble_icon==NIL )
+		local.assemble_icon = 1
+
+	if ( local.assemble_icon )
+	{
+		// put up our assemble hand signal (and leave it up until player arrives)
+		waitthread global/hand_signals.scr::SetHandSignal assemble -1 1 1
+	}
+
+	local.dist = vector_length( $player.origin - local.entity.origin )
+
+	while ( local.dist > local.range && local.entity != NIL && local.entity != NULL )
+	{
+		wait 0.1
+		local.dist = vector_length( $player.origin - local.entity.origin )
+	}
+
+	if ( local.assemble_icon )
+	{
+		// put up our assemble hand signal (and leave it up until player arrives)
+		waitthread global/hand_signals.scr::ClearHandSignal
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------------
+SquadHoldFire:
+// ----------------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		thread anim/order.scr::order_holdfire
+	}
+
+	// dwc TODO play hold fire anim... nono call order.scr which calls hand_signal
+	self holdfire 1
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadFireAtWill:
+// ----------------------------------------------------------------------------------
+
+	self holdfire 0
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadSetSight local.sight:
+// ----------------------------------------------------------------------------------
+
+	if( local.sight == NIL || local.sight == NULL )
+	{
+		println "<ERROR global/squad.scr>No sight number passed into SquadSetSight"
+		end
+	}
+
+	self.sight = local.sight
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadSetHearing local.hearing:
+// ----------------------------------------------------------------------------------
+
+	if( local.hearing == NIL || local.hearing == NULL )
+	{
+		println "<ERROR global/squad.scr>No hearing number passed into SquadSetHearing"
+		end
+	}
+
+	self.hearing = local.hearing
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadAmbush local.target:
+// ----------------------------------------------------------------------------------
+
+	if( local.target == NIL || local.target == NULL )
+	{
+		println "<ERROR>No ambush target passed to Squad.scr::SquadAmbush"
+		end
+	}
+
+	self ambush local.target
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadMood local.mood:
+// ----------------------------------------------------------------------------------
+
+	if( local.mood == NIL || local.mood == NULL )
+	{
+		println "<ERROR global/squad.scr>No mood passed into function SquadMood"
+		end
+	}
+
+	self.mood = local.mood
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadRunOnCombat:
+// Waittill the squad has an enemy then put them into run mode
+// self is the squad name
+// ----------------------------------------------------------------------------------
+
+	self waittill hasenemy
+
+	self squad_movetype_run
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadName local.name:
+// ----------------------------------------------------------------------------------
+
+	if( local.name == NIL || local.area == NULL )
+	{
+		println "<ERROR global/squad.scr> No squad name passed to function SquadName"
+	}
+
+	self squad_name local.name
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SetPlayerSquadAdvanceWithPlayer local.advanceWithPlayer:
+//
+//	pass a distance to have the player squad "forced" to immediately advance
+//	to the player's current area...
+//
+//	pass 0 to turn it off...
+//
+//	self is the name of the actor
+// -----------------------------------------------------------------------------
+
+	if( self == NIL || self == NULL )
+	{
+		println "<ERROR global/squad.scr> Invalid squad used with function SetPlayerSquadAdvanceWithPlayer"
+		end
+	}
+
+	if ( local.advanceWithPlayer == NIL )
+	{
+		local.advanceWithPlayer	= 512
+	}
+
+	self squad_player_advance local.advanceWithPlayer
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SetAsPlayerBuddy local.followplayer local.mindist local.maxdist:
+//
+// self is an actor
+//
+//	Sets up AI to follow the player when idle and during combat.
+//	AI will do its best to stick with the player.  When player gets too far
+//	away, AI will run towards player until within a certain distance.  Once
+//	within that distance, he will re-attempt to find cover in the player's
+//	current squadnode area.
+//
+//	pass followplayer as 1 if you want the AI to follow the player in a
+//	single-file format.  Pass 0 if you want the AI to follow the player using
+//	on a squadnode to squadnode basis...
+//
+//	maxdist is farthest AI will stray away from player during combat
+//	mindist is how close AI will attempt to get to the player once he's
+//			gone farther than maxdist away from the player.
+//
+//
+// -----------------------------------------------------------------------------
+
+	if ( local.followplayer==NIL )
+	{
+		local.followplayer = 1
+	}
+
+	if ( local.mindist==NIL )
+		local.mindist		= 220
+	if ( local.maxdist==NIL )
+		local.maxdist		= 768
+
+	self.type_squadactive	= "wingman"
+	self.targetname			= "playerbud"
+	self.squad_name			= "playerbud_squad"
+	self.wingman_maxdist	= local.maxdist
+	self.wingman_mindist	= local.mindist
+
+	$playerbud_squad.squad_player_advance = 2
+
+	if ( local.followplayer )
+	{
+		self.type_squad = follow
+		self follow $player
+	}
+	else
+	{
+		self.type_squad			= squad_mover
+
+		$playerbud_squad.squad_automerge = 0
+		$playerbud_squad.squad_usemorale = 0
+		$playerbud_squad.player_idle_advance = 2
+	}
+
+	end
+
+
+// -----------------------------------------------------------------------------
+SetAsPlayerWingman local.mindist local.maxdist:
+// -----------------------------------------------------------------------------
+
+	if ( local.mindist==NIL )
+		local.mindist		= 220
+	if ( local.maxdist==NIL )
+		local.maxdist		= 768
+
+	self.type_squadactive	= "wingman"
+	self.wingman_maxdist	= local.maxdist
+	self.wingman_mindist	= local.mindist
+
+end
+
+
+// -----------------------------------------------------------------------------
+StopWingman:
+// -----------------------------------------------------------------------------
+
+	if( self.type_squadactive == "wingman" )
+	{
+		self.wasWingman = 1
+		self.type_squadactive	= void			
+	}   	
+
+end
+
+
+// -----------------------------------------------------------------------------
+StopPlayerBuddy:
+// -----------------------------------------------------------------------------
+
+	self followstop
+	self.type_squad				= squad_mover
+	self.type_squadactive		= void
+	self.squad_name				= "playersquad"
+	self.targetname				= "squad"
+
+	end
+
+
+// ----------------------------------------------------------------------------------------------------------
+
+
+// -----------------------------------------------------------------------------
+SignalAirAttack:
+//
+// this is not in order.scr b/c it is not really an order, rather just a signal
+// -----------------------------------------------------------------------------
+	if ( self.actorname == "captain" )
+	{
+		self waitthread anim/order.scr::OrderInit // clear other anims playing
+
+		// TODO play a dialog?
+		self setmotionanim (self getalias signal airraid)
+		self waittill flaggedanimdone
+	}
+
+	// TODO? any action that squad should take now?
+
+end
+
+
+// -----------------------------------------------------------------------------
+SignalDangerArea:
+//
+// this is not in order.scr b/c it is not really an order, rather just a signal
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+dprintln "danger will robisnison"
+		self waitthread anim/order.scr::OrderInit // clear other anims playing
+
+		self setmotionanim (self getalias signal danger_area)
+		self waittill flaggedanimdone
+	}
+
+	// TODO? any action that squad should take now?
+
+end
+
+
+// -----------------------------------------------------------------------------
+BoundingOverwatch:
+//
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		thread anim/order.scr::order_bounding_overwatch
+	}
+
+	// dprintln "squad.scr TODO: Bounding Overwatch command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+Assemble:
+//
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_assemble
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+Advance:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_advance
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+FlankLeft:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_flankleft
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+FlankRight:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_flankright
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+Charge:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_charge
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+Fallback:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_fallback
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -----------------------------------------------------------------------------
+CommenceFire:
+//
+// TODO:  should take a squadnode parameter
+// -----------------------------------------------------------------------------
+
+	if ( self.actorname == "captain" )
+	{
+		waitthread anim/order.scr::order_commencefire
+	}
+
+	// dprintln "squad.scr TODO: This command not implemented."
+
+end
+
+
+// -------------------------------------------------------------------------------
+StealthSetup local.squad local.enemy:
+//
+//  Basic stealth script to keep your squad from shooting at the enemy till they see you first
+// -------------------------------------------------------------------------------
+
+	local.squad waitthread SquadMood "cautious"
+
+	// keep squad quiet and with player
+	local.squad waitthread EnableEnemy 0
+
+	// Trigger action when enemy sees playersquad
+	waitthread global/actor_utils.scr::GroupWaitForFirstEnemy local.enemy
+	// dprintln local.enemy "has seen you"
+	local.enemy waitthread SquadMood "alert"
+	local.squad thread EnableEnemy 1
+
+end
+
+
+// -------------------------------------------------------------------------------
+EnableEnemy local.iFlag:
+//
+// Actor enable/disable enemy by passing 1 or 0 to this thread, respectively
+// -------------------------------------------------------------------------------
+
+	self.enableEnemy = local.iFlag
+
+end
+
+
+// ----------------------------------------------------------------------------------
+SquadCombatSetup local.squad_advance local.setoffset:
+//
+//			This is for squad behavior (NOT PLAYERSQUAD) during combat, assuming morale has been switched off. It's best to set this up as a fallback,
+//			even if you plan to use morale.
+//
+//			If local.squad _advance is 1, you can define the squad's offset (which means
+//			you pretty much always want this set to 1).
+//
+//			If local.squad _advance is 2, the local.setoffset value is not used and the squad will attempt to stay
+//			at whatever squadnode the player is at regardless of set#.
+//
+//			If setoffset is 1 or greater, the squad will always try to remain that number (of squadsets) ahead of the player.
+//
+//			If setoffset is 0, the squad will keep advancing forward to the squadset# that the player is at, but will only move ahead (ie,
+//			if the player turns tail and runs, they will remain)
+//
+//			If setoffset is -1 or less, the squad will try to remain that many squadset#s behind the player.
+//
+//			An interesting way to do this is to set the setoffset to something like 5.
+//			Then, for areas you want the player squad to stay at the same area as the player,
+//			space your squad node set#s by 10 (or something > 5).  In areas you want the player squad
+//			to advance in front of the player, space your squad node set #s by 5 or less.
+//
+//			Note: squad nodes that do not have a squadset # are ignored.
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.squad_advance==NIL )
+		local.captain_advance = 0
+
+	if ( local.setoffset==NIL )
+		local.setoffset    = 0
+
+	self.squad_player_advance				= local.squad_advance
+	self.player_advance_offset				= local.setoffset
+
+end
+
+
+// ----------------------------------------------------------------------------------
+SquadIdleSetup local.squad_advance local.setoffset:
+//
+//			This is for squad behavior outside of combat. This is the best way to get the squad to advance with you smartly.
+//
+//			If local.squad _advance is 1, the player squad will set their current squad destination to whatever
+//			squadset # the player is currently at plus local.setoffset.
+//
+//			If local.squad _advance is 2, the local.setoffset value is not used and the squad will attempt to stay
+//			at whatever squadnode the player is at regardless of set#.
+//
+//			If setoffset is 1 or greater, the squad will always try to remain that number (of squadsets) ahead of the player.
+//
+//			If setoffset is 0, the squad will keep advancing forward to the squadset# that the player is at, but will only move ahead (ie,
+//			if the player turns tail and runs, they will remain)
+//
+//			If setoffset is -1 or less, the squad will try to remain that many squadset#s behind the player.
+//
+//			Note: squad nodes that do not have a squadset # are ignored.
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.squad_advance==NIL )
+		local.captain_advance = 0
+
+	if ( local.setoffset==NIL )
+		local.setoffset    = 0
+
+
+	local.squad.player_idle_advance					= local.squad_advance
+	local.squad.player_idle_advance_offset			= local.setoffset
+
+end
+
+
+// ----------------------------------------------------------------------------------
+PlayerSquadMoraleCombatSetup local.setleash local.distanceleash local.type:
+//
+//	Use this function to setup the player squad to use morale during combat
+//	
+//	parameters:
+//
+//		setleash		- Set # delta to keep player within (default=2)
+//		distanceleash	- Distance to keep player within  (default=0 which means disabled.)
+//		type			-	1 means normal morale. 
+//							2 means morale with no player fallback. 
+//							3 means no morale decisions (no player fallback), but allow CSC
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.setleash==NIL )
+		local.setleash = 2
+
+	if (local.distanceleash==NIL)
+		local.distanceleash = 0
+
+	if ( local.type==NIL )
+		local.type		= 1
+
+	if ( local.type <= 0 || local.type > 3 )
+		local.type		= 1
+
+	// makes sure we use the leash
+	$playersquad.squad_player_advance	= 1	
+	$playersquad.player_advance_offset	= 0
+
+	// make sure morale is turned on
+	$playersquad.squad_usemorale		= local.type
+
+	// setup our leash's
+	$playersquad.playermoraleabort		= local.setleash
+	$playersquad.moraleleash			= local.distanceleash
+
+
+	end
+
+// ----------------------------------------------------------------------------------
+PlayerSquadCombatSetup local.player_advance local.setoffset:
+//
+//	This is for squad behavior during combat, assuming morale has been switched off. It's best to set this up as a fallback,
+//	even if you plan to use morale.
+//
+//	If player_advance is 1, you can define the squad's offset (which means
+//	you pretty much always want this set to 1).
+//
+//	If player_advance is 2, the local.setoffset value is not used and the squad will attempt to stay
+//	at whatever squadnode the player is at regardless of set#.
+//
+//	If setoffset is 1 or greater, the squad will always try to remain that number (of squadsets) ahead of the player.
+//
+//	If setoffset is 0, the squad will keep advancing forward to the squadset# that the player is at, but will only move ahead (ie,
+//	if the player turns tail and runs, they will remain)
+//
+//	If setoffset is -1 or less, the squad will try to remain that many squadset#s behind the player.
+//
+//	An interesting way to do this is to set the setoffset to something like 5.
+//	Then, for areas you want the player squad to stay at the same area as the player,
+//	space your squad node set#s by 10 (or something > 5).  In areas you want the player squad
+//	to advance in front of the player, space your squad node set #s by 5 or less.
+//
+//	Note: squad nodes that do not have a squadset # are ignored.
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.player_advance==NIL )
+		local.player_advance = 0
+
+	if ( local.setoffset==NIL )
+		local.setoffset	= 0
+
+	$playersquad.squad_player_advance		= local.player_advance
+	$playersquad.player_advance_offset		= local.setoffset
+
+end
+
+
+// ----------------------------------------------------------------------------------
+PlayerSquadIdleSetup local.player_advance local.setoffset:
+//
+//	This is for squad behavior outside of combat. This is the best way to get the squad to advance with you smartly.
+//
+//	If player_advance is 1, the player squad will set their current squad destination to whatever
+//	squadset # the player is currently at plus local.setoffset.
+//
+//	If player_advance is 2, the local.setoffset value is not used and the squad will attempt to stay
+//	at whatever squadnode the player is at regardless of set#.
+//
+//	If setoffset is 1 or greater, the squad will always try to remain that number (of squadsets) ahead of the player.
+//
+//	If setoffset is 0, the squad will keep advancing forward to the squadset# that the player is at, but will only move ahead (ie,
+//	if the player turns tail and runs, they will remain)
+//
+//	If setoffset is -1 or less, the squad will try to remain that many squadset#s behind the player.
+//
+//	Note: squad nodes that do not have a squadset # are ignored.
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.player_advance==NIL )
+		local.player_advance = 0
+
+	if ( local.setoffset==NIL )
+		local.setoffset	= 0
+
+	$playersquad.player_idle_advance			= local.player_advance
+	$playersquad.player_idle_advance_offset		= local.setoffset
+
+end
+
+
+// ----------------------------------------------------------------------------------
+IdleCoverOn:
+//
+//	AI will use idle cover when he is not in atease mood.
+//
+// ----------------------------------------------------------------------------------
+
+	self idlecover
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+IdleCoverOff:
+//
+//	AI will not use idle cover (even if given a squad destination)
+//
+// ----------------------------------------------------------------------------------
+
+	self idlecoverstop
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadFollowSquadmate local.squadmate:
+// ----------------------------------------------------------------------------------
+
+	if ( self==local.squadmate )
+	{
+		self idlecover
+		self.squad.player_idle_advance = 0
+		end
+	}
+
+	self follow local.squadmate
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadFollowSquadmateStop:
+// ----------------------------------------------------------------------------------
+
+	self followstop
+	self type_squad squad_mover
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+PlayerSquadMimicPlayer local.mimic_dist:
+// ----------------------------------------------------------------------------------
+
+	// follow the player using squad nodes mode
+//	waitthread PlayerSquadIdleSetup 2 0
+
+	//	setup our mimic dist
+	$playersquad.mimic_dist = local.mimic_dist
+
+	// tell squad to use player as the pointman...
+	$playersquad.pointman	= $player
+
+	end
+
+
+// ----------------------------------------------------------------------------------
+SquadTeleportToSquadnode local.squadnode local.maxdist:
+//
+//	Actor
+//	Teleport an Actor to a node attached to the squadnode passed.
+//
+//	If the Actor is farther from the squadnode than the distance passed (pass 0 or NIL to ignore distance
+//	and force the teleport), the thread will examine the nodes that are linked to the squadnode.
+//
+//	If a node is found whose 'actorname' matches the 'actorname' of the Actor, that node will be used as the
+//	teleport destination (origin and angles).  Otherwise, another anonymous node will be used.
+//
+// ----------------------------------------------------------------------------------
+
+	if ( local.maxdist == NIL )
+	{
+		local.maxdist = 0
+	}
+
+	local.vect = vector_subtract local.squadnode.origin self.origin
+	local.dist = vector_length local.vect
+
+	if ( local.dist < local.maxdist )
+	{
+		end
+	}
+
+	local.tag = level.inttime
+	local.opennode = NULL
+
+	if ( (local.squadnode != NULL) && ($(local.squadnode.target) != NULL) && ($(local.squadnode.target).size > 0) )
+	{
+		for ( local.i = 1; local.i <= $(local.squadnode.target).size; local.i++ )
+		{
+			local.node = $(local.squadnode.target)[local.i]
+			if ( local.node.actorname == self.actorname )
+			{
+				local.node.teleporttag = local.tag
+				self.origin = local.node.origin
+				self.angles = local.node.angles
+				end
+			}
+			else if ( (local.node.actorname == "") && ((local.node.teleporttag == NIL) || (local.node.teleporttag != local.tag)) )
+			{
+				local.opennode = local.node
+			}
+		}
+
+		if ( local.opennode != NULL )
+		{
+			local.opennode.teleporttag = local.tag
+			self.origin = local.opennode.origin
+			self.angles = local.opennode.angles
+		}
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------------
+SquadPrepForTransition:
+//
+//	Actor
+//	Prep a squad Actor for BSP transition
+// ----------------------------------------------------------------------------------
+
+ 	if ( self.health < 1 )
+	{
+		self heal
+	}
+
+end
+
+// ----------------------------------------------------------------------------------
+SquadFollowPlayer local.player_advance local.setoffset:
+//
+//	This is for squad behavior IN combat AND OUT of combat. This is the best way to get the squad to advance with you smartly ALWAYS.
+//
+//	If player_advance is 1, the player squad will set their current squad destination to whatever
+//	squadset # the player is currently at plus local.setoffset.
+//
+//	If player_advance is 2, the local.setoffset value is not used and the squad will attempt to stay
+//	at whatever squadnode the player is at regardless of set#.
+//
+//	If setoffset is 1 or greater, the squad will always try to remain that number (of squadsets) ahead of the player.
+//
+//	If setoffset is 0, the squad will keep advancing forward to the squadset# that the player is at, but will only move ahead (ie,
+//	if the player turns tail and runs, they will remain)
+//
+//	If setoffset is -1 or less, the squad will try to remain that many squadset#s behind the player.
+//
+//	Note: squad nodes that do not have a squadset # are ignored.
+// ----------------------------------------------------------------------------------
+
+	if ( local.player_advance==NIL )
+		local.player_advance = 0
+
+	if ( local.setoffset==NIL )
+		local.setoffset	= 0
+	
+	//Idle State smart follow
+	self.player_idle_advance		= local.player_advance
+	self.player_idle_advance_offset		= local.setoffset
+	//Combat State smart follow
+	self.squad_player_advance		= local.player_advance
+	self.player_advance_offset		= local.setoffset
+
+end
+
+// ----------------------------------------------------------------------------------
+PlayerSquadForceDestStart local.dest local.requiredactors:
+//
+//	This function can only be used on the player squad.  We make massive assumptions
+//	about targetnames here.  Thank you.
+//
+// ----------------------------------------------------------------------------------
+
+	assert (local.dest != NIL && local.dest != NULL && "local.dest hasn't been properly initialized.")
+
+	$player waitthread SquadName "playersquad"
+
+	$squad waitthread StopWingman	
+
+	//Disable the medic
+	if( level.sullivan.isenabled == 1 )
+	{
+		//Wait for sullivan
+		if( level.sullivan.patient != NIL && level.sullivan.patient != NULL && level.sullivan.patient == $player )
+		{
+			println "global/squad.scr::PlayerSquadForceDest; Waiting for sullivan to finish healing the player"
+			level.sullivan waittill heal_done
+			println "global/squad.scr::PlayerSquadForceDest; Player healed."
+		}
+
+		level.sullivan.wasMedic = 1
+		level.sullivan medic_disable
+	}
+
+	$player set_medic_call_bool 0
+	
+	//We set this so when they get moved back to the player squad they stay put.
+	$playersquad squad_destination local.dest
+
+	$squad waitthread global/actor_utils.scr::Resurrect
+
+	$squad waitthread global/actor_utils.scr::SetEnableEnemy 0
+	$squad waitthread global/actor_utils.scr::SetNoDamage 1
+	$squad waitthread global/actor_utils.scr::SetNoPain 1	
+	$squad waitthread global/actor_utils.scr::SetIgnoreBadPlaces 1
+
+	$squad waitthread global/actor_utils.scr::AnimStop
+	$squad waitthread global/actor_utils.scr::CancelOrder
+	$squad waitthread global/actor_utils.scr::ExitMG
+
+	$squad waitthread SquadName "tempPlayerSquad"
+	$tempPlayerSquad squad_usemorale 0
+
+	$squad waitthread SquadEnableMove
+
+	$tempPlayerSquad squad_destination local.dest
+
+//jsl-->causing guys to not go to their correct places.	$squad thread RunAndShootIfNeeded local.dest
+	
+	if(local.requiredactors == NIL)
+	{
+		$squad waitthread WaitForIdleCover local.dest
+	}
+	else
+	{
+		for( local.i = 1; local.i <= local.requiredactors.size; local.i++ )
+		{
+			local.myguy = waitthread global/actor_utils.scr::GetActorname $squad local.requiredactors[local.i]
+			local.myguy.targetname = "keyactor"
+		}
+		$keyactor waitthread WaitForIdleCover local.dest
+		$keyactor waitthread RenameMe squad
+	}
+
+end
+
+// ----------------------------------------------------------------------------------
+RunAndShootIfNeeded local.dest:
+// ----------------------------------------------------------------------------------
+    	
+	if ( self.squadarea==local.dest )
+	{
+		end
+	}
+
+	self waitthread global/actor_utils.scr::RunAndShootTo local.dest
+
+end
+
+
+// ----------------------------------------------------------------------------------
+RenameMe local.targetname:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	self.targetname = local.targetname
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+PlayerSquadForceDestEnd:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	$squad waitthread SquadmateForceDestEnd
+
+end
+
+// ----------------------------------------------------------------------------------
+SquadmateForceDestEnd:
+// ----------------------------------------------------------------------------------
+	self waitthread global/actor_utils.scr::SetEnableEnemy 1
+	self waitthread global/actor_utils.scr::SetNoDamage 0
+	self waitthread global/actor_utils.scr::SetNoPain 0	
+	self waitthread global/actor_utils.scr::SetIgnoreBadPlaces 0
+
+	self waitthread SquadName "playersquad"
+
+	if( self.wasWingman == 1 )
+	{
+		self.type_squadactive = "wingman"
+	}
+
+	//Enable the medic
+	if( self.wasMedic!=NIL && self.wasMedic == 1 )
+	{
+		self.wasMedic = 0
+		self medic_enable
+		$player set_medic_call_bool 1
+	}
+
+
+	end

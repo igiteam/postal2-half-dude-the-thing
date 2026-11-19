@@ -1,0 +1,24 @@
+// List all the items that the player will get with a give all command
+// Usage:
+// weapon <weapon_tiki_filename> [Classname]
+//   - Use the classname parameter if you want a different class (i.e. Sword)
+// ammo <ammo_name> <amount>
+//
+
+weapon weapons/M1_Carbine.hag			0
+weapon weapons/thompson.hag				1
+weapon weapons/M2Frag_Grenade_sp.hag	2
+weapon weapons/satchel_charge_base.hag	3
+//weapon items/binoculars.hag				4
+
+// these are the max ammo limits
+ammo pistol			200
+ammo rifle			200
+ammo smg			300
+//ammo grenade			5
+ammo agrenade			5 // single player american grenades
+ammo heavy			50
+ammo shotgun		50
+
+//
+useweaponslot 0

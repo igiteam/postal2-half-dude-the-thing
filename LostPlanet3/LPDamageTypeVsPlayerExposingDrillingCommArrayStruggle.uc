@@ -1,0 +1,1 @@
+class LPDamageTypeVsPlayerExposingDrillingCommArrayStruggle extends LPDamageTypeVSDrill;

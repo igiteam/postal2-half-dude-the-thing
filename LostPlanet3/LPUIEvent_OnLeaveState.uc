@@ -1,0 +1,1 @@
+class LPUIEvent_OnLeaveState extends SPUIEvent_OnLeaveState;

@@ -1,0 +1,1 @@
+class LPCameraModeTest extends SPCameraModeTest;

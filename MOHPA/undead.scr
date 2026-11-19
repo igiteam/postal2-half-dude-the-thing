@@ -1,0 +1,747 @@
+// ----------------------------------------------------------------------------
+//	undead.scr
+//
+//	Used by guys that don't really die when they die.  They are put into a
+//	state where they can be revived...
+//
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+KnockDown:
+//
+// ----------------------------------------------------------------------------
+
+	self.emotion = "emotion_pain"
+
+	self.deathhandler = anim/undead.scr::Die
+
+	//send off an aid event if self is an american
+	if( self.team == "american" )
+		self aid_squadmatedown 2
+
+	if ( self.writhe_customknockdown )
+	{
+		self setmotionanim self.writhe_customknockdown
+	}
+	else
+	{
+		self.iswrithing = 0
+	//	self death_type	back	// default to back just in case...
+
+		switch (self.waterdepth)
+		{
+			case chest:
+			case thigh:
+				println "Deep water knockdown."
+				self waitthread DeepWaterKnockdown
+				end
+
+			case ankle:
+				println "Shallow water knockdown."
+				self waitthread ShallowWaterKnockdown
+				end
+
+			case none:
+				break
+
+			default:
+				assert(false && "Unknown waterdepth");
+				break
+		}
+
+		local.yaw = self GetLocalYawFromVector self.hitdirection
+
+		//println "knockdown called"
+		switch ( self.position )
+		{
+			case	run:
+			case	crouchrun:
+				local.forwardvelocity = self.velocity * self.forwardvector
+				//println "Forward velocity knockdown: " local.forwardvelocity
+				if ( local.forwardvelocity > 80 )	// jsl-->Have to have some velocity or this looks bad...
+				{
+					//println "Doing running knockdown for-Run ."
+					self waitthread DoRunningKnockDown local.yaw
+				}
+				else
+				{
+					self waitthread DoNormalKnockDown local.yaw
+				}
+				break
+
+			default:
+				self waitthread DoNormalKnockDown local.yaw
+				break
+		}
+	}
+
+	wait 0.5
+	self.position = prone
+	wait 0.5
+	self waittill flaggedanimdone
+
+end
+
+
+// ----------------------------------------------------------------------------
+DeepWaterKnockdown:
+// ----------------------------------------------------------------------------
+
+	// First transition to standing in the water
+	local.anim = "xxxxx_shot_chest_2_stand"
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	self.position = stand
+
+end
+
+
+// ----------------------------------------------------------------------------
+ShallowWaterKnockdown:
+// ----------------------------------------------------------------------------
+
+	// First transition to a sitting position in the water
+	local.anim = "xxxxx_shot_chest_2_sit"
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	self.position = prone
+
+end
+
+
+// ----------------------------------------------------------------------------
+DoNormalKnockDown local.yaw:
+// ----------------------------------------------------------------------------
+
+	local.hitlocation = waitthread anim/pain.scr::HitLocationToString self.hitlocation
+
+	if ( self.ismedic )
+	{
+		// MJG: Medic always falls backwards to avoid interpenetration of patient
+		local.yaw			= 0
+		local.hitlocation	= "head"
+	}
+
+	switch(local.hitlocation)
+	{
+		case "uppertorso":
+		case "lowertorso":
+		case "helmet":
+		case "head":
+		case "rightupperarm":
+		case "rightlowerarm":
+		case "leftupperarm":
+		case "leftlowerarm":
+		case "rightupperleg:
+		case "rightlowerleg":
+		case "leftupperleg":
+		case "leftlowerleg":
+			if ( local.yaw > -90 && local.yaw < 90 )
+			{
+				// you fall on your back if hit in the belly
+				local.hitdirection = "_back"
+			}
+			else
+			{
+				// you fall on your belly if hit in the back
+				local.hitdirection = "_belly"
+			}
+
+			local.alias = "xxxxx_knockdown_" + local.hitlocation + local.hitdirection
+			self setmotionanim local.alias
+			//println "Knockdown alias:" local.alias
+			break
+
+		case	-1:
+		case "general":
+		case "none":
+		default:
+			//println "!!!!!!!!!!!!! doing random knockdown!"
+			self setmotionanim xxxxx_knockdown_random
+			break
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------
+DoRunningKnockDown local.yaw:
+// ----------------------------------------------------------------------------
+
+//	println "running knockdown yaw:" local.yaw
+
+	if ( local.yaw < 60 && local.yaw > -60 )
+	{
+//		println "running knockdown front yaw:" local.yaw
+		self setmotionanim xxxxx_shot_running_2_belly
+	}
+	else
+	{
+//		println "running knockdown back yaw:" local.yaw
+		// Running shot in face, fall on back
+		self setmotionanim xxxxx_shot_running_2_back
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------
+Writhe:
+//
+// ----------------------------------------------------------------------------
+
+	self.position = prone
+
+	while ( self.writhe_customwrithe )
+	{
+		self setmotionanim self.writhe_customwrithe
+		self waittill flaggedanimdone
+	}
+
+	// loop the undead animation(s)....
+	//println "death_type=" self.death_type
+	if ( self.death_type == "belly" )  // self.writhemode == "crawling")
+	{
+		local.pose = "belly"
+		//self.writhemode = "A"
+	}
+	else if ( self.death_type == "back" )
+	{
+		local.pose = "back"
+	}
+	else
+	{
+		local.pose	= "back"
+		println "ERROR in undead.scr::Writhe -- invalid death type: " self.death_type
+	}
+
+	self.iswrithing = 1
+	local.rand = randomint 100
+	if ( local.rand < 50 )
+	{
+		self.writhemode = "A"
+	}
+	else
+	{
+		self.writhemode = "B"
+	}
+
+	// always play the agony animation first, 'cause it's so cool
+
+	local.anim = "xxxxx_pain_" + local.pose + "_Idle" + self.writhemode + "_agony"
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	while ( 1 )
+	{
+		local.rand = randomint 100
+
+		if ( local.rand < 35 )
+		{
+			local.anim = "xxxxx_pain_" + local.pose + "_Idle" + self.writhemode
+			local.writhepart = "idle"
+		}
+		else if ( local.rand < 80 )
+		{
+			local.anim = "xxxxx_pain_" + local.pose + "_Idle" + self.writhemode + "_moan"
+			local.writhepart = "moaning"
+		}
+		else
+		{
+			local.anim = "xxxxx_pain_" + local.pose + "_Idle" + self.writhemode + "_agony"
+			local.writhepart = "agony"
+		}
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+
+		if ( self.writhe_notransitions )
+			continue
+
+		if (local.rand < 35)  // transition from A to B
+		{
+			if (self.writhemode == "A")
+			{
+				if (local.writhepart == "idle")
+				{
+					local.switchpose  = randomint 1
+					local.switchmodes = randomint 1
+
+					if (local.switchpose == 1)
+					{
+					 	if (local.pose == "belly") // go to back
+					 	{
+					 		if (local.switchmodes == 1)
+					 		{
+								local.anim = "xxxxx_pain_belly_IdleA_trans_back_IdleB"					// Transition between pain idles (rolling and buckleing in agony)
+								self.writhemode = "B"
+								local.pose = "back"
+							}
+							else
+							{
+								local.anim = "xxxxx_pain_belly_IdleA_trans_back_IdleA"				// Transition between pain idles (rolling and buckleing in agony)
+								local.pose = "back"
+							}
+						}
+						else // go to belly
+						{
+					 		if (local.switchmodes == 1)
+					 		{
+								local.anim = "xxxxx_pain_back_IdleA_trans_belly_IdleB"					// Transition between pain idles (rolling and buckleing in agony)
+								self.writhemode = "B"
+								local.pose = "belly"
+							}
+							else
+							{
+								local.anim = "xxxxx_pain_back_IdleA_trans_belly_IdleA"				// Transition between pain idles (rolling and buckleing in agony)
+								local.pose = "belly"
+							}
+						}
+					}
+					else	// else, don't switch poses, just switch modes
+					{
+						if (local.pose == "belly")
+						{
+							local.anim = "xxxxx_pain_belly_IdleA_trans_belly_IdleB"			// Transition between pain idles (rolling and buckleing in agony)
+							self.writhemode = "B"
+						}
+						else	// on back
+						{
+							local.anim = "xxxxx_pain_back_IdleA_trans_back_IdleB"				// Transition between pain idles (rolling and buckleing in agony)
+							self.writhemode = "B"
+						}
+					}
+					self setmotionanim local.anim
+					self waittill flaggedanimdone
+				}
+			}
+			else // must be in writhemode B
+			{
+				if (local.writhepart == "idle")
+				{
+					local.switchpose  = randomint 1
+					local.switchmodes = randomint 1
+
+					if (local.switchpose == 1)
+					{
+					 	if (local.pose == "belly") // go to back
+					 	{
+					 		if (local.switchmodes == 1)
+					 		{
+								local.anim = "xxxxx_pain_belly_IdleB_trans_back_IdleA"					// Transition between pain idles (rolling and buckleing in agony)
+								self.writhemode = "A"
+								local.pose = "back"
+							}
+							else
+							{
+								local.anim = "xxxxx_pain_belly_IdleB_trans_back_IdleB"				// Transition between pain idles (rolling and buckleing in agony)
+								local.pose = "back"
+							}
+						}
+						else // go to belly
+						{
+					 		if (local.switchmodes == 1)
+					 		{
+								local.anim = "xxxxx_pain_back_IdleB_trans_belly_IdleA"					// Transition between pain idles (rolling and buckleing in agony)
+								self.writhemode = "A"
+								local.pose = "belly"
+							}
+							else
+							{
+								local.anim = "xxxxx_pain_back_IdleB_trans_belly_IdleB"				// Transition between pain idles (rolling and buckleing in agony)
+								local.pose = "belly"
+							}
+						}
+					}
+					else	// else, don't switch poses, just switch modes
+					{
+						if (local.pose == "belly")
+						{
+							local.anim = "xxxxx_pain_belly_IdleB_trans_belly_IdleA"			// Transition between pain idles (rolling and buckleing in agony)
+							self.writhemode = "A"
+						}
+						else	// on back
+						{
+							local.anim = "xxxxx_pain_back_IdleB_trans_back_IdleA"				// Transition between pain idles (rolling and buckleing in agony)
+							self.writhemode = "A"
+						}
+					}
+					self setmotionanim local.anim
+					self waittill flaggedanimdone
+				}
+			}
+		}	// end if >80 transition
+	}	// end while (1)
+
+end
+
+
+// ----------------------------------------------------------------------------
+DeepWaterWrithe:
+// ----------------------------------------------------------------------------
+
+	self.iswrithing = 1
+
+	println "Writhing in deep water."
+
+	local.rand = randomint 3
+	if ( local.rand ==  1)
+	{
+		local.anim = "xxxxx_pain_stand_idleA_moan"
+	}
+	else if ( local.rand == 2 )
+	{
+		local.anim = "xxxxx_pain_stand_idleA_agony"
+	}
+	else
+	{
+		local.anim = "xxxxx_pain_stand_idleA"
+	}
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	// Give the actor half their health back
+	self heal
+	local.max_health = self.max_health
+	local.half_health = (local.max_health * 0.5)
+	self.healthonly = local.half_health
+
+	self.position = stand
+
+	wait 0.5
+
+	//self.iswrithing = 0
+
+end
+
+
+// ----------------------------------------------------------------------------
+ShallowWaterWrithe:
+// ----------------------------------------------------------------------------
+
+	self.iswrithing = 1
+
+	while (1)
+	{
+		local.rand = randomint 100
+		if (local.rand < 33)
+		{
+			local.anim = "xxxxx_pain_sit_IdleA_moan"
+		}
+		else if (local.rand < 67)
+		{
+			local.anim = "xxxxx_pain_sit_IdleA_agony"
+		}
+		else
+		{
+			local.anim = "xxxxx_pain_sit_IdleA"
+		}
+
+		//println "Writhing in shallow water: " local.anim
+
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+
+	//self.iswrithing = 0
+
+end
+
+
+// ----------------------------------------------------------------------------
+WritheCrawlToCover:
+//	Crawl and  crawl Transitions
+//
+//	Alias								Description
+//	---------------------------------------------------------------------------
+//
+//	xxxxx_pain_back_IdleA_trans_crawl	Back A idle transition to crawl in pain loop
+//	xxxxx_pain_crawl_trans_back_IdleA	Crawl In pain transition to back Idle A
+//
+//	xxxxx_pain_belly_IdleA_trans_crawl	Belly A idle transition to crawl in pain loop
+//	xxxxx_pain_crawl_trans_back_IdleA	Crawl In pain transition to Belly Idle A
+//
+//	xxxxf_pain_crawl					crawl in pain forward
+//	xxxxl_pain_crawl_turn_left			crawl turn left 45 degrees
+//	xxxxr_pain_crawl_turn_right			crawl turn right 45 degrees
+//
+// ----------------------------------------------------------------------------
+
+//	if ( self.iswrithing == 0 )
+//	{
+//		end
+//	}
+	self.position = prone
+
+	if ( self.writhe_customwrithe || self.writhe_nocrawl || self.death_type=="back" )
+	{
+		self waitthread Writhe
+		end
+	}
+
+	// loop the undead animation(s)....
+	if (self.writhemode != "crawling") 	// no need to transition if we're already crawling
+	{
+		switch ( self.death_type )
+		{
+		case	"belly":
+		case	"back":
+			local.pose = self.death_type
+			if (local.pose == "back")  // flip them to their belly
+			{
+				//RJ ->  If he's on his back, it takes FAR longer to turn to cover -- just do the turn if you're on the belly for now
+				self waitthread Writhe
+
+			}
+			else if (local.pose == "belly") // on the belly, play the transition to crawl
+			{
+				if (self.writhemode == "A")
+				{
+					self setmotionanim xxxxx_pain_belly_IdleA_trans_crawl
+					self waittill flaggedanimdone
+				}
+				else // if B,  transition to idle A cause we don't have transitions for anything but idle A
+				{
+					self setmotionanim xxxxx_pain_belly_IdleB_trans_belly_IdleA
+					self waittill flaggedanimdone
+					self setmotionanim xxxxx_pain_belly_IdleA_trans_crawl
+					self waittill flaggedanimdone
+				}
+			}
+			break
+
+		default:
+			println "ERROR in undead.scr::WritheCrawlToCover -- invalid death type: " self.death_type
+			break
+		}
+	}
+	// after transitioning, crawl!
+	local.anim = xxxxf_pain_crawl
+	self.writhemode = "crawling"
+
+	while ( 1 )
+	{
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+		waitframe
+	}
+
+end
+
+
+// ----------------------------------------------------------------------------
+WritheCrawlToCoverTurn local.anim:
+//	Crawl and  crawl Transitions
+//
+//	Alias								Description
+//	---------------------------------------------------------------------------
+//
+//	xxxxl_pain_crawl_turn_left			crawl turn left 45 degrees
+//	xxxxr_pain_crawl_turn_right			crawl turn right 45 degrees
+//
+// ----------------------------------------------------------------------------
+
+		// turns and crawling are only on the belly.
+	// we need to turn him over if he's on his back
+
+	if ( self.writhe_customwrithe || self.writhe_nocrawl )
+	{
+		self waitthread Writhe
+		end
+	}
+
+	// if we're crawling, we dont' have to do this -- we did it already:
+	if (self.writhemode != "crawling")
+	{
+		local.pose = self.death_type
+
+		if (local.pose == "back")  // flip them to their belly
+		{
+			// If he's on his back, it takes FAR longer to turn to cover -- just do the turn if you're on the belly for now.
+			self waitthread Writhe
+		}
+		else if (local.pose == "belly") // on the belly, play the transition to crawl
+		{
+			if (self.writhemode != "A") // we can only crawl in mode A
+			{
+				self setmotionanim xxxxx_pain_belly_IdleB_trans_belly_IdleA
+				self waittill flaggedanimdone
+				//self setmotionanim xxxxx_pain_belly_IdleA_trans_crawl
+				//self waittill flaggedanimdone
+			}
+		}
+	}
+
+	self setmotionanim local.anim		// do the turn, now from the compatible pose
+	self waittill flaggedanimdone
+	self.writhemode = "crawling"		// don't transition again - not needed.
+	waitframe
+
+end
+
+
+// ----------------------------------------------------------------------------
+WritheCrawlToCoverTurnLeft:
+//	Crawl and  crawl Transitions
+//
+//	Alias								Description
+//	---------------------------------------------------------------------------
+//
+//	xxxxl_pain_crawl_turn_left			crawl turn left 45 degrees
+//
+// ----------------------------------------------------------------------------
+
+	if ( self.writhe_customwrithe || self.writhe_nocrawl )
+	{
+		self waitthread Writhe
+		end
+	}
+
+	self waitthread WritheCrawlToCoverTurn xxxxr_pain_crawl_turn_right
+
+end
+
+
+// ----------------------------------------------------------------------------
+WritheCrawlToCoverTurnRight:
+//	Crawl and  crawl Transitions
+//
+//	Alias								Description
+//	---------------------------------------------------------------------------
+//
+//	xxxxr_pain_crawl_turn_right			crawl turn right 45 degrees
+//
+// ----------------------------------------------------------------------------
+
+	if ( self.writhe_customwrithe || self.writhe_nocrawl )
+	{
+		self waitthread Writhe
+		end
+	}
+
+	self waitthread WritheCrawlToCoverTurn xxxxl_pain_crawl_turn_left
+
+end
+
+
+// ---------------------------------------------------------------------------
+Resurrect:
+//
+// ---------------------------------------------------------------------------
+
+	self.deathhandler = anim/killed.scr
+
+	//Set his emotion back from pain
+	self.emotion = "emotion_determined"
+
+	// jsl-->put in new assets...
+	// MJG: put in even newer assets
+	self.iswrithing = 0
+
+	if ( self.ismedic )
+	{
+		if ( self.death_type == "belly" )
+		{
+			self setmotionanim xxxxx_recover_belly_IdleA_medic
+		}
+		else
+		{
+			self setmotionanim xxxxx_recover_back_IdleA_medic
+		}
+
+		self waittill flaggedanimdone
+		self.position = stand
+		end
+	}
+
+	if ( self.death_type == "belly" )
+	{
+		local.pose = "belly"
+	}
+	else if ( self.death_type == "back" )
+	{
+		local.pose = "back"
+	}
+	else
+	{
+		println "ERROR in undead.scr::Resurrect -- invalid death type: " self.death_type
+		local.pose = "back"
+	}
+
+	if ( self.writhemode == NIL || self.writhemode == NULL || self.writhemode == "crawling"  )
+	{
+		self.writhemode = "A"
+	}
+
+	local.waterdepth = self.waterdepth
+	if (local.waterdepth == "none")
+	{
+		local.anim = "xxxxx_pain_" + local.pose + "_Idle" + self.writhemode
+		self setmotionanim local.anim
+		wait 3.0
+	}
+
+	if ( self.death_type == "belly" ||  self.writhemode == "crawling" )
+	{
+		self.writhemode = "A"
+		local.anim = "xxxxx_recover_belly_Idle" + self.writhemode
+	}
+	else if ( self.death_type == "back" )
+	{
+		local.anim = "xxxxx_recover_back_Idle" + self.writhemode
+	}
+	else if (local.waterdepth == "ankle")
+	{
+		local.anim = "xxxxx_recover_sit_IdleA"
+	}
+	else if ( local.waterdepth == "thigh" || local.waterdepth == "chest" )
+	{
+		local.anim = self getalias idle franticlook
+	}
+	else
+	{
+		println "ERROR in undead.scr::Resurrect -- invalid death type: " self.death_type
+	}
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	self.position = stand
+
+end
+
+
+// ---------------------------------------------------------------------------
+Die:
+// ---------------------------------------------------------------------------
+
+//	println "death_type=" self.death_type
+	self.iswrithing = 0
+
+	if ( self.writhemode == NIL || self.writhemode == NULL || self.writhemode == "crawling" )
+	{
+		self.writhemode = "A"
+	}
+
+	if ( self.death_type == "belly" || self.writhemode == "crawling")
+	{
+		self.writhemode = "A"
+		local.anim = "xxxxx_death_belly_Idle" + self.writhemode
+	}
+	else if ( self.death_type == "back" )
+	{
+		local.anim = "xxxxx_death_back_Idle" + self.writhemode
+	}
+	else
+	{
+		println "ERROR in undead.scr::Die -- invalid death type: " self.death_type
+	}
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	self.position = dead
+
+end
+

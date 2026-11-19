@@ -1,0 +1,64 @@
+//
+// sp_mapFunc.scr
+//
+// Generic routines for handling things in maps for the engine. These routines
+// are here, rather than in the actual engine code so that the modding 
+// community can take advantage of them if need be.
+//
+// Some useful items to know:
+//
+//   start's "self" is a trigger that's been placed 1500 units below the lowest
+//	part of the terrain, and stretches across the entire map. Normally it
+//	is used to kill off any player that somehow slips through the cracks 
+//	in a map and would fall forever.
+
+//-----------------------------------------------------------------------------
+start:
+//------------------
+
+	// This routine is called by the engine once the level has been loaded.
+	// The "self" points to the kill trigger that has been planted below
+	// the terrain in the world.
+
+	wait 0.2
+
+	// Set up the kill-box that hovers below the terrain to call our own
+	// script when a player falls through it.
+
+
+	//self spawnflags 90
+	self setthread global/sp_mapFunc.scr::fall_below_terrain_event
+end
+
+
+//-----------------------------------------------------------------------------
+fall_below_terrain_event local.activator:
+//------------------
+
+		// If something is falling through the bottom of the map, kill it and remove it.
+        if (isalive local.activator)
+        {
+				local.activator damage $world 15000 $world (0 0 0) (0 0 0) (0 0 0) 0 9 0 0
+                wait 0.1
+
+				if (local.activator != $player && (local.activator.immortal != 1) )
+				{				
+					local.activator remove
+				}
+				else 
+				{
+					if (isalive local.activator || (local.activator.immortal == 1) )
+					{
+						// If the player doesn't die, then teleport them up above the
+						// terrain, maybe this time they'll stick.						
+						local.loc = local.activator.origin
+						local.h = terrain_height 0 local.loc[0] local.loc[1]
+						local.activator.origin = ( local.loc[0] local.loc[1] local.h ) + ( 0 0 60 )
+					}
+				}
+        }
+		else
+		{
+			local.activator remove
+		}
+end

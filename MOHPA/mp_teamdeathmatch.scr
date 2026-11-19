@@ -1,0 +1,157 @@
+//
+// TKO JABBOTT, May 20, 2004
+//
+// Setup script for playing multiplayer team deathmatch. The scripters
+// should just have to exec this script to get the functionality.
+//
+
+
+//-----------------------------------------------------------------------------
+main:
+//------------------
+
+	level waittill prespawn
+
+	waitthread shutdown_all_spawns
+	if (level.reuseInvaderSpawns > 0)
+		waitthread enable_an_invader_spawnset
+	else
+		waitthread enable_team_deathmatch_spawns
+	
+	thread set_spawnpool_size
+		
+	// CCARON - turn off objectives
+	setcvar "g_num_objectives" 0
+
+end
+
+
+//------------------
+shutdown_all_spawns:
+//------------------
+
+	local.spawns = level playerspawncount mp enabled
+
+	dprintln ( "shutting down " + local.spawns + " spawnpoints" )
+
+	for (local.i = local.spawns; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i mp enabled
+		local.sp disablespawn
+	}
+end
+
+//------------------
+enable_an_invader_spawnset:
+//------------------
+
+	// Find all the disabled multiplayer spawns that have a team
+	// associated with them, and that have no targetname, and enable
+	// them...
+
+	local.spawnset = ( randomint level.spawnSetCount ) + 1
+
+	println ( "INFO: enabling spawns at objective " + local.spawnset )
+
+	local.spawnName = "axis_spawn_" + local.spawnset
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+	local.spawnName = "allies_spawn_" + local.spawnset
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+	local.spawnName = "axis_spawn_" + local.spawnset + "_big"
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+	local.spawnName = "allies_spawn_" + local.spawnset + "_big"
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+	local.spawnName = "axis_spawn_" + local.spawnset + "_small"
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+	local.spawnName = "allies_spawn_" + local.spawnset + "_small"
+	if ($(local.spawnName) != NULL)
+		$(local.spawnName) enablespawn
+
+	local.count = level playerspawncount mp enabled axis
+	println ( "INFO: enabled " + local.count + " axis spawnpoints" )
+	local.count = level playerspawncount mp enabled allies
+	println ( "INFO: enabled " + local.count + " allied spawnpoints" )
+end
+
+
+//------------------
+enable_team_deathmatch_spawns:
+//------------------
+
+	// Find all the disabled multiplayer spawns that have a team
+	// associated with them and that have no targetname, and enable
+	// them...
+
+	local.spawns = level playerspawncount mp disabled axis
+	local.count = 0
+
+	for (local.i = local.spawns; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i mp disabled axis
+		if (local.sp.targetname == "")
+		{
+			local.sp enablespawn
+			local.count++
+		}
+	}
+
+	println ( "INFO: enabling " + local.count + " axis spawnpoints" )
+
+	local.spawns = level playerspawncount mp disabled allies
+	local.count = 0
+
+	for (local.i = local.spawns; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i mp disabled allies
+		if (local.sp.targetname == "")
+		{
+			local.sp enablespawn
+			local.count++
+		}
+	}
+
+	println ( "INFO: enabling " + local.count + " allied spawnpoints" )
+end
+
+
+//------------------
+set_spawnpool_size:
+//------------------
+
+	local.multiple = int(getcvar(g_spawnmultiple))
+
+	if (local.multiple == NULL || local.multiple < 1)
+		end
+
+	// Currently we have an artifically large spawnpool while we
+	// wait for players to join the game
+
+	level waittill roundstart
+	level setspawnpool 100 100
+	wait 5.0
+
+	// Now compute the actual spawnsize and set it... take into
+	// account anyone who's died in the last 5 seconds when doing so.
+
+	local.n = $player.size * local.multiple
+
+	if (local.n < 1)
+		local.n = 1
+
+	local.axis = level.axisspawnpool + local.n - 100
+	local.allies = level.alliesspawnpool + local.n - 100
+
+	if (local.axis < 0)
+		local.axis = 0
+	if (local.allies < 0)
+		local.allies = 0
+
+	level setspawnpool local.allies local.axis
+	level.spawnpool_started = 1
+end
+

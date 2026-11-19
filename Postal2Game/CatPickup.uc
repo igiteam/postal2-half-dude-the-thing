@@ -1,0 +1,31 @@
+///////////////////////////////////////////////////////////////////////////////
+// CatPickup
+// Copyright 2002 Running With Scissors, Inc.  All Rights Reserved.
+//
+// Cat pickup.
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+
+class CatPickup extends P2PowerupPickup;
+
+
+function PostBeginPlay()
+{
+	Super.PostBeginPlay();
+
+	LoopAnim('sit_on');
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Default properties
+///////////////////////////////////////////////////////////////////////////////
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    InventoryType=Class'catinv'
+    PickupMessage="You picked up a Cat."
+    Mesh=SkeletalMesh'Animals.meshCat'
+    Skins[0]=Texture'AnimalSkins.Cat_Orange'
+}

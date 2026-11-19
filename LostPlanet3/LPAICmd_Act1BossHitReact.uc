@@ -1,0 +1,1 @@
+class LPAICmd_Act1BossHitReact extends LPAICommand within LPAIControllerAct1Boss;

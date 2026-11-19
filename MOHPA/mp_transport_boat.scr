@@ -1,0 +1,320 @@
+//
+// mp_transport_boat.scr by Victor Dods
+//
+// This script is used to implement a transport boat for
+// carrying players around a map using rail-type motion.
+// The design was predicated on transport boat code by
+// Nesan Waran.  
+//
+// (i'll fill this in later -- it's 2:45 am right now)
+//
+// 3/10/2004 - VDODS - initial file creation
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	// used to trap accidental execs on this script
+	
+end
+
+
+//----------------------------------------------------------------------------
+initialize local.contact local.team local.path local.doorIsOpen:
+//-----------------
+	// self is the boat
+
+	// set up the members
+	self.contact = local.contact
+	self.contact notsolid
+	self.team = local.team
+	self.inMotion = 0
+	self.playersInContact = 0
+	self.currentPath = local.path
+	if (local.doorIsOpen != NIL && local.doorIsOpen != NULL && int(local.doorIsOpen)) {
+		self anim dooropen
+		self.doorIsOpen = 1
+	} else {
+		self.doorIsOpen = 0
+	}
+	
+	// position and bind the contact object
+	self.contact.origin = self.origin
+	self.contact.angles = self.angles
+	self.contact bind self
+	
+	// make invincible
+	self nodamage
+	
+	// start the boat monitor
+	self thread boat_monitor
+end
+
+
+//-----------------
+unset_player_as_passenger local.boat:
+//-----------------
+
+//	dprintln "MP_TRANSPORT_BOAT::" "unbinding player " self.netname " from boat " local.boat.targetname
+
+	if (0)
+	{
+		self unglue
+		self.gluepoint remove
+	} else {
+		self unbind
+//		self physics_on
+//		self takedamage
+	}
+
+	self removeimmune bash crush falling vehicle
+	self.boundToBoat = 0
+
+	// go through the playersInContactArray and remove the correct player
+	for (local.j = 1; local.j <= local.boat.playersInContact; local.j++)
+		if (self == local.boat.playersInContactArray[local.j])
+		{
+			local.boat.playersInContactArray[local.j] = NULL
+			local.boat.playersInContactArray[local.j] = local.boat.playersInContactArray[local.boat.playersInContact]
+			local.boat.playersInContact--
+//			dprintln "MP_TRANSPORT_BOAT::" "done unbinding player " self.netname
+			end
+		}
+//	dprintln "MP_TRANSPORT_BOAT::" "player " self.netname " not found in ship's manifest"
+end
+
+
+//-----------------
+set_player_as_passenger local.boat:
+//-----------------
+
+//	dprintln "MP_TRANSPORT_BOAT::" "binding player " self.netname " to boat " local.boat.targetname
+
+	if (0)
+	{
+		local.glueorigin = ( self.origin + ( 0 0 5 ) )
+		local.parent = spawn script_origin "origin" local.glueorigin
+		local.parent bind local.boat
+		self.gluepoint = local.parent
+		self glue local.parent
+	} else {
+		self bind local.boat
+//		self physics_off
+//		self nodamage
+	}
+
+	self immune bash crush falling vehicle
+	self.boundToBoat = 1
+	self.bindHeight = self.origin[2] - local.boat.origin[2]
+	
+	local.boat.playersInContact++
+	local.boat.playersInContactArray[local.boat.playersInContact] = self
+
+//	dprintln "MP_TRANSPORT_BOAT::" "done binding player " self.netname
+end
+
+
+//-----------------
+boat_monitor:
+//-----------------
+	// self is the boat
+	
+	// start up the viewangles monitor so people who are riding
+	// will rotate with the boat
+	self thread viewangles_monitor
+//	// start up the player grabber (for players that jump on a moving boat
+//	self thread player_grabber
+	
+	while (1) {
+//		dprintln "MP_TRANSPORT_BOAT::" "starting boat loop"
+		
+		// first wait for someone to press use in the contact area
+		while (!self.inMotion) {
+			for (local.i = 1; local.i <= $player.size; local.i++) {
+				if ($player[local.i] == NIL || $player[local.i] == NULL)
+					continue
+				if ($player[local.i].isspectator)
+					continue
+				if (!(isalive $player[local.i]))
+					continue
+				if (!($player[local.i].useheld)) continue if (self.contact == NIL || self.contact == NULL || !($player[local.i] isinside self.contact))
+					continue
+				if ($player[local.i].dmteam != self.team)
+					continue
+//				dprintln "MP_TRANSPORT_BOAT::" "use key detected, breaking from polling loop"
+				self.inMotion = 1
+				break
+			}
+			waitframe
+		}
+	
+		// make sure the door is closed (and play the closing anim if necessary
+		if (self.doorIsOpen) {
+//			dprintln "MP_TRANSPORT_BOAT::" "door is open, closing it"
+			
+			// play the door closing anim
+			self.doorIsOpen = 0
+			self anim doorclose
+			wait 1.5
+		}
+		
+		// the boat is now in motion, bind everyone in the contact area to the boat
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+			if ($player[local.i] isinside self.contact)
+				$player[local.i] waitthread set_player_as_passenger self
+		}
+		
+		// start the player death monitor (so dead players will be unbound)
+		self thread player_death_monitor
+		
+		// start driving (but first check if reverse is set on the path)
+		if (self.currentPath.reverse != NIL && self.currentPath.reverse != NULL && int(self.currentPath.reverse))
+			local.speed = -200
+		else
+			local.speed = 300
+		local.speed = local.speed * ( 0.8 + randomfloat(0.4) )
+//		dprintln "MP_TRANSPORT_BOAT::" "calculated speed = " local.speed
+		
+		// start driving
+		self drive self.currentPath local.speed 30 100 256
+		// wait until the path is done
+		self waittill drive
+		// stop driving
+		self stop
+		// the boat is now not in motion
+		self.inMotion = 0
+		
+		// unbind everyone from the boat
+		for (local.i = 1; local.i <= self.playersInContact; local.i++)
+			$player[local.i] waitthread unset_player_as_passenger self
+		self.playersInContact = 0
+
+		// if the open door flag was set,
+		if (self.currentPath.openDoor != NIL && self.currentPath.openDoor != NULL && int(self.currentPath.openDoor)) {
+//			dprintln "MP_TRANSPORT_BOAT::" "opening door"
+				
+			// play the door opening anim
+			self.doorIsOpen = 1
+			self anim dooropen
+			wait 1.5
+		}
+
+		if (local.speed < 0)
+			wait ( 1.5 + randomfloat(2) )
+
+//		dprintln "MP_TRANSPORT_BOAT::" "state of autoContinueTime: " self.currentPath.autoContinueTime
+
+		// check if autoContinueTime is set on the path, and if it is > 0,
+		// open the door, wait that time, and close the door
+		if (self.currentPath.autoContinueTime != NIL && self.currentPath.autoContinueTime != NULL && self.currentPath.autoContinueTime) {
+			// wait for the autoContinueTime time to elapse
+			wait self.currentPath.autoContinueTime
+			
+//			dprintln "MP_TRANSPORT_BOAT::" "done waiting from autoContinueTime pause time"
+		}
+
+		// make sure the boat keeps going if autoContinueTime is set at all		
+		if (self.currentPath.autoContinueTime != NIL && self.currentPath.autoContinueTime != NULL)
+			self.inMotion = 1
+		
+		// note that if there is no autoContinueTime set anywhere, the boat will loop forever,
+		// trapping anyone on it for ETERNITY!!
+		
+		// set the next path
+		self.currentPath = $(self.currentPath.nextPath)
+//		dprintln "MP_TRANSPORT_BOAT::" "next path: " self.currentPath.targetname
+		
+		waitframe
+	}
+end
+
+
+//-----------------
+viewangles_monitor:
+//-----------------
+
+	// self is the boat
+//	dprintln "MP_TRANSPORT_BOAT::" "viewangles_monitor starting"
+	
+	local.lastAngles = self.angles
+	while (self && self.inMotion != 1) {
+		waitframe
+	}
+	while (self && self.inMotion == 1) {
+		local.dy = self.angles[1] - local.lastAngles[1]
+		local.dp = self.angles[0] - local.lastAngles[0]
+
+		for (local.i = 1; local.i <= self.playersInContact; local.i++)
+		{
+			local.p = self.playersInContactArray[local.i]
+		
+			local.p.viewangles = ( (local.p.viewangles[0] + local.dp) (local.p.viewangles[1] + local.dy) local.p.viewangles[2] )
+			local.p.avelocity = self.avelocity
+		}
+
+		local.lastAngles = self.angles
+
+		waitframe
+	}
+
+//	dprintln "MP_TRANSPORT_BOAT::" "viewangles_monitor stopping"
+
+	if (self)
+		self thread viewangles_monitor
+end
+
+
+//-----------------	
+player_grabber:
+//-----------------
+
+	// this function is used to bind players to the boat after it
+	// has begun moving. self is the boat
+	
+	while (1) {
+		waitframe
+		if (!self.isMoving)
+			continue
+		
+		// go through each player
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+
+			// check if they're in the contact box, if
+			// they're the right team and if they're not bound
+			// to a boat already
+
+			if ($player[local.i] isinside self.contact && $player[local.i].boundToBoat != 1)
+				$player[local.i] waitthread set_player_as_passenger self
+		}
+	}
+end
+
+
+//-----------------
+player_death_monitor:
+//-----------------
+	// this function is run to unbind dead players
+	// self is the boat
+
+//	dprintln "MP_TRANSPORT_BOAT::" "player_death_monitor"
+	
+	while (self.inMotion) {
+		// loop through all the players
+		for (local.i = 1; local.i <= $player.size; local.i++) {
+			local.player = $player[local.i]
+			// if the player is dead, unbind them
+			if (!(isalive local.player) && local.player != NULL) {
+				local.player waitthread unset_player_as_passenger self
+			}
+		}
+		// wait for next server frame
+		waitframe
+	}
+//	dprintln "MP_TRANSPORT_BOAT::" "player_death_monitor stopped (boat stopped)"
+	// stop the monitor when the boat has ceased motion
+end
+

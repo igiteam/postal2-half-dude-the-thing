@@ -1,0 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+// GaryHeadAmmoInv
+// Copyright 2004 Running With Scissors, Inc.  All Rights Reserved.
+//
+///////////////////////////////////////////////////////////////////////////////
+class GaryHeadAmmoInv extends InfiniteAmmoInv;
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    Texture=Texture'AW_Textures.Gary_Icon_fire'
+}

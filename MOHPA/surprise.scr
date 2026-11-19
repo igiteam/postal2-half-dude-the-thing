@@ -1,0 +1,27 @@
+// -------------------------------------------------------------------
+// Surprise.scr
+//
+//	Surprised reaction.
+//
+// -------------------------------------------------------------------
+
+//println "Entering surprise.scr"
+waitexec "anim/default_inithandler.scr"
+
+self waitthread anim/stand.scr::transition
+self.blendtime = 0.25
+
+switch (self.position)
+{
+	stand:
+	walk:
+	run:
+		self setmotionanim (self getalias react surprise stand)
+		self waittill flaggedanimdone
+		break
+
+	default:
+		println "Invalid position for stand surprise animation - bypassing:" self.position
+		waitframe
+		break
+}

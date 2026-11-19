@@ -1,0 +1,271 @@
+//----------------------------------------------------------------------------
+//	closecombat.scr
+//	
+//	Closecombat thinker scripts
+//
+//----------------------------------------------------------------------------
+
+main:
+
+
+end
+
+//----------------------------------------------------------------------------
+Init:
+//----------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+
+end
+
+//----------------------------------------------------------------------------
+PistolToSword:
+//
+//	Switch our weapon from pistol to sword
+//
+//----------------------------------------------------------------------------
+
+	self setmotionanim jpsax_switchweapon_sword
+	self waittill flaggedanimdone
+
+	end
+
+//----------------------------------------------------------------------------
+SwordToPistol:
+//
+//	Switch our weapon from sword to pistol
+//
+//----------------------------------------------------------------------------
+
+	self setmotionanim jssax_switchweapon_pistol
+	self waittill flaggedanimdone
+
+	end
+
+//----------------------------------------------------------------------------
+SwitchWeapon:
+//----------------------------------------------------------------------------
+	
+	self setmotionanim xxxxx_switchweapon
+	self waittill flaggedanimdone
+	
+	end
+
+
+//----------------------------------------------------------------------------
+MeleeCombat:
+// jsl-->OBSOLETE!
+//----------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.weapongroup==sword )
+	{
+		self waitthread SwordCombat
+		end
+	}
+	
+	waitexec anim/melee_attack.scr
+
+	end
+
+//----------------------------------------------------------------------------
+SwordCombat:
+//----------------------------------------------------------------------------
+
+	waitexec anim/bayonet_attack.scr
+
+	end
+
+//----------------------------------------------------------------------------
+Wait:
+//----------------------------------------------------------------------------
+
+	self waitthread Init
+
+	if ( self.weapongroup==sword )
+	{
+		// todo: Play some taunting or something here?  (or just keep walking to the side...)
+		self setmotionanim (self getalias idle "" "" "" "a")
+		self waittill flaggedanimdone
+	}
+	else
+	{
+		self waitexec anim/turret.scr::AttackMediumRange
+	}
+
+	end
+
+// -----------------------------------------------------------------------------
+RunAttack:
+//
+//	Initial attack from run (ie: we don't stop motion to do the attack)
+//
+// -----------------------------------------------------------------------------
+	self waitthread Init
+
+	waitexec anim/stand.scr::transition
+
+	local.action = melee
+
+	if ( self.usingbayonet == 1 )
+	{
+		local.action = bayonet
+	}
+
+
+	self setmotionanim (self getalias local.action runattack)
+	self waittill flaggedanimdone
+
+	self.lastMeleeAttack = level.inttime
+
+	self interrupt_point	// 1st attack complete, interrupt our thinker...
+
+	self setmotionanim (self getalias local.action attack_a2)
+	self waittill flaggedanimdone
+
+	self.lastMeleeAttack = level.inttime
+
+	if ( self.usingbayonet==1 )
+	{
+		if ( self.enemy )
+		{
+			self.enemy.deathhandler = anim/closecombat.scr::ComboDeath
+
+		}
+
+		self setmotionanim (self getalias local.action attack_a3)
+		self waittill flaggedanimdone
+
+		self.lastMeleeAttack = level.inttime
+	}
+
+	end
+
+
+// -----------------------------------------------------------------------------
+MeleeButt:
+//
+//	Hit guy with butt of gun.  (used when we didn't chase the guy or we have bullets still)
+// -----------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self waitthread anim/stand.scr::transition
+	
+	//3 is enemy attack chatter priority
+	if( self.team != "american" )
+		self aid_combat 3 self.team
+	
+	self setmotionanim (self getalias butt "" stand)
+	self waittill flaggedanimdone
+
+	self.lastMeleeAttack = level.inttime
+
+
+	end
+
+// -----------------------------------------------------------------------------
+MeleeCombo:
+//
+//	More aggressive than MeleeButt.  Primarily used when weapon is out of ammo
+//	or we're banzai attacking...
+//
+// -----------------------------------------------------------------------------
+	self waitthread Init
+	waitexec anim/stand.scr::transition
+
+	local.action = melee
+
+	if ( self.usingbayonet == 1 )
+	{
+		local.action = bayonet
+	}
+
+
+	// play first melee attack
+	self setmotionanim (self getalias local.action attack_a1)
+	self waittill flaggedanimdone
+
+	self.lastMeleeAttack = level.inttime
+	
+	self interrupt_point	// 1st attack complete, interrupt our thinker...
+
+	self setmotionanim (self getalias local.action attack_a2)
+	self waittill flaggedanimdone
+
+	self.lastMeleeAttack = level.inttime
+
+	if ( self.usingbayonet==1 )
+	{
+		self interrupt_point	// 2nd attack complete, interrupt our thinker...
+		if ( self.enemy )
+		{
+			self.enemy.deathhandler = anim/closecombat.scr::ComboDeath
+
+		}
+		self setmotionanim (self getalias local.action attack_a3)
+		self waittill flaggedanimdone
+
+		self.lastMeleeAttack = level.inttime
+	}
+
+
+	end
+
+
+// -----------------------------------------------------------------------------
+MeleeIdle:
+//
+//	Take a breather between attacks...
+//
+// -----------------------------------------------------------------------------
+	self waitthread Init
+
+	waitexec anim/stand.scr::transition
+
+	local.action = melee
+
+	if ( self.usingbayonet == 1 )
+	{
+		local.action = bayonet
+	}
+
+	self setmotionanim (self getalias local.action idle)
+	self waittill flaggedanimdone
+
+	end
+
+
+
+// ------------------------------------------------------------
+Strafe:
+//
+//	implements side-stepping for short distances
+//
+// ------------------------------------------------------------
+	self waitthread Init
+
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		self waitexec anim/crouch.scr::transition
+		break
+	}
+
+	self waitexec anim/motionblend.scr::Start walk 0 50
+
+	end
+
+// ------------------------------------------------------------
+ComboDeath:
+//
+//	Special death animation designed for guys who die via
+//	the special bayonet combo attacks...
+// ------------------------------------------------------------
+
+
+	self setmotionanim xxxxx_death_meleecombo 
+	self waittill flaggedanimdone
+
+
+	end

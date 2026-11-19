@@ -1,0 +1,16 @@
+//-------------------------------------------------
+//   5_6_sbd.scr
+//   Robin Johnson
+//   
+//   for 5_6, flight, xray, or whatever you want to call it.
+//-------------------------------------------------
+
+	// this function services PlayerSBDDauntless.hag
+	// it allows for the tail to get destroyed upon hitting it with the gun. 
+	//
+	hitTail:
+		iprintln "Im hit!!"
+		self havok_game_driven joint_tail
+		self havok_physics_driven joint_tail
+		//self anim tailDamage
+	end

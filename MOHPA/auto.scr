@@ -1,0 +1,72 @@
+// --------------------------------------------------------------------------------
+// global/auto.scr
+//
+// --------------------------------------------------------------------------------
+
+main local.script:
+
+	if ( level.auto_script_run == 1 )
+	{
+		end
+	}
+
+	if ( local.script != NIL )
+	{
+		if ( level.script == NIL )
+		{
+			level.script = ("maps/" + local.script + ".scr")
+		}
+	}
+
+	// Determine machine setting.
+	level.machinespec = getcvar "com_machinespec"
+	
+	// Setup directors edition variable properly
+	local.directorsedition = getcvar "com_directorsedition"
+	if ( local.directorsedition != "1" )
+		level.directorsedition = 0
+	else		
+		level.directorsedition = 1
+		
+	level.skill = getcvar "skill"
+
+	exec global/obj.scr								// start objective system
+
+	setcvar sv_playerKnockEnable 1					// Default post-fx settings
+	enablevrptraces 1								// Make sure vrp traces are reenabled
+
+	exec global/gameflow.scr						// Gameflow controller
+	exec global/medicconfig.scr						// Medic configurator
+	exec global/hand_signals.scr					// init the hand signals.  If we don't do this for every lvl one will show by default.
+	exec global/loadout.scr
+	waitexec global/wavemachine.scr
+	waitexec global/grenade_utils.scr
+	exec global/aispawn.scr							// start main AI spawning system
+	exec global/vehicle_utils.scr					// inits default variables for the vehicle utils
+	exec global/vod.scr								// init VOD stuff prior to first use
+	exec global/faunaspawn.scr						// Only works if "faunaspawnertriggers" are in the level. Otherwise it just does nothing
+	exec global/scene.scr							// generic scene management system
+	exec global/playersquadnode.scr					// player squad node system
+
+	level waittill prespawn
+
+	exec global/door_locked.scr
+	exec global/ambient.scr local.script
+	exec global/gethelp.scr
+	exec global/sunflare.scr
+
+	level.auto_script_run = 1
+
+	level waittill spawn
+
+	exec global/gameflow.scr::SetMissionAndLevel	// Set the correct Mission and Level
+
+	waitframe
+
+	resetcvar r_cc_mul
+	resetcvar r_cc_add
+	resetcvar r_cc_sat
+	resetcvar r_mono_blur
+
+end
+

@@ -1,0 +1,131 @@
+//----------------------
+jointHead:
+//----------------------
+    level.targetsDamaged--
+    self havok_game_driven joint_head
+    self havok_physics_driven joint_head
+
+end
+//----------------------
+jointShoulderRight:
+//----------------------
+    level.targetsDamaged--
+    self havok_game_driven joint_shoulder_right
+    self havok_physics_driven joint_shoulder_right
+
+end
+//----------------------
+jointShoulderLeft:
+//----------------------
+    level.targetsDamaged--
+    self havok_game_driven joint_shoulder_left
+    self havok_physics_driven joint_shoulder_left
+
+end
+//----------------------
+jointTorsoRight:
+//----------------------
+    level.targetsDamaged--
+    self havok_game_driven joint_torso_right
+    self havok_physics_driven joint_torso_right
+
+end
+//----------------------
+jointTorsoLeft:
+//----------------------
+    level.targetsDamaged--
+    self havok_game_driven joint_torso_left
+    self havok_physics_driven joint_torso_left
+
+end
+//----------------------
+jointChip1:
+//----------------------
+
+    self hidejoint joint_chip1
+
+end
+//----------------------
+jointChip2:
+//----------------------
+
+    self hidejoint joint_chip2
+
+end
+//----------------------
+jointChip3:
+//----------------------
+
+    self hidejoint joint_chip3
+
+end
+//----------------------
+jointChip4:
+//----------------------
+
+    self hidejoint joint_chip4
+
+end
+//----------------------
+jointChip5:
+//----------------------
+
+    self hidejoint joint_chip5
+
+end
+//----------------------
+jointChip6:
+//----------------------
+
+    self hidejoint joint_chip6
+
+end
+//----------------------
+jointChip7:
+//----------------------
+
+    self hidejoint joint_chip7
+
+end
+//----------------------
+jointChip8:
+//----------------------
+
+    self hidejoint joint_chip8
+
+end
+//----------------------
+jointChip9:
+//----------------------
+
+    self hidejoint joint_chip9
+
+end
+//----------------------
+jointChip10:
+//----------------------
+
+    self hidejoint joint_chip10
+
+end
+//----------------------
+jointChip11:
+//----------------------
+
+    self hidejoint joint_chip11
+
+end
+//----------------------
+jointChip12:
+//----------------------
+
+    self hidejoint joint_chip12
+
+end
+//----------------------
+jointChip13:
+//----------------------
+
+    self hidejoint joint_chip13
+
+end

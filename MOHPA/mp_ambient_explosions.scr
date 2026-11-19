@@ -1,0 +1,196 @@
+/*  
+ *
+ *
+ *
+ */
+
+
+
+//-----------------
+main:
+//-----------------
+	if (level.ambient_explosions == NIL || level.ambient_explosions == NULL)
+	{
+		waitthread turn_explosions_on
+		//thread ambient_explosions
+	}
+
+	if ($ambient_info.size == 0)
+		println("MAP ERROR: no ambient_info entities!")
+end
+
+get_random_player:
+	
+end
+
+
+//-----------------
+ambient_explosions:
+//-----------------
+
+	while (level.ambient_explosions == 1)
+	{			
+		// we count the number of players that are currently in the game
+		local.count = 0;
+		for (local.i=1; local.i<=$player.size; local.i++)
+			if (!($player[local.i].isSpectator))
+				local.count ++
+		
+		// if no one is actually playing we can start the loop again.
+		if (local.count == 0)
+		{
+			wait 10
+			continue
+		}
+		
+		// we get a random player and their origin
+		local.playerindex = randomint($player.size) + 1
+		local.player = $player[local.playerindex]
+		local.xyz = $player[local.playerindex].origin
+		
+		if (local.player.isSpectator)
+		{
+			wait 1
+			continue
+		}
+
+		local.quadrant = randomint (4) + 1
+		local.x = randomint(1024) + 256
+		local.y = randomint(1024) + 256
+		switch (local.quadrant)
+		{
+			case 1: local.high = local.xyz + (local.x local.y 2276)
+				local.low = local.xyz + (local.x local.y -2276)
+				local.xyz = trace local.high local.low
+				break	
+			case 2: local.high = local.xyz + ( -local.x local.y 2276)
+				local.low = local.xyz + ( -local.x local.y -2276)
+				local.xyz = trace local.high local.low
+				break
+			case 3: local.high = local.xyz + ( -local.x -local.y 2276)
+				local.low = local.xyz + ( -local.x -local.y -2276)
+				local.xyz = trace local.high local.low
+				break
+			case 4: local.high = local.xyz + (local.x -local.y 2276)
+				local.low = local.xyz + (local.x -local.y -2276)
+				local.xyz = trace local.high local.low
+				break	
+		}
+	
+		// done setting up location: stored in local.xyz
+		
+		// setting up map specified explosion attributes
+		for (local.i = 1; local.i <= $ambient_info.size; local.i++)
+		{
+			if (local.xyz isinside $ambient_info[local.i])
+			{
+				local.leadin = $ambient_info[local.i].bomb_leadin
+				local.sound = $ambient_info[local.i].bomb_sound
+				local.explosion = $ambient_info[local.i].bomb_fx
+				break
+			}
+		}
+
+		// if the leadin is set to 0 then the map doesn't want
+		// any leadin otherwise it's been unspecified so we can
+		// get a random leadin
+		if (local.leadin == NULL || local.leadin == NIL)
+		{
+		
+			local.leadin = mp_arty_leadin
+		}
+		
+		// if the sound is set to 0 then the map doesn't want any sound
+		// otherwise it's been unspecified so we can get a random sound
+		if (local.sound == NULL || local.sound == NIL){
+			local.randomsound = randomint (2) + 1
+			switch (local.randomsound){
+				case 1: local.sound = mp_explo_dirt1
+					break
+				case 2: local.sound = mp_explo_stone1
+					break
+			}
+		}
+
+
+		// if the explosions is set to 0 then the map doesn't
+		// want any sound otherwise it's been unspecified so we
+		// can use generic explosion
+		local.explosion = NULL
+		//if (local.explosion == NULL || local.explosion == NIL)
+		//{
+		//	local.explosion = "models/fx/hellcat_bomb_explosion.tik"
+		//}
+		
+		// if the explosions is set to 0 then the map doesn't
+		// want any sound otherwise it's been unspecified so we
+		// can use generic explosion
+
+		thread explode local.xyz local.leadin local.sound local.explosion
+
+		// if we've reached here we know that we've set off an
+		// explosion by someone who is alive so we can go ahead
+		// and wait for the next planned instance of explode
+
+		local.randomNum = (randomint 30) - 15
+		wait (((50+local.randomNum)/local.count) + local.randomNum)
+
+	}
+
+end
+
+//-----------------
+turn_explosions_on:
+//-----------------
+	level.ambient_explosions = 1
+	thread ambient_explosions
+end
+
+//-----------------
+turn_explosions_off:
+//-----------------
+	level.ambient_explosions = 0
+end
+
+//-----------------
+explode local.origin local.leadin local.boom local.explosion:
+//-----------------
+	
+	local.o = spawn script_origin
+	local.o.origin = local.origin
+
+	if (local.leadin != 0){
+		local.o playsound local.leadin
+		wait 1.3
+	}
+	if (local.boom != 0){
+		local.o playsound local.boom
+		}
+	if (local.explosion != 0){
+		local.o waitthread spawn_fx local.explosion
+		wait 2
+	}
+	
+	local.o remove	
+
+end
+
+//-----------------
+spawn_fx local.fx:
+//-----------------
+
+	// This function is used to spawn explosions
+	if (local.fx == NIL || local.fx == NULL)
+		end
+
+	wait (0.1 + (randomfloat(1)))
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+
+end
+

@@ -1,0 +1,1 @@
+class LPDamageTypeBeetleLightning extends LPDamageTypeElectricalBeetle;

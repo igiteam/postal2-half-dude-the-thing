@@ -1,0 +1,78 @@
+// ----------------------------------------------------------------------------------
+// Walk.scr
+//
+//		- Stands up and starts walking
+//
+// ----------------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------------
+start:
+// ----------------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = walk
+	self.blendtime = 0.30
+
+		// if we've got a custom walk animation, use it!
+	if ( self.customwalk!="" )
+	{
+		self waitthread CustomWalk
+		end
+	}
+
+	self waitthread Walk
+
+	end
+
+//--------------------------------------------------------------
+CustomWalk:
+//--------------------------------------------------------------
+	while ( 1 )
+	{
+		waitexec anim/motionblend.scr::PlayAnim self.customwalk
+	}
+
+	end
+
+//--------------------------------------------------------------
+Walk:
+//--------------------------------------------------------------
+
+	if (self.normal_health < 60)
+		waitexec anim/motionblend.scr::LoopAnim walkinjured
+	else
+		waitexec anim/motionblend.scr::LoopAnim walk
+
+	end
+
+//--------------------------------------------------------------
+Water:
+//--------------------------------------------------------------
+	
+	waitexec anim/motionblend.scr::LoopAnim walk cautious water
+
+
+	end
+
+//--------------------------------------------------------------
+Shoot:
+//--------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		self waitthread anim/crouch.scr::transition
+		break
+	}
+
+	self waitthread Init
+	self waitexec anim/motionblend.scr::LoopAnim walk alert
+
+
+	end

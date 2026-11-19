@@ -1,0 +1,104 @@
+// -----------------------------------------------------------------------------------
+RandomProjectileGenerator local.minYaw local.maxYaw local.minPitch local.maxPitch local.fakebullets local.trigger:
+//
+//	
+// -----------------------------------------------------------------------------------
+
+	self.MaxDelay = 3
+	local.trigger.busy = 0
+	
+	local.trigger triggerable
+	local.trigger thread Watch_proximity self
+	self thread StartRandomGun local.minYaw local.maxYaw local.minPitch local.maxPitch local.fakebullets local.trigger
+	
+end
+
+// -----------------------------------------------------------------------------------
+StartRandomGun local.minYaw local.maxYaw local.minPitch local.maxPitch local.fakebullets local.trigger:
+//
+//	
+// -----------------------------------------------------------------------------------
+	
+	local.target = self.origin
+	local.target[2] += 2000
+	
+	// create target object
+	local.guntarget = spawn script_object
+	local.guntarget.origin = local.target
+	
+	// prepare the gun to fire at the target
+	self turnon
+	self.targetingplane = 0
+	self leadtarget 0
+	
+	while (1)
+	{
+		//if the gun is triggerable, then it has not been set off my an enemy
+		if (local.trigger.busy == 0)
+		{
+			self setnewtarget local.guntarget
+			self fakebullets local.fakebullets
+			
+			local.yaw = local.minYaw + randomint(local.maxYaw - local.minYaw)
+			local.pitch = local.minPitch + randomint(local.maxPitch - local.minPitch)
+			
+			local.sinp = sin local.pitch
+			local.cosp = cos local.pitch
+			local.siny = sin local.yaw
+			local.cosy = cos local.yaw
+			
+			local.length = 100
+
+			local.target[0] = self.origin[0] + local.length * local.cosp * local.cosy;
+			local.target[1] = self.origin[1] + local.length * local.cosp * local.siny;
+			local.target[2] = self.origin[2] + local.length * -local.sinp;
+				   
+			//dprintln "gun at " self.origin[0] " " self.origin[1] " " self.origin[2]
+			//dprintln "firing at " local.target[0] " " local.target[1] " " local.target[2]
+			
+			local.guntarget moveto local.target
+			local.guntarget waitmove
+		}
+		wait 1
+	}
+	
+end
+
+// -----------------------------------------------------------------------------------
+Watch_proximity local.projectileGenerator:
+//
+//
+// -----------------------------------------------------------------------------------
+
+	while (1)
+	{
+		self waittill trigger
+		// -------------------
+		self nottriggerable
+		self.busy = 1
+		
+		dprintln "trigger set off"
+		
+		// stop picking random targets
+		level.enemyClose = 1
+		
+		// set up variable to target
+		local.target = parm.other
+		
+		// fire at target
+		local.projectileGenerator fakebullets 0
+		local.projectileGenerator setnewtarget local.target
+		
+		// wait until target dead or out side of trigger
+		local.time = 0
+		
+		while (local.target.health > 0 && local.target istouching self)
+		{
+			wait 1
+			dprintln "firing at intruder"
+		}
+		
+		self triggerable
+		self.busy = 0
+	}
+end

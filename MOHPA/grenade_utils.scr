@@ -1,0 +1,201 @@
+// ---------------------------------------------------------------------------------
+//	grenade_utils.scr
+//
+//	You may setup / modify global AI grenade settings with functions in this file
+//
+// ---------------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------------
+Init:
+//	This Init function gets called from auto.scr 
+// ---------------------------------------------------------------------------------
+
+	// default our grenade system.
+	waitthread SetupAxisGrenades 5 4 1280
+	waitthread SetupAlliedGrenades 5 4 1280
+
+end
+
+
+// ---------------------------------------------------------------------------------
+SetupAxisGrenades local.grenadeLevel local.grenadeCount local.grenadeThrowDist:
+//
+//	Params:
+//
+//		grenadeLevel		- specify a grenade level from 0-10.  0 means don't throw, 10 means throw all the time.
+//		grenadeCount		- specify number of grenades to give to axis AI when they are spawned in.
+//		grenadeThrowDist	- specify how far AI can throw grenades.
+//
+// ---------------------------------------------------------------------------------
+
+	if ( local.grenadeLevel==NIL )
+		local.grenadeLevel	= 5
+
+	if ( local.grenadeCount==NIL )
+		local.grenadeCount = 4
+
+	if ( local.grenadeThrowDist==NIL )
+		local.grenadeThrowDist = 1280
+
+	println "Setting axis grenade level to: " local.grenadeLevel " grenade count: " local.grenadeCount " throw dist: " local.grenadeThrowDist
+
+	waitthread SetupGrenadeLevel local.grenadeLevel
+	waitthread SetupAxisGrenades_Internal level.grenadeintervalmin level.grenadeintervalmax level.grenadechance level.grenadeblockedchance
+
+	level.axisGrenadeCount		= local.grenadeCount
+	level.grenadedist_axis		= local.grenadeThrowDist
+
+end
+
+// ---------------------------------------------------------------------------------
+SetupAlliedGrenades local.grenadeLevel local.grenadeCount local.grenadeThrowDist:
+//
+//	Params:
+//
+//		grenadeLevel		- specify a grenade level from 0-10.  0 means don't throw, 10 means throw all the time.
+//		grenadeCount		- specify number of grenades to give to axis AI when they are spawned in.
+//		grenadeThrowDist	- specify how far AI can throw grenades.
+//
+// ---------------------------------------------------------------------------------
+
+	if ( local.grenadeLevel==NIL )
+		local.grenadeLevel	= 5
+
+	if ( local.grenadeCount==NIL )
+		local.grenadeCount = 4
+
+	if ( local.grenadeThrowDist==NIL )
+		local.grenadeThrowDist = 1280
+
+	println "Setting allied grenade level to: " local.grenadeLevel " grenade count: " local.grenadeCount " throw dist: " local.grenadeThrowDist
+
+	waitthread SetupGrenadeLevel local.grenadeLevel
+	waitthread SetupAlliedGrenades_Internal level.grenadeintervalmin level.grenadeintervalmax level.grenadechance level.grenadeblockedchance
+
+	level.alliedGrenadeCount		= local.grenadeCount
+	level.grenadedist_allies		= local.grenadeThrowDist
+
+end
+
+// ---------------------------------------------------------------------------------
+SetupAxisGrenades_Internal local.mintime local.maxtime local.chance local.blockedchance:
+//
+//	mintime			- Minimum amount of time (in ms) AI will wait to decide if 
+//					  he wants to throw a grenade at his enemy
+//	maxtime			- Maximum amount of time (in ms) AI will wait to decide if
+//					  he wants to throw a grenade at his enemy
+//	chance			- Value from 0-100 that they'll attempt to throw a grenade
+//	blockedchance	- If AI has decided to throw a grenade, but it is blocked
+//					  by something near the target, this is the chance (0-100)
+//					  he'll throw the grenade anyway.
+//
+//----------------------------------------------------------------------------
+
+	level.grenademininterval_axis		= local.mintime
+	level.grenademaxinterval_axis		= local.maxtime
+	level.grenadechance_axis			= local.chance
+	level.grenadeblockedchance_axis		= local.blockedchance
+
+end
+
+// ---------------------------------------------------------------------------------
+SetupAlliedGrenades_Internal local.mintime local.maxtime local.chance local.blockedchance:
+//
+//	mintime			- Minimum amount of time (in ms) AI will wait to decide if 
+//					  he wants to throw a grenade at his enemy
+//	maxtime			- Maximum amount of time (in ms) AI will wait to decide if
+//					  he wants to throw a grenade at his enemy
+//	chance			- Value from 0-100 that they'll attempt to throw a grenade
+//	blockedchance	- If AI has decided to throw a grenade, but it is blocked
+//					  by something near the target, this is the chance (0-100)
+//					  he'll throw the grenade anyway.
+//
+//----------------------------------------------------------------------------
+
+	level.grenademininterval_allies		= local.mintime
+	level.grenademaxinterval_allies		= local.maxtime
+	level.grenadechance_allies			= local.chance
+	level.grenadeblockedchance_allies	= local.blockedchance
+
+
+end
+
+
+// ---------------------------------------------------------------------------------
+SetupGrenadeLevel local.grenadeLevel:
+//	this function is used internally in this script. Don't call it from another
+//  script.
+// ---------------------------------------------------------------------------------
+
+	switch ( local.grenadeLevel )
+	{
+	case	0:
+		level.grenadeintervalmin	= 9999
+		level.grenadeintervalmax	= 99999
+		level.grenadechance			= 0
+		level.grenadeblockedchance	= 0
+		break
+	case	1:
+		level.grenadeintervalmin	= 2000
+		level.grenadeintervalmax	= 10000
+		level.grenadechance			= 10
+		level.grenadeblockedchance	= 20
+		break
+	case	2:
+		level.grenadeintervalmin	= 2000
+		level.grenadeintervalmax	= 10000
+		level.grenadechance			= 20
+		level.grenadeblockedchance	= 20
+		break
+	case	3:
+		level.grenadeintervalmin	= 2000
+		level.grenadeintervalmax	= 10000
+		level.grenadechance			= 30
+		level.grenadeblockedchance	= 30
+		break
+	case	4:
+		level.grenadeintervalmin	= 2000
+		level.grenadeintervalmax	= 10000
+		level.grenadechance			= 40
+		level.grenadeblockedchance	= 50
+		break
+	case	5:
+		level.grenadeintervalmin	= 2000
+		level.grenadeintervalmax	= 10000
+		level.grenadechance			= 50
+		level.grenadeblockedchance	= 100
+		break
+	case	6:
+		level.grenadeintervalmin	= 1000
+		level.grenadeintervalmax	= 5000
+		level.grenadechance			= 60
+		level.grenadeblockedchance	= 100
+		break
+	case	7:
+		level.grenadeintervalmin	= 1000
+		level.grenadeintervalmax	= 5000
+		level.grenadechance			= 70
+		level.grenadeblockedchance	= 100
+		break
+	case	8:
+		level.grenadeintervalmin	= 1000
+		level.grenadeintervalmax	= 5000
+		level.grenadechance			= 80
+		level.grenadeblockedchance	= 100
+		break
+	case	9:
+		level.grenadeintervalmin	= 1000
+		level.grenadeintervalmax	= 5000
+		level.grenadechance			= 90
+		level.grenadeblockedchance	= 100
+		break
+	default:
+	case	10:
+		level.grenadeintervalmin	= 1000
+		level.grenadeintervalmax	= 5000
+		level.grenadechance			= 100
+		level.grenadeblockedchance	= 100
+		break
+	}
+
+end

@@ -1,0 +1,1 @@
+class LPFXActionManager extends SPFXActionManager;

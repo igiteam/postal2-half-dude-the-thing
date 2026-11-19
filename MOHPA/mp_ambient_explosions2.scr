@@ -1,0 +1,141 @@
+
+
+
+//-----------------
+main:
+//-----------------
+	waitthread turn_explosions_on
+	thread ambient_explosions
+end
+
+
+
+//-----------------
+ambient_explosions:
+//-----------------
+	local.count = 0
+	while (1){
+		
+		waitframe
+		
+		// make delay between explosions inverse proportional to number of players
+		// actually in the game (!spectators)
+		
+		local.count = 0;
+		for (local.i=1; local.i<=$player.size; local.i++)
+			if (!($player[local.i].isSpectator))
+				local.count ++
+		
+		if (local.count == 0)
+			goto ambient_explosions
+			
+		// find a non-spectator to bombard
+		while (1)
+		{
+			local.player = $player[randomint($player.size) + 1]
+			if (local.player.isSpectator)
+				continue
+			break
+		}
+		
+		if (local.count > 10)
+			local.delay = 10
+		else
+			local.delay = 30 - (local.count*2)
+		
+		// add some random noise
+		local.delay = local.delay + 5 - (randomint 10)
+				
+		wait local.delay
+		
+		local.xyz = local.player.origin
+		//iprintln local.count " ambient explosion"
+		//iprintln "ambient_explosions = " level.ambient_explosions
+
+		if (level.ambient_explosions == 1)
+			{
+				local.quadrant = randomint (4) + 1
+				local.x = randomint(256) + 256
+				local.y = randomint(256) + 256
+				switch (local.quadrant)
+				{
+					case 1: local.high = local.xyz + (local.x local.y 2276)
+							local.low = local.xyz + (local.x local.y -2276)
+							local.xyz = trace local.high local.low
+							break	
+					case 2: local.high = local.xyz + ( -local.x local.y 2276)
+							local.low = local.xyz + ( -local.x local.y -2276)
+							local.xyz = trace local.high local.low
+							break
+					case 3: local.high = local.xyz + ( -local.x -local.y 2276)
+							local.low = local.xyz + ( -local.x -local.y -2276)
+							local.xyz = trace local.high local.low
+							break
+					case 4: local.high = local.xyz + (local.x -local.y 2276)
+							local.low = local.xyz + (local.x -local.y -2276)
+							local.xyz = trace local.high local.low
+							break	
+				}
+				thread explode local.xyz
+			}
+	}
+	
+end
+
+//-----------------
+turn_explosions_on:
+//-----------------
+	iprintln "setting level.ambientexplosions"
+	level.ambient_explosions = 1
+	iprintln "ambientexplosions = " level.ambient_explosions
+end
+
+//-----------------
+turn_explosions_off:
+//-----------------
+	level.ambient_explosions = 0
+end
+
+//-----------------
+explode local.origin:
+//-----------------
+
+	local.o = spawn script_origin
+	local.o.origin = local.origin
+	
+	local.o playsound arty_leadin
+
+	wait 1
+	local.explosion = randomint (2) + 1
+	switch (local.explosion){
+		case 1: local.o playsound explo_dirt1
+				break
+		case 2: local.o playsound explo_stone1
+				break
+	}
+	local.o waitthread spawn_fx "models/fx/fx_truck_explosion.tik"
+
+	//radiusdamage local.origin 4000 500
+	//exec global/earthquake.scr .2 4 0 0`
+	wait 2
+	local.o remove	
+
+end
+
+//-----------------
+spawn_fx local.fx:
+//-----------------
+
+	// This function is used to spawn explosions
+
+	wait (0.1 + (randomfloat(1)))
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+
+end
+

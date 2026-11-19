@@ -1,0 +1,488 @@
+//
+// mp_destroyable.scr by Victor Dods
+//
+// This script is used to quickly set up objects that can be
+// destroyed in game, such as barricades, artillery, guns, static
+// models, etc.  The idea is that there is a set of (optional)
+// objects associated with the destroyable: a trigger_multiple with
+// health > 0, a defusable bomb and associated proximity trigger,
+// and a collision entity (clip).  You may omit any one of these,
+// but for the object to be destroyable you must have at least one
+// of the trigger with health > 0 or the defusable bomb.
+//
+// You can even use artillery and guns with this script, so that
+// when the gun is killed (or a bomb is set), an explosion happens,
+// etc.
+//
+// Simply call 'init' on the object you want to be destroyable, passing
+// in the correct parameters.  This will set up the object.  At this
+// point it is not currently destroyable.  You must call 'activate'
+// on it to make it destroyable.  Activate only returns once the object
+// has been destroyed.
+//
+// 2/10/2004 - VDODS - initial file creation
+// 3/30/2004 - VDODS - added havok destroyability
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	// used to trap accidental execs on this script
+	
+end
+
+
+//-----------------
+init local.hurt local.clip local.bomb local.destroyedCallback local.alliesBomb local.bombArmedCallback local.bombDisarmedCallback local.fuseTime local.armTime local.disarmTime:
+//-----------------
+
+	// parameters:
+	// local.hurt     - the trigger with health > 0 which will destroy the object
+	//                  when killed.  can be NULL to disallow this behavior.
+	// local.clip     - the collision entity for the object.  it will be removed
+	//                  when the object is destroyed.  can be NULL.
+	// local.bomb     - the defusable bomb model (which must be set up for use as
+	//                  in global/mp_defuse_bomb.scr).  if the bomb goes off,
+	//                  the destroyable object will be destroyed.  can be NULL
+	//                  to not use a bomb on the object.
+	// the rest of the parameters are the parameters for a call to
+	// global/mp_defuse_bomb.scr::init, with the exception of local.destroyedCallback:
+	// local.destroyedCallback is called when the object is destroyed, wether it
+	// was by the bomb or the health trigger.
+	//
+	// extra member variables you may specify to customize the object:
+	// name            - the name of the object
+	// destroyAnim     - the model animation of the destroyable object's destruction
+	// destroySound    - the sound to play when the object is destroyed
+	// destroyWait     - amount of time to wait for the destroy animation to complete
+	// destroyType     - one of the following values:
+	//                   "anim" : destroyAnim, destroySound and destroyWait are
+	//                            also specified, and will be used to play a
+	//                            destruction animation when the object is destroyed.
+	//                   "spawn" : the model given by destroyAnim will be spawned
+	//                             with the same origin and angles as the object,
+	//                             and the sound destroySound will be played.
+	//                   "havok" : indicates that this object will use havok
+	//                             physics to be destroyed.  destroySound will be
+	//                             played upon destruction.  the other values
+	//                             destroyAnim and destroyWait are not used.
+	//                   "fx" : spawn effects such as explosions.  destroyAnim,
+	//                          and destroySound apply.
+	//					 "built_in" :  same as fx, but it just swaps to the built-in destroyed
+	//								  animagtion already present in the hag
+	//
+	//                   NULL : will simply remove this object and play no sound.
+	//                          this is the default behavior. 
+	// removeWait      - the length of time to wait after the destroyable is actually
+	//                   destroyed (and the explosion anim happens) and removing the
+	//                   destroyable itself (applicable only when destroyType is
+	//                   not "havok").
+	// brinkOfDeathHealth - the health at which the destroyable will take 1 more
+	//                      hitpoint of damage before dying.  if destroyType is
+	//                      "havok" then the havok physics are woken up when the
+	//                      brinkOfDeathHealth is reached.
+	// showObjectiveStatus - if this is equal to 1, then it will show up in the
+	//                       objective status HUD
+	// objectiveStatusName - the name of the destroyable which will show up on
+	//                       the objective status HUD
+	//
+	// self is the barricade
+	// this function leaves the hurt trigger not triggerable, and the bomb deactivated.
+	// you must call 'activate' to enable the object to be destroyed.
+	
+	// if the bomb is defined, SET US UP THE BOMB
+	if (local.bomb != NIL && local.bomb != NULL) {
+		// init the bomb with the params given
+		local.bomb waitthread global/mp_defuse_bomb.scr::init global/mp_destroyable.scr::private_destroyable_callback local.alliesBomb global/mp_destroyable.scr::private_bomb_armed_callback global/mp_destroyable.scr::private_bomb_disarmed_callback local.fuseTime local.armTime local.disarmTime
+		// save the bomb as a member in the destroyable
+		self.bomb = local.bomb
+		// save the destroyable as a member in the bomb
+		self.bomb.destroyable = self
+		
+		// make sure if theres no setthread (for the bomb's
+		// trigger), that the default one is used
+		if (self.bomb.target.setthread == NIL || self.bomb.target.setthread == NULL)
+			self.bomb.target setthread global/mp_defuse_bomb.scr::proximity
+	}
+	
+	// if the damage trigger is defined, set it up
+	if (local.hurt != NIL && local.hurt != NULL) {
+		// make it not triggerable (until activation)
+		local.hurt nottriggerable
+		// make it invincible
+		local.hurt nodamage
+		// don't respond to non-explosions
+		local.hurt immune bullet fast_bullet bash impale
+		local.hurt immune shotgun aagun bulletlarge
+		// save it as a member of the destroyable
+		self.hurt = local.hurt
+	}
+	
+	// save the clip as a member of the destroyable (it may
+	// or may not be defined)
+	self.clip = local.clip
+	// save the callbacks as members of the destroyable
+	self.callback = local.destroyedCallback
+	self.bombArmedCallback = local.bombArmedCallback
+	self.bombDisarmedCallback = local.bombDisarmedCallback
+	
+	//////////////////////////////////////////////////////////////////////
+	// init the extra member variables that can be set
+	
+	// convenient way to name destroyable objects
+	if (self.name == NIL || self.name == NULL)
+		self.name = "UnnamedDestroyable"
+	// the animation/model to be used when the object is destroyed
+	if (self.destroyAnim == NIL || self.destroyAnim == NULL)
+		self.destroyAnim = NULL
+	// the sound to be played when destroyed
+	if (self.destroySound == NIL || self.destroySound == NULL)
+		self.destroySound = NULL
+	// the length of the destroy animation
+	if (self.destroyWait == NIL || self.destroyWait == NULL)
+		self.destroyWait = NULL
+	// setup the destruction type
+	if (self.destroyType == NIL || self.destroyType == NULL)
+		self.destroyType = NULL
+	// the length of time to wait after the destroyable is actually
+	// destroyed (and the explosion anim happens) and removing the
+	// destroyable itself
+	if (self.removeWait == NIL || self.removeWait == NULL)
+		self.removeWait = 0
+	// set up the brink of death health (the health at which the havok will be enabled)
+	if (self.brinkOfDeathHealth == NIL || self.brinkOfDeathHealth == NULL)
+		self.brinkOfDeathHealth = 2100 // 1 satchel charge or 11 grenades, and then 1 additional explosion
+	if (self.objectiveStatusName == NIL || self.objectiveStatusName == NULL)
+		self.objectiveStatusName = self.name
+		
+	// make the object non-wakeup-able until activation
+	if (self.destroyType == "havok")
+		self havok_disable_wakeup
+		
+end
+
+
+//-----------------
+activate:
+//-----------------
+
+	// this function call enables the destroyable behavior.
+	// it only works after 'init' is called
+
+	// self is the destroyable
+	// the destroyable must have been initialized first
+	
+	// if bomb is defined, activate it
+	if (self.bomb != NIL && self.bomb != NULL) 
+		self.bomb thread global/mp_defuse_bomb.scr::activate
+
+	// make the damage trigger triggerable (and reset the health)
+	if (self.hurt != NIL && self.hurt != NULL) {
+		// make the hurt trigger triggerable and damageable
+		self.hurt triggerable
+		self.hurt takedamage
+	}
+	
+	// if indicated, init the objective status
+	if (self.showObjectiveStatus == 1)
+		self.objectiveStatus = waitthread global/mp_objective_status.scr::destroyable_initialize self self.objectiveStatusName
+	
+	// make a backup of the important info
+	local.destroyable = spawn script_origin
+	local.destroyable.hurt = self.hurt
+	local.destroyable.bomb = self.bomb
+	local.destroyable.origin = self.origin
+	local.destroyable.angles = self.angles
+	local.destroyable.clip = self.clip
+	local.destroyable.callback = self.callback
+
+	local.destroyable.name = self.name
+	local.destroyable.destroyAnim = self.destroyAnim
+	local.destroyable.destroySound = self.destroySound
+	local.destroyable.destroyWait = self.destroyWait
+	local.destroyable.destroyType = self.destroyType
+	local.destroyable.removeWait = self.removeWait
+	local.destroyable.showObjectiveStatus = self.showObjectiveStatus
+	local.destroyable.objectiveStatus = self.objectiveStatus
+	
+	if (self.destroyType == "havok")
+		self thread health_monitor
+	else
+		self thread simple_health_monitor
+	
+	// wait until the destroyed flag is set
+	while (self != NIL && self != NULL && !self.destroyed)
+		waitframe
+	
+	// if indicated, set the objective status to destroyed
+	if (local.destroyable.showObjectiveStatus == 1)
+		local.destroyable.objectiveStatus waitthread global/mp_objective_status.scr::destroyable_destroyed
+	
+	// at this point, either the bomb exploded, or the health ran out.
+	// we can't assume here that self exists anymore. use the backup data
+
+	// do the destruction anim/havok stuff
+	switch (local.destroyable.destroyType) {
+		case "anim":
+			thread global/mp_animation.scr::spawn_animation local.destroyable.origin local.destroyable.angles 1 local.destroyable.destroyAnim local.destroyable.destroySound local.destroyable.destroyWait
+			break
+		case "spawn":
+			thread global/mp_animation.scr::spawn_model local.destroyable.origin local.destroyable.angles 1 local.destroyable.destroyAnim local.destroyable.destroySound
+			break
+		case "fx":
+			thread global/mp_fx.scr::spawn_fx local.destroyable.origin local.destroyable.destroyAnim
+		case "havok":
+			// play a sound here			
+			local.soundOrigin = spawn script_origin
+			local.soundOrigin.origin = local.destroyable.origin
+			local.soundOrigin playsound local.destroyable.destroySound
+			break
+		case "built_in":
+			thread global/mp_fx.scr::spawn_fx local.destroyable.origin local.destroyable.destroyAnim
+		default:
+			// nothing needs to be done here, it will be removed later
+			break
+	}
+		
+	// do the external callback
+	if (self != NIL && self != NULL)
+		self thread local.destroyable.callback local.destroyable.name local.destroyable.origin
+	else
+		thread local.destroyable.callback local.destroyable.name local.destroyable.origin
+
+	// remove the damage trigger
+	if (local.destroyable.hurt != NIL && local.destroyable.hurt != NULL)
+		local.destroyable.hurt remove
+	// remove the clip
+	if (local.destroyable.clip != NIL && local.destroyable.clip != NULL)
+		local.destroyable.clip remove
+	// remove the destroyable
+	if (local.destroyable.removeWait!=NIL && local.destroyable.removeWait!=NULL)
+	{		
+		wait local.destroyable.removeWait
+	}
+	if (self != NIL && self != NULL && local.destroyable.destroyType != "havok" && local.destroyable.destroyType != "built_in") 
+	{
+		if (self.bomb){
+			self.bomb.target remove
+			self.bomb remove
+		}
+		self remove
+	}
+	
+	if (self != NIL && local.destroyable.destroyType == "built_in") 
+	{
+		self hurt 999999
+	}
+
+	if (local.destroyable.bomb)
+	{
+		local.destroyable.bomb.target remove
+		local.destroyable.bomb remove
+	}
+	
+	// if indicated, remove the objective status entity
+	if (local.destroyable.showObjectiveStatus == 1)
+		local.destroyable.objectiveStatus remove
+	// remove the temp script_origin which was used to store data
+	local.destroyable remove
+end
+
+
+//-----------------
+health_monitor:
+//-----------------
+	// waits for the health to hit 0 and then wake up the havok
+
+	// self is the destroyable
+	
+	// make sure we save this for later
+	local.origin = self.origin
+	
+	// the hurt trigger isn't specified, so end
+	if (self.hurt == NIL || self.hurt == NULL)
+		end
+		
+	self.hurt.health = 100000
+
+	// wait for the health to get below a certain brink and save the resulting health	
+	while (self && self.hurt && self.hurt.health > ( 100000 - self.brinkOfDeathHealth ) && !self.destroyed)
+		waitframe
+	
+	// if it was destroyed (from the bomb), exit
+	if (!self || self.destroyed)
+		end
+	local.brinkHealth = self.hurt.health
+		
+	// now activate havok so the next blast knocks it apart
+	if (self.destroyType == "havok")
+		self havok_enable_wakeup
+
+	// make sure the barricade falls apart
+	radiusdamage local.origin 1 200
+
+	// make sure to get rid of the bomb
+	if (self.bomb)
+		self.bomb waitthread global/mp_defuse_bomb.scr::deactivate
+
+	// set the destroyed flag
+	self.destroyed = 1
+end
+
+
+//-----------------
+simple_health_monitor:
+//-----------------
+
+	// Don't wait for full damage to be done and then set the hurt
+	// trigger into a fragile state like the health_monitor
+	// function. Instead, just watch the health, and mark it dead
+	// when the health is gone.
+	
+	// make sure we save this for later
+	local.origin = self.origin
+	
+	// the hurt trigger isn't specified, so end
+	if (self.hurt == NIL || self.hurt == NULL)
+		end
+
+	self.hurt.health = 100000
+
+
+	if (self.health != NIL && self.health != NULL && self.health >0)
+	{
+		// wait for the health to get below a certain brink and save the resulting health	
+		while (self && self.hurt && self.hurt.health > 100000-self.brinkOfDeathHealth && !self.destroyed)
+		{
+			if ((self.hurt.health - (100000 - self.brinkOfDeathHealth)) < self.health)
+				self.health = self.hurt.health - (100000 - self.brinkOfDeathHealth)
+			else
+			{
+				self.hurt.health = self.health + (100000 - self.brinkOfDeathHealth)
+				self.hurt.max_health = 100000
+			}
+			waitframe
+		}
+	}
+	else
+	{
+		while (self && self.hurt && self.hurt.health > 100000-self.brinkOfDeathHealth && !self.destroyed)
+		{
+			waitframe
+		}
+	}
+	// if it was destroyed (from the bomb), exit
+	if (!self || self.destroyed){
+		end
+	}
+
+	// make sure the barricade falls apart
+	radiusdamage local.origin 1 200
+	// make sure to get rid of the bomb
+	if (self.bomb)
+		self.bomb waitthread global/mp_defuse_bomb.scr::deactivate
+		
+	self.destroyed = 1
+end
+
+
+//-----------------
+remove local.removeDestroyable:
+//-----------------
+
+	// this function removes the destroyable and its clip, hurt, bomb 
+	// and bomb proximity trigger (if applicable)
+	
+	// self is the destroyable
+	
+	// default values
+	if (local.removeDestroyable == NIL || local.removeDestroyable == NULL)
+		local.removeDestroyable = 1
+	
+	// remove the bomb
+	if (self.bomb) {
+		self.bomb.target remove
+		self.bomb remove
+	}
+	
+	// remove the health trigger
+	if (self.hurt)
+		self.hurt remove
+		
+	// remove the clip
+	if (self.clip)
+		self.clip remove
+		
+	// if requested to remove the destroyable
+	if (local.removeDestroyable)
+		self remove	
+end
+
+
+//----------------------------------------------------------------------------
+private_destroyable_callback:
+//-----------------
+
+	// self is the proximity trigger for the bomb
+	// (this is only actually called if there was a bomb to begin with)
+
+	// if there is a pre-explosion callback, call it
+	if (self.bomb.destroyable && self.bomb.destroyable.preExplosionCallback)
+		self.bomb.destroyable thread self.bomb.destroyable.preExplosionCallback
+
+	// enable havok if applicable	
+	if (self.bomb.destroyable && self.bomb.destroyable.destroyType == "havok")
+		self.bomb.destroyable havok_enable_wakeup
+	// deactivate the bomb (if it exists)
+	if (self.bomb.destroyable && self.bomb)
+		self.bomb waitthread global/mp_defuse_bomb.scr::deactivate
+//	// remove the destroyable if applicable
+//	if (self && self.bomb.destroyable.destroyType != "havok")
+//		self.bomb.destroyable remove
+		
+	if (self.bomb.destroyable)
+		self.bomb.destroyable.destroyed = 1
+end
+
+
+//--------------------
+private_destroyed_handler:
+//--------------------
+	// self is undefined
+	
+	
+
+//--------------------
+private_bomb_armed_callback local.planter:
+//--------------------
+
+	// self is the proximity trigger for the bomb
+	
+	// if indicated, set the objective status to bomb armed
+	if (self.bomb.destroyable.showObjectiveStatus == 1)
+		self.bomb.destroyable.objectiveStatus waitthread global/mp_objective_status.scr::destroyable_bomb_armed
+	
+	// call the user-defined callback
+	if (self.bomb.destroyable.bombArmedCallback)
+		self.bomb.destroyable thread self.bomb.destroyable.bombArmedCallback local.planter
+end
+
+
+//--------------------
+private_bomb_disarmed_callback local.planter:
+//--------------------
+
+	// self is the proximity trigger for the bomb
+	
+	// if indicated, set the objective status to bomb disarmed
+	if (self.bomb.destroyable.showObjectiveStatus == 1)
+		self.bomb.destroyable.objectiveStatus waitthread global/mp_objective_status.scr::destroyable_bomb_disarmed
+
+	// call the user-defined callback
+	if (self.bomb.destroyable.bombDisarmedCallback)
+		self.bomb.destroyable thread self.bomb.destroyable.bombDisarmedCallback local.planter
+end
+
+

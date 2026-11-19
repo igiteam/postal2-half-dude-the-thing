@@ -1,0 +1,692 @@
+Welcome to the vehicle_common.scr documentation.  We hope you enjoy your ride.  Please keep all hands inside the editor at all times!!!
+
+Alrighty, let's start the documentation /* cue dancers and music and Tom Hess in a tutu */
+
+This script provides a bunch of extended functionality for AI and ground based, ridden vehicles.  Functionality includes:
+
+- The ability to spawn in a vehicle with any number of passengers in all the ridable slots
+- The ability to populate an existing vehicle with any number of passengers in all the ridable slots
+- The ability to tell AI to enter or exit a vehicle at any of the ridable slots
+- Manages a vehicle so if the driver is killed, the rest of the AI know to get off the vehicle
+- Various functions to get data off of the vehicle
+
+I bet yer lickin' yer chops now eh?  One thing to note with the way vehicles are handled in this script, there are 4 rider slot classes that are considered:
+
+- Driver
+- Front seat passenger
+- Back seat passenger(s)
+- gunner positions
+
+The functions are labeled and arranged to account for these rider classes, provided that the vehicle is setup properly.  As more vehicles are setup to handle AI, corresponding functions will be added to the script to handle them.
+
+THE VEHICLE UTILS SCRIPT IS ALL INCLUSIVE!!!!  This means that you can not use this script in conjunction with vehicles you've set up your self.  So if you populate a vehicle via your own methods, and then try to use commands from this script on that vehicle, there's no guarantee that it will work.
+
+To support the 'self' method of scripting, I've made some of these commands accept the method of:
+
+$object waitthread SpawnAxisTruck NIL yada yada yada
+
+So in these cases, if you would like to use the 'self' method, just make sure to put something in the first parameter (preferably NIL) which the 'self' method replaces.  Not all functions have this option as is noted below.  This was dictated by its applicability (is that a werd?) to the function.
+
+FUNCTION DESCRIPTIONS
+==========================================================
+Parameter notation:
+nothing	- means the parameter is required and the function will not work if it's missing
+<>		- denotes required, but with multiple ways to enter the data
+[]		- denotes optional parameters
+
+
+SPAWN FUNCTIONS
+==================================================================
+---------------------------------
+SpawnAxisTruck entSpawnTarget <strTargetname> [strDriverHag] [strFrontRiderHag] [intBackRiders] [strBackRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will spawn an axis truck and populate it with the set number of AI in the corresponding slots.  The way this works is you have to place an entity somewhere in the world, and give it the angles you want the truck to face when spawned.  Then call this functions with the passed in parameters.  The parameters mean the following:
+
+entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at, can be an array of entities
+strTargetname		= REQUIRED - string, the targetname to give the vehicle upon spawning.  This can also be entered on the entSpawnTarget entity (See below)
+strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver, pass "" to use the value on the entSpawnTarget entity, or the default
+strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger, pass "" to use the value on the entSpawnTarget entity, or the default
+intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+strBackRidersHag	= OPTIONAL - string, the hag for the riders, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelDriver			- hag file for the driver
+$modelFrontPassenger	- hag file for the front passenger
+$modelBackPassenger		- hag file for the back passenger(s)
+#numBackPassenger		- number of back passenger(s)
+$spawnTargetname		- targetname for the vehicle upon spawning
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then an empty vehicle will spawn.  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations with the vehicle.  If you enter the values directly on the entSpawnTarget entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entSpawnTarget entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entSpawnTarget entites to be passed.  When passed, this function will spawn vehicles at all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entSpawnTarget entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings, including targetnames, upon spawning.  Nifty eh?
+
+
+---------------------------------
+SpawnAxisJeep entSpawnTarget <strTargetname> [strDriverHag] [strFrontRiderHag] [intBackRiders] [strBackRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will spawn an axis jeep and populate it with the set number of AI in the corresponding slots.  The way this works is you have to place an entity somewhere in the world, and give it the angles you want the jeep to face when spawned.  Then call this functions with the passed in parameters.  The parameters mean the following:
+
+entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at, can be an array of entities
+strTargetname		= REQUIRED - string, the targetname to give the vehicle upon spawning.  This can also be entered on the entSpawnTarget entity (See below)
+strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver, pass "" to use the value on the entSpawnTarget entity, or the default
+strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger, pass "" to use the value on the entSpawnTarget entity, or the default
+intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+strBackRidersHag	= OPTIONAL - string, the hag for the riders, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelDriver			- hag file for the driver
+$modelFrontPassenger	- hag file for the front passenger
+$modelBackPassenger		- hag file for the back passenger(s)
+#numBackPassenger		- number of back passenger(s)
+$spawnTargetname		- targetname for the vehicle upon spawning
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then an empty vehicle will spawn.  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations with the vehicle.  If you enter the values directly on the entSpawnTarget entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entSpawnTarget entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entSpawnTarget entites to be passed.  When passed, this function will spawn vehicles at all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entSpawnTarget entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings, including targetnames, upon spawning.  Also Nifty eh?  But it sounds a lot like the SpawnAxisTruck function right?  Well......IT IS!!!!
+
+
+---------------------------------
+SpawnAxisTank_Type97 entSpawnTarget <strTargetname> [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will spawn an axis tank type 97 - Chiha and populate it with the set number of AI in the corresponding slots.  The way this works is you have to place an entity somewhere in the world, and give it the angles you want the jeep to face when spawned.  Then call this functions with the passed in parameters.  The parameters mean the following:
+
+entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at, can be an array of entities
+strTargetname		= REQUIRED - string, the targetname to give the vehicle upon spawning.  This can also be entered on the entSpawnTarget entity (See below)
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+$spawnTargetname		- targetname for the vehicle upon spawning
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then an empty vehicle will spawn.  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations with the vehicle.  If you enter the values directly on the entSpawnTarget entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entSpawnTarget entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entSpawnTarget entites to be passed.  When passed, this function will spawn vehicles at all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entSpawnTarget entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings, including targetnames, upon spawning.
+
+
+---------------------------------
+SpawnAxisTank_Type95 entSpawnTarget <strTargetname> [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will spawn an axis tank type 95 - Hago and populate it with the set number of AI in the corresponding slots.  The way this works is you have to place an entity somewhere in the world, and give it the angles you want the jeep to face when spawned.  Then call this functions with the passed in parameters.  The parameters mean the following:
+
+entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at, can be an array of entities
+strTargetname		= REQUIRED - string, the targetname to give the vehicle upon spawning.  This can also be entered on the entSpawnTarget entity (See below)
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+$spawnTargetname		- targetname for the vehicle upon spawning
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then an empty vehicle will spawn.  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations with the vehicle.  If you enter the values directly on the entSpawnTarget entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entSpawnTarget entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entSpawnTarget entites to be passed.  When passed, this function will spawn vehicles at all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entSpawnTarget entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings, including targetnames, upon spawning.
+
+
+---------------------------------
+SpawnAxisTank_Type87 entSpawnTarget <strTargetname> [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will spawn an axis tank type 87 - Light Armored Truck and populate it with the set number of AI in the corresponding slots.  The way this works is you have to place an entity somewhere in the world, and give it the angles you want the jeep to face when spawned.  Then call this functions with the passed in parameters.  The parameters mean the following:
+
+entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at, can be an array of entities
+strTargetname		= REQUIRED - string, the targetname to give the vehicle upon spawning.  This can also be entered on the entSpawnTarget entity (See below)
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+$spawnTargetname		- targetname for the vehicle upon spawning
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then an empty vehicle will spawn.  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations with the vehicle.  If you enter the values directly on the entSpawnTarget entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entSpawnTarget entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entSpawnTarget entites to be passed.  When passed, this function will spawn vehicles at all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entSpawnTarget entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings, including targetnames, upon spawning.
+
+
+
+
+POPULATE FUNCTIONS
+==================================================================
+---------------------------------
+PopulateAxisTruck entVehicle [strDriverHag] [strFrontRiderHag] [intBackRiders] [strBackRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will take an existing axis truck and populate it with the set number of AI in the corresponding slots.  The way this works is you call this function on an already existing vehicle passing in the desired parameters.  The parameters mean the following:
+
+YOU WILL GET UNEXPECTED BEHAVIOR IF THIS IS CALLED ON A DIFFERENT TYPE OF VEHICLE!!!!
+
+entVehicle			= REQUIRED - entity, the vehicle to be populated
+strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver, pass "" to use the value on the entVehicle entity, or the default
+strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger, pass "" to use the value on the entVehicle entity, or the default
+intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+strBackRidersHag	= OPTIONAL - string, the hag for the riders, pass "" to use the value on the entVehicle entity, or the default
+
+You can also enter these values directly on the entVehicle entity under the following keyvalue pairs:
+
+$modelDriver			- hag file for the driver
+$modelFrontPassenger	- hag file for the front passenger
+$modelBackPassenger		- hag file for the back passenger(s)
+#numBackPassenger		- number of back passenger(s)
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then the vehicle will remain the same (dunno why you'd want to do that, but you can).  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations on the vehicle.  If you enter the values directly on the entVehicle entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entVehicle entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entVehicle entites to be passed.  When passed, this function will populate all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entVehicle entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings upon spawning.
+
+
+---------------------------------
+PopulateAxisJeep entVehicle [strDriverHag] [strFrontRiderHag] [intBackRiders] [strBackRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will take an existing axis jeep and populate it with the set number of AI in the corresponding slots.  The way this works is you call this function on an already existing vehicle passing in the desired parameters.  The parameters mean the following:
+
+YOU WILL GET UNEXPECTED BEHAVIOR IF THIS IS CALLED ON A DIFFERENT TYPE OF VEHICLE!!!!
+
+entVehicle			= REQUIRED - entity, the vehicle to be populated
+strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver, pass "" to use the value on the entVehicle entity, or the default
+strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger, pass "" to use the value on the entVehicle entity, or the default
+intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+strBackRidersHag	= OPTIONAL - string, the hag for the riders, pass "" to use the value on the entVehicle entity, or the default
+
+You can also enter these values directly on the entVehicle entity under the following keyvalue pairs:
+
+$modelDriver			- hag file for the driver
+$modelFrontPassenger	- hag file for the front passenger
+$modelBackPassenger		- hag file for the back passenger(s)
+#numBackPassenger		- number of back passenger(s)
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then the vehicle will remain the same (dunno why you'd want to do that, but you can).  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations on the vehicle.  If you enter the values directly on the entVehicle entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entVehicle entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entVehicle entites to be passed.  When passed, this function will populate all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entVehicle entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings upon spawning.
+
+
+---------------------------------
+PopulateAxisTank_Type97 entVehicle [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will take an existing axis tank type 97 - Chiha and populate it with the set number of AI in the corresponding slots.  The way this works is you call this function on an already existing vehicle passing in the desired parameters.  The parameters mean the following:
+
+entVehicle			= REQUIRED - entity, the vehicle to be populated
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then the vehicle will remain the same (dunno why you'd want to do that, but you can).  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations on the vehicle.  If you enter the values directly on the entVehicle entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entVehicle entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entVehicle entites to be passed.  When passed, this function will populate all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entVehicle entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings upon spawning.
+
+
+---------------------------------
+PopulateAxisTank_Type95 entVehicle [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will take an existing axis tank type 95 - Hago and populate it with the set number of AI in the corresponding slots.  The way this works is you call this function on an already existing vehicle passing in the desired parameters.  The parameters mean the following:
+
+entVehicle			= REQUIRED - entity, the vehicle to be populated
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then the vehicle will remain the same (dunno why you'd want to do that, but you can).  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations on the vehicle.  If you enter the values directly on the entVehicle entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entVehicle entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entVehicle entites to be passed.  When passed, this function will populate all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entVehicle entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings upon spawning.
+
+
+---------------------------------
+PopulateAxisTank_Type87 entVehicle [intGunnerRiders] [strGunnerRidersHag]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will take an existing axis tank type 87 - Light Armored Truck and populate it with the set number of AI in the corresponding slots.  The way this works is you call this function on an already existing vehicle passing in the desired parameters.  The parameters mean the following:
+
+entVehicle			= REQUIRED - entity, the vehicle to be populated
+intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners, pass "" to use the value on the entSpawnTarget entity, or the default
+
+You can also enter these values directly on the entSpawnTarget entity under the following keyvalue pairs:
+
+$modelGunner			- hag file for the gunner(s)
+#numGunner				- number of gunner(s)
+
+When you call the function, if you don't pass in any of the optional parameters (meaning NIL will be passed), then the vehicle will remain the same (dunno why you'd want to do that, but you can).  If you pass in any of the optional parameters, then those values will take effect and AI will spawn at those locations on the vehicle.  If you enter the values directly on the entVehicle entity, then you can pass in an empty string "" for each optional parameter and it will use the values on the entVehicle entity.  Passed in values will always override the values on the entity.  Also, if you don't set any values on the entity, you can pass in an empty string "" and a set default value will be used for those slots.
+
+This function is also setup to allow for an array of entVehicle entites to be passed.  When passed, this function will populate all entities in the array.  So a very powerful feature is to enter all the different values you want on all of the entVehicle entities, and then call this function with "" passed for all the optional strings (or NIL if you don't want a particular slot to be populated).  Then they can all have their different settings upon spawning.
+
+
+
+
+AI EXIT FUNCTIONS
+==================================================================
+---------------------------------
+AIExit_Driver entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the driver of the passed in vehicle exit.  If no AI is present, then nothing will happen.
+
+This function will also support an array of vehicles passed in, making this function happen on all of the vehicles in the array.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+AIExit_Front entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the front passenger of the passed in vehicle exit.  If no AI is present, then nothing will happen.
+
+This function will also support an array of vehicles passed in, making this function happen on all of the vehicles in the array.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+AIExit_Back entVehicle [intNumAIToExit]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in number of back passengers of the passed in vehicle exit.  If no AI is present, then nothing will happen.  If no value is passed for the number of AI to exit, then all the AI in that slot class will exit.
+
+This function will also support an array of vehicles passed in, making this function happen on all of the vehicles in the array.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+intNumAIToExit		= OPTIONAL - integer, the number of AI to make exit the vehicle.  Pass in NIL for all AI in this rider class to exit
+
+
+---------------------------------
+AIExit_Gunner entVehicle [intNumAIToExit]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in number of gunners of the passed in vehicle exit.  If no AI is present, then nothing will happen.  If no value is passed for the number of AI to exit, then all the AI in that slot class will exit.
+
+This function will also support an array of vehicles passed in, making this function happen on all of the vehicles in the array.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+intNumAIToExit		= OPTIONAL - integer, the number of AI to make exit the vehicle.  Pass in NIL for all AI in this rider class to exit
+
+
+---------------------------------
+AIExit_All entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make all the AI on the passed in vehicle exit.  If no AI is present, then nothing will happen.  
+
+This function will also support an array of vehicles passed in, making this function happen on all of the vehicles in the array.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+
+
+AI ENTER FUNCTIONS
+==================================================================
+---------------------------------
+AIEnter_Driver entAI entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in AI run to the passed in vehicle and enter in the driver slot.  If the particular rider class does not exist on the vehicle, then it is ignored automatically.
+
+entAI				= REQUIRED - entity, the AI to perform the function on
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+This function will return a value based on the success or failer of the AI entering the vehicle.  The values returned are as follows:
+
+1		- the AI successfully made it onto the vehicle
+NIL		- the vehicle could not get on the vehicle
+-1		- the AI died before getting on the vehicle
+
+
+---------------------------------
+AIEnter_Front entAI entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in AI run to the passed in vehicle and enter in the front passenger slot.  If the particular rider class does not exist on the vehicle, then it is ignored automatically.
+
+entAI				= REQUIRED - entity, the AI to perform the function on
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+This function will return a value based on the success or failer of the AI entering the vehicle.  The values returned are as follows:
+
+1		- the AI successfully made it onto the vehicle
+NIL		- the vehicle could not get on the vehicle
+-1		- the AI died before getting on the vehicle
+
+
+---------------------------------
+AIEnter_Back entAI entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in AI run to the passed in vehicle and enter in the back passenger slot.  If the particular rider class does not exist on the vehicle, then it is ignored automatically.
+
+This function can be passed in an array of AI to get on the vehicle.  If an array is passed, then this function will make as many of the AI in the array try to get on the vehicle in this rider class as will fit.
+
+entAI				= REQUIRED - entity, the AI to perform the function on
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+This function will return a value based on the success or failer of the AI entering the vehicle.  If an array of AI are passed, then this feature will yield unpredictable results (it should theoretically be the last AI processed from the array).  The values returned are as follows:
+
+1		- the AI successfully made it onto the vehicle
+NIL		- the vehicle could not get on the vehicle
+-1		- the AI died before getting on the vehicle
+
+
+---------------------------------
+AIEnter_Gunner entAI entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will make the passed in AI run to the passed in vehicle and enter in the gunner slot.  If the particular rider class does not exist on the vehicle, then it is ignored automatically.
+
+This function can be passed in an array of AI to get on the vehicle.  If an array is passed, then this function will make as many of the AI in the array try to get on the vehicle in this rider class as will fit.
+
+entAI				= REQUIRED - entity, the AI to perform the function on
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+This function will return a value based on the success or failer of the AI entering the vehicle.  If an array of AI are passed, then this feature will yield unpredictable results (it should theoretically be the last AI processed from the array).  The values returned are as follows:
+
+1		- the AI successfully made it onto the vehicle
+NIL		- the vehicle could not get on the vehicle
+-1		- the AI died before getting on the vehicle
+
+
+---------------------------------
+AIEnter_All entAI entVehicle [boolGoDriver] [boolGoFrontPassenger] [boolGoBackPassenger] [boolGoGunner]
+---------------------------------
+
+This function will make the passed in AI run to the passed in vehicle and enter in whatever slots are desired.  This functions was designed to basically take an array of AI and tell them to go enter a vehicle however possible.  By passing in zero 0 into the optional parameters, it will tell the AI in the array not to try and fill those slots on the vehicle.  By default, all rider classes are set to be filled.  If a particular rider class does not exist on the vehicle, then it is ignored automatically.
+
+entAI					= REQUIRED - entity, the AI to perform the function on
+entVehicle				= REQUIRED - entity, the vehicle to perform the function on
+boolGoDriver			= OPTIONAL - integer, if passed a 0, then it will not tell the AI to enter this rider class on the vehicle
+boolGoFrontPassenger	= OPTIONAL - integer, if passed a 0, then it will not tell the AI to enter this rider class on the vehicle
+boolGoBackPassenger		= OPTIONAL - integer, if passed a 0, then it will not tell the AI to enter this rider class on the vehicle
+boolGoGunner			= OPTIONAL - integer, if passed a 0, then it will not tell the AI to enter this rider class on the vehicle
+
+
+
+
+GET AI COUNT FUNCTIONS
+==================================================================
+---------------------------------
+GetAICount_Driver entVehicle
+---------------------------------
+
+This function returns how many drivers are currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAICount_Front entVehicle
+---------------------------------
+
+This function returns how many front passengers are currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAICount_Back entVehicle
+---------------------------------
+
+This function returns how many back passengers are currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAICount_Gunner entVehicle
+---------------------------------
+
+This function returns how many gunners are currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAICount_All entVehicle
+---------------------------------
+
+This function returns how many AI are currently on the passed in vehicle in all desired rider classes.
+
+entAI					= REQUIRED - entity, the AI to perform the function on
+entVehicle				= REQUIRED - entity, the vehicle to perform the function on
+boolGoDriver			= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoFrontPassenger	= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoBackPassenger		= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoGunner			= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+
+
+
+
+GET AI ENTITY FUNCTIONS
+==================================================================
+---------------------------------
+GetAI_Driver entVehicle
+---------------------------------
+
+This function returns the driver entity currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAI_Front entVehicle
+---------------------------------
+
+This function returns the front passenger entity currently on the passed in vehicle.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAI_Back entVehicle
+---------------------------------
+
+This function returns the back passneger entities currently on the passed in vehicle.  This function returns an array, with each element containing an AI from this rider class.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAI_Gunner entVehicle
+---------------------------------
+
+This function returns the gunner entities currently on the passed in vehicle.  This function returns an array, with each element containing an AI from this rider class.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+GetAICount_All entVehicle
+---------------------------------
+
+This function returns all the AI entities currently on the passed in vehicle in all desired rider classes.  This function returns an array, with each element containing an AI.
+
+entAI					= REQUIRED - entity, the AI to perform the function on
+entVehicle				= REQUIRED - entity, the vehicle to perform the function on
+boolGoDriver			= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoFrontPassenger	= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoBackPassenger		= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+boolGoGunner			= OPTIONAL - integer, if passed a 0, then it will not check this rider class on the vehicle
+
+
+
+
+MISC FUNCTIONS
+==================================================================
+---------------------------------
+SetAutoTarget entVehicle [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will put the turret(s) on the passed in vehicle(s) into 'auto' targeting mode.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+boolUseAllTurrets	= OPTIONAL - boolean, means that this should be applied to all the turrets on the vehicle
+
+
+---------------------------------
+SetManualTarget entVehicle [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will put the turret(s) on the passed in vehicle(s) into 'none' for manual targeting mode.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+boolUseAllTurrets	= OPTIONAL - boolean, means that this should be applied to all the turrets on the vehicle
+
+
+---------------------------------
+ClearAimTarget entVehicle [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will clear the currently set aim target on the turret(s) of the passed in vehicle(s).  This is only applicable when the turret is set to manual targeting mode.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+boolUseAllTurrets	= OPTIONAL - boolean, means that this should be applied to all the turrets on the vehicle
+
+
+---------------------------------
+SetAimTarget entVehicle entTarget [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This funciton will put the turret(s) on the passed in vehicle(s) into manual targeting mode, and make them aim at the passed in target.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+entTarget			= REQUIRED - entity, the target to aim the turret(s) to
+boolUseAllTurrets	= OPTIONAL - boolean, means that this should be applied to all the turrets on the vehicle
+
+
+---------------------------------
+ShootAt entVehicle entTarget [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This funciton will make the turret(s) on the passed in vehicle(s) shoot at the passed in target.  This is for when the turret(s) are set to auto targeting mode.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+entTarget			= REQUIRED - entity, the object to have the vehicle shoot at.  It will continue to shoot at this target until it's dead
+boolUseAllTurrets	= OPTIONAL - boolean, tells all the turret weapons on the vehicle to shoot at the target
+
+
+---------------------------------
+Shoot entVehicle [boolUseAllTurrets]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will tell the turret(s) of the passed in vehicle(s) to shoot one burst.  This is only applicable when the turret is set to manual targeting mode.  Use the boolUseAllTurrets command to specify whether all turrets on the vehicle should do this.
+
+THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+boolUseAllTurrets	= OPTIONAL - boolean, means that this should be applied to all the turrets on the vehicle
+
+
+---------------------------------
+WaitForVehicle entVehicle
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function waits for all AI to finish either getting on or off the passed in vehicle, then continues.  To be used as a stall thread to wait for all AI transactions to be complete.
+
+This function can accept an array of vehicles.
+
+entVehicle			= REQUIRED - entity, the vehicle to perform the function on
+
+
+---------------------------------
+DrivePath entVehicle entPath [intSpeed]
+---------------------------------
+
+*CAN USE THE 'SELF' METHOD
+
+This function will tell the passed in vehicle to drive to drive the passed in path at the passed in speed.  It will then wait until the vehicle is done, so this thread can be used as a stall point to wait for a vehicle to finishing driving its path.
+
+entVehicle		= REQUIRED - entity, the vehicle to perform the function on
+entPath			= REQUIRED - entity, the path to drive on
+intSpeed		= OPTIONAL - integer, the desired speed to use when driving the path

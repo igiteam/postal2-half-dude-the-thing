@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsLeftHook extends LPDamageTypeLarocheVsMelee;

@@ -1,0 +1,12 @@
+class SeqAct_ForceFeedback extends SequenceAction
+    hidecategories(Object);
+
+var(*) /*0x44000000-0x00000400*/ private @NULL FFWaveform[65537];
+var(*) /*0x44000000-0x00000000*/ private class PredefinedWaveForm[65537];
+
+defaultproperties
+{
+    InputLinks[0]=(LinkDesc="Start",bHasImpulse=false,QueuedActivations=0,bDisabled=false,bDisabledPIE=false,LinkedOp=none,DrawY=0,bHidden=false,ActivateDelay=0.0000000,bMoving=false,bClampedMax=false,bClampedMin=false,OverrideDelta=0)
+    InputLinks[1]=(LinkDesc="Stop",bHasImpulse=false,QueuedActivations=0,bDisabled=false,bDisabledPIE=false,LinkedOp=none,DrawY=0,bHidden=false,ActivateDelay=0.0000000,bMoving=false,bClampedMax=false,bClampedMin=false,OverrideDelta=0)
+    ObjName="Force Feedback"
+}

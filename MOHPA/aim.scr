@@ -1,0 +1,98 @@
+//------------------------------------------------------------------------------------
+// Aim
+// Aim script - causes the character to aim its current weapon.  Right now it requires 
+// that the character stop moving first.  Once we get this working we can think about 
+// allowing the characters to fire while moving.
+//------------------------------------------------------------------------------------
+
+// Initialise say manager
+self waitthread anim/SayManager.scr::Init
+
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+self weaponcommand mainhand attachtohand mainhand
+
+//------------------------------------------------------------------------------------
+start:
+//------------------------------------------------------------------------------------
+
+	self.blendtime = 0.50
+
+	// see if we need to do any transitions.....
+	switch (self.position)
+	{
+		crouchwalk:
+		crouchrun:
+			// For now at least, we need to stop in order to fire
+			waitexec anim/crouch.scr::transition
+			goto start
+
+		pronewalk:
+			// Can't crawl and fire at the same time
+			waitexec anim/prone.scr
+			goto start
+
+		prone:
+			self.blendtime = 0.2
+			break
+		knees:
+		crawl:
+		floor:
+			// Incapacitated, can't aim.  Just go on being in pain.
+			waitexec anim/continue_pain.scr
+			goto start
+	}
+
+	// done transitioning, now time to play our animation....
+	switch (self.weapongroup)
+	{
+		grenade:
+			self setmotionanim idle_grenade		// Do we need this or should ai just 
+									// begin the throw after finding a 
+									// target?
+			break
+
+		default:						
+///			self setsay ATTACK
+//			self setmotionanim (self getalias idle legs)				
+//			self setmotionanim (self getalias aim)
+			waitthread Aim
+	//				self setmotionanim (self.weapongroup + "_stand_alert_legs")
+	//				self setactionanim (self.weapongroup + "_aim") -60 60
+			break
+	}
+
+//	wait self.blendtime
+	pause
+
+end
+
+
+
+
+//------------------------------------------------------------------------------------
+Aim local.aimtype:
+//
+//	valid aimtypes are:
+//						aim			- no motion aim (default)
+//						walk		- aiming while walking
+//						run			- aiming while running
+//------------------------------------------------------------------------------------
+
+	if (local.aimtype==NIL)
+		local.aimtype = aim
+
+		/*
+//	if (local.aimtype=="aim")
+		self setactionanim (self getalias local.aimtype) -60 60
+		*/
+
+//	self setmotionanim (self getalias local.aimtype)
+	if ( local.aimtype==aim )
+	{
+		self setmotionanim (self getalias aim)
+		waitframe
+	}
+
+end
+

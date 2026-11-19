@@ -1,0 +1,1 @@
+class LPDamageTypeAct1BossTongueSwipe extends LPDamageTypeMelee;

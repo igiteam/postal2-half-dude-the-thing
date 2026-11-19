@@ -1,0 +1,618 @@
+//
+// mp_defuse_bomb.scr by Jason Abbott, modified by Victor Dods
+//
+// This is a generalized, defusable bomb script.  It provides a bomb which
+// the allies can set (the user has to hold the 'use' key down for a certain
+// period of time to arm it), and once in place, the axis can disarm it
+// (in a similar fashion).  The init function provides a means to specify
+// a callback function for when the bomb explodes and for when the bomb is
+// armed and disarmed.
+//
+// To use in a script, set up the bomb/trigger as described below, and then
+// call init on the bomb (as described by the function comments below) when 
+// the map starts up.  When the bomb should be visible (i.e. the objective 
+// which involves the bomb is the current one), call activate on the bomb.  
+// When that objective is completed, call deactivate on the bomb.
+//
+// In the map, there must be the following:
+// - A script_model, which will be the bomb/throbbox itself
+// - A trigger_multiple which surrounds the immediate vacinity of the bomb
+//   (in which, if the player holds 'use', the bomb will arm/disarm).
+// - The script_model must target the trigger_multiple
+// - The trigger_multiple must have a keypair 
+//   "setthread" / "global/mp_defuse_bomb.scr::proximity"
+//   (or must setthread another function which in turn calls
+//   global/mp_defuse_bomb.scr::proximity)
+//
+// Optionally, the mapper may set the "soundPlant" and "soundUnplant" keys
+// for when the bomb is armed and disarmed respectively.  
+//
+// By default all bombs do 200 points of damage over a sphere 200 units in
+// radius. These can be changed by setting the two variables on the bomb 
+// model: radius and damage.
+//
+// Note: it isn't strictly necessary to set the model keypair for the bomb
+// script object to "items/pulse_explosive.tik" because that is done in the
+// init call, but it is a good idea, so you can see what it is in the map
+// and correctly see the angle orientation (part of it sticks outside of
+// its little bounding box)
+//
+// 04.28.04 STC - modified visibleteamonly so that attackers and defenders
+//                can see the throbbing box where a bomb can be placed
+// 05.15.04 JPA - not only can engineers plant bombs, but anyone with an
+//		  engineering backpack can.
+//
+
+//----------------------------------------------------------------------------
+init local.explodeCallback local.alliesBomb local.armCallback local.disarmCallback local.fuseTime local.armTime local.disarmTime:
+//--------------------
+
+	// Initialization for the bomb.  Call this at the beginning of the 
+	// level, passing your callback function (the function which will be 
+	// called when the bomb explodes).  The second argument is to specify 
+	// who can arm the bomb.  Pass nonzero for allies, 0 for axis.  The 
+	// visibleteamonly property will be set automatically depending on
+	// this parameter.  The armCallback and disarmCallback parameters are
+	// to allow the scripter to pass in callback functions (which accept
+	// 1 parameter which is the player who armed/disarmed the bomb).  These
+	// will be called after the sound for the respective events occur.
+	// Use these callbacks to play a sound like "the allies have planted
+	// the explosives!" or whatever.  The fuseTime, armTime and disarmTime
+	// parameters are used to set the various times for the bomb to
+	// explode once planted, time it takes to arm the bomb, and time it
+	// takes to disarm the bomb respectively.
+	//
+	// extra member variables that one can set to customize the bomb:
+	// explosionAnim  - sets the animation of the explosion. the default
+	//                  is "models/fx/hellcat_bomb_explosion.tik"
+	// explosionScale - the scale of the explosion animation. default 1
+	// explosionSound - sets the sound that plays when the bomb detonates.
+	//                  the default is mp_explo_dirt1
+	// explosionWait  - amount of time to wait for the explosion anim to
+	//                  complete.  the default is 5 seconds.
+	// damage         - the damage which is passed to radiusdamage
+	//                  upon detonation
+	// radius         - the radius which is passed to radiusdamage
+	//                  upon detonation
+	// showUpOnRadar  - if true, the bomb will show up as a bomb icon on
+	//                  players' radars.  the bomb will pulse when it is
+	//                  armed.
+	// showStopwatch  - set this to 1 if this is a bomb on an objective
+	
+	// self is the bomb script_model
+
+	self waitthread bomb_debug_message "mp_defuse_bomb.scr::init"
+
+	if (self.target == NIL || self.target == NULL) {
+		dprintln "global/mp_defuse_bomb.scr::init - WARNING: bomb model has no target"
+	}
+
+	if (local.alliesBomb == NIL) {
+		// the parameter to specify the ownership of the bomb
+		// has not been set.  set it to default (allies).
+		local.alliesBomb = 1
+		// also print out a debug message to notify the scripter
+		dprintln "global/mp_defuse_bomb.scr::init - WARNING: missing bomb ownership parameter"
+	}
+	self.alliesBomb = local.alliesBomb
+
+	//
+	// We now use the HAG model:
+	//      models/mp_common/manmade/us_demolitionpack_nologic.hag
+	// as well as the altmodel_id command to change it's shape
+	//
+
+	self notsolid
+	self hide
+	self.activated = 0
+	self.exploded = 0
+	self.target nottriggerable
+	
+	//-------------------- does not match MP GDD -------------------
+	// set the throb box to be visible only by the team who can set it.
+	//if (local.alliesBomb)
+	//	self visibleteamonly 1
+	//else
+	//	self visibleteamonly 2
+	//--------------------------------------------------------------
+
+	// set the throb box to be visible to all players -stc
+	self visibleteamonly 0
+
+
+	self.explodeCallback = local.explodeCallback
+	self.armCallback = local.armCallback
+	self.disarmCallback = local.disarmCallback
+	self.target.bomb = self
+	self.target.bombPlanted = 0
+	
+	// 30 second fuse and 15 second arm/disarm times, specified by the doc.
+	
+	if (local.fuseTime != NIL && local.fuseTime != NULL && local.fuseTime > 0)
+		self.fuseTime = local.fuseTime
+	else
+		self.fuseTime = level.dm_explosivesFuseTime
+		
+	if (local.armTime != NIL && local.armTime != NULL && local.armTime > 0)
+		self.armTime = local.armTime
+	else
+		self.armTime = level.dm_explosivesArmTime
+
+	if (local.disarmTime != NIL && local.disarmTime != NULL && local.disarmTime > 0)
+		self.disarmTime = local.disarmTime
+	else
+		self.disarmTime = level.dm_explosivesDisarmTime
+
+	if (self.explosionAnim == NIL || self.explosionAnim == NULL)
+		self.explosionAnim = "models/fx/hellcat_bomb_explosion.tik"
+	if (self.explosionScale == NIL || self.explosionScale == NULL)
+		self.explosionScale = 1
+	if (self.explosionSound == NIL || self.explosionSound == NULL)
+		self.explosionSound = mp_explo_dirt1
+	if (self.explosionWait == NIL || self.explosionWait == NULL)
+		self.explosionWait = 5
+	if (self.damage == NIL || self.damage == NULL)
+		self.damage = level.dm_explosivesDamage
+	if (self.radius == NIL || self.radius == NULL)
+		self.radius = level.dm_explosivesRadius
+	if (self.showUpOnRadar == NIL || self.showUpOnRadar == NULL)
+		self.showUpOnRadar = 0
+	if (self.showStopwatch == NIL || self.showStopwatch == NULL)
+		self.showStopwatch = 0
+		
+	self.radar_icon = 12 // bomb icon
+	self disable_draw_on_radar
+end
+
+	
+//----------------------------------------------------------------------------
+activate:
+//--------------------
+
+	// activates and shows the throbbing box.  Use this function
+	// when the objective which involves this bomb is initialized.
+	// The proximity trigger (which is initially nottriggerable) is
+	// enabled
+	
+	// self is the bomb script_model
+	
+	// give the bomb a tutorial on how to plant and diffuse explosives
+	self settutorial use_explosive 600
+	
+	self waitthread bomb_debug_message "mp_defuse_bomb.scr::activate"
+
+	self altmodel "throbbing"
+	self show	
+	self.target triggerable
+	self.activated = 1
+	if (self.showUpOnRadar)
+		self enable_draw_on_radar
+end
+
+
+//----------------------------------------------------------------------------
+deactivate:
+//--------------------
+
+	// deactivates and hides the throbbing box/bomb.  Use this 
+	// function when the objective which involves this bomb is completed.
+	// The proximity trigger will be once again deactivated
+	
+	// self is the bomb script_model
+	
+	self waitthread bomb_debug_message "mp_defuse_bomb.scr::deactivate"
+
+	if (self.showStopwatch)
+		thread global/mp_extra.scr::shutdown_stopwatches
+		
+	self hide
+	self notsolid
+	self.target nottriggerable
+	self.activated = 0
+	self disable_draw_on_radar
+end
+
+	
+//----------------------------------------------------------------------------
+proximity local.player:
+//--------------------
+
+	// The proximity trigger is used to call this function so that
+	// we can react to the player's proximity to the bomb.  If the
+	// player holds the 'use' key down while inside this trigger,
+	// the arming/disarming behavior will occur.
+	
+	// self is the proximity trigger
+	
+	self.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::proximity"
+	
+	if (local.player.bombMonitor == NIL || local.player.bombMonitor == NULL)
+		self thread monitor_dynamite_slot local.player
+
+	local.playerCanPlantBomb = local.player waitthread can_plant_bomb self.bomb
+	local.playerCanUnplantBomb = local.player waitthread can_unplant_bomb self.bomb
+	if (local.playerCanPlantBomb && (local.player canseenoents self.bomb 45)) {
+		if (self.bombPlanted)
+			local.player removeuseslot "dynamite"		
+		else
+			local.player useslot "dynamite"
+	} else if (local.playerCanUnplantBomb && (local.player canseenoents self.bomb 45)) {
+		if (!self.bombPlanted)
+			local.player removeuseslot "defuse"
+		else
+			local.player useslot "defuse"
+	} else {
+		local.player removeuseslot "dynamite"
+		local.player removeuseslot "defuse"
+	}
+
+	if (!(local.player.useheld))
+		end
+
+	self.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::proximity, use"
+
+	local.playerCanPlantBomb = local.player waitthread can_plant_bomb self.bomb
+	local.playerCanUnplantBomb = local.player waitthread can_unplant_bomb self.bomb
+	if (local.playerCanPlantBomb) {
+		if (self.bombPlanted)
+			end
+			
+		self thread dynamite_plant local.player self.bomb self.bomb.explodeCallback
+	} else if (local.playerCanUnplantBomb) {
+		if (!self.bombPlanted)
+			end
+			
+		self thread dynamite_unplant local.player self.bomb
+	} else if (!local.playerCanPlantBomb) {
+		if (self.backpacktype != "engineer" && int(getcvar("dm_combatClassesEnabled"))) {
+			local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:CannotPlantBombs"			
+			//local.player iprint "*Non-engineer combat classes cannot plant bombs"
+		}
+	}
+end		
+
+	
+//--------------------
+monitor_dynamite_slot local.player:
+//--------------------
+
+	// This is attached to players when they enter the area where
+	// they could protentially set or defuse the dynamite
+	// charge. This mostly just takes care of turning on and off
+	// the correct icon for setting or defusing dynamite.
+
+	// self is the proximity trigger
+	
+	self.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::monitor_dynamite_slot"
+
+	local.player.bombMonitor = self
+
+	local.playerCanPlantBomb = local.player waitthread can_plant_bomb self.bomb
+	local.playerCanUnplantBomb = local.player waitthread can_unplant_bomb self.bomb
+	
+	if (local.playerCanPlantBomb && !self.bombPlanted && (local.player canseenoents self.bomb 45)) {
+
+	} else if (local.playerCanUnplantBomb && self.bombPlanted && (local.player canseenoents self.bomb 45)) {
+
+	} else {
+		local.player.bombMonitor = NULL
+		end
+	}
+
+	while ((self != NULL) && (local.player != NULL) && (IsAlive local.player) && (local.player isinside self)) {
+		local.playerCanPlantBomb = local.player waitthread can_plant_bomb self.bomb
+		local.playerCanUnplantBomb = local.player waitthread can_unplant_bomb self.bomb
+		if (local.playerCanPlantBomb && self.bombPlanted)
+			break
+		if (local.playerCanUnplantBomb && !self.bombPlanted)
+			break
+		wait 0.2
+	}
+
+	local.player removeuseslot "dynamite"
+	local.player removeuseslot "defuse"
+	local.player.bombMonitor = NULL
+end
+
+//----------------
+dynamite_bombtick local.bomb local.callback:
+//----------------
+
+	// This is used to let the bomb tick away precious
+	// seconds... watching itself to see if it was defused. If it
+	// isn't defused in time, it explodes.
+
+	// self is the proximity trigger
+	
+	local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::bomb_tick"
+
+	local.count = int(local.bomb.fuseTime * 10)
+	self playsound plantbomb
+
+	while (self != NULL && self.bombPlanted && local.bomb.activated) {
+		if (local.count < 1) {
+			self thread local.callback
+
+			self thread dynamite_explode local.bomb
+			end
+		}
+		local.count--
+		if (local.count % 10 == 0) {
+			self playsound bombtick
+		}
+		wait 0.1
+	}
+
+	self stopsound
+end
+
+//-----------
+dynamite_explode local.bomb:
+//-----------
+
+	// self is the prox trigger
+	self stopsound
+
+	if (local.bomb.showStopwatch)
+		thread global/mp_extra.scr::shutdown_stopwatches
+
+	local.bomb.exploded = 1
+	radiusdamage local.bomb.origin local.bomb.damage local.bomb.radius
+	thread global/mp_animation.scr::spawn_animation local.bomb.origin NULL local.bomb.explosionScale local.bomb.explosionAnim local.bomb.explosionSound local.bomb.explosionWait
+	local.bomb hide
+
+	// give the player credit for planting the charge
+	self.explodeCredit incrementstat numDemoChargesDetonated
+
+	// if it blew up in someone's face, credit them too
+	if (self.planter != NULL && self.planter != NIL)
+		self.planter incrementstat numDemoChargeDefuseFailures
+
+	self.bombPlanted = 0
+	self.bombExploded = 1
+	
+	self nottriggerable
+
+end
+
+//----------------
+dynamite_plant local.player local.bomb local.callback:
+//----------------
+
+	// This is called when a allied player presses the use key in
+	// the right area at the right time to plant a bomb. We
+	// display a stopwatch and let it tick down... until the
+	// player is forced to not do so (dies, moves away) or the
+	// time expires. If the bomb is set, then it can be defused by
+	// the opponents or it can tick it's life away.
+
+	// self is the proximity trigger
+	
+	if (self.planter != NIL && self.planter != NULL)
+		end
+
+	local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::dynamite_plant"
+
+	self.planter = local.player
+	self.explodeCredit = local.player  // guy who will get credit
+	local.fuse = local.bomb.armTime
+	if (local.player.combatclass == "engineer" && getcvar("dm_combatClassesEnabled") != "0")
+	{
+		// an engineer can plant the explosives faster
+		local.fuse = local.fuse/level.dm_engineerPlantExplSpeedup
+	}
+
+	local.fuse = int(local.fuse) // DScott, stopwatch time must be integral to be in sync w/HUD
+	local.player stopwatch local.fuse 3 progress_dyn_plant
+	local.player hovericon planting
+	local.startedPlantingTime = level.time
+	
+	if (!(local.player canseenoents local.bomb 45)) 
+		local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::dynamite_plant - (local.player canseenoents local.bomb 45) returning FALSE"
+
+	while ((local.player != NULL) && (self.planter == local.player) && (local.player isinside self) && (IsAlive local.player) && (local.player.useheld) && (local.player canseenoents local.bomb 45)) 
+	{
+		waitframe
+		if (level.time - local.fuse >= local.startedPlantingTime) {
+			local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::dynamite_plant - bomb plant"
+			self.bombPlanted = 1
+			if (local.bomb.showUpOnRadar)
+				local.bomb.radar_icon_pulsing = 1
+				
+			if (local.bomb.showStopwatch)
+				thread global/mp_extra.scr::startup_stopwatches local.bomb.fuseTime
+			
+			//local.bomb safesolid
+			// CCARON - add special functionality for bridge explosives that explode when the plunger is used
+			if (local.bomb.usePlunger != 1)
+				self thread dynamite_bombtick local.bomb local.callback
+			// allow everyone to see the armed bomb
+			local.bomb visibleteamonly 0
+			local.bomb altmodel  "used"
+			if( int(getcvar("dm_combatClassesEnabled")) )
+				self.planter expendexplosivepack
+			if (self.soundPlant != NIL && self.soundPlant != NULL)
+				self playsound self.soundPlant
+				
+			if (self.bomb.armCallback != NIL && self.bomb.armCallback != NULL)
+				self thread self.bomb.armCallback self.planter
+
+			// give the player credit for planting the charge
+			local.player incrementstat numDemoChargesPlanted
+						
+			self.planter = NULL
+			break
+		}
+	}
+
+	local.player hovericon none
+	local.player stopwatch 0 3 progress_dyn_plant
+	self.planter = NULL
+end
+
+//----------------
+dynamite_unplant local.player local.bomb:
+//----------------
+
+	// This is called when a allied player presses the use key in
+	// the right area at the right time to defuse a bomb. We
+	// display a stopwatch and let it tick down... until the
+	// player is forced to not do so (dies, moves away) or the
+	// time expires.
+
+	// self is the proximity trigger
+	if (local.bomb.cantUnplant == 1)
+		end
+	
+	if (self.planter != NIL && self.planter != NULL)
+		end
+
+	local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::dynamite_unplant"
+
+	self.planter = local.player
+	self.explodeCredit = NULL
+	local.fuse = local.bomb.disarmTime
+
+	if (local.player.combatclass == "engineer" && getcvar("dm_combatClassesEnabled") != "0")
+	{
+		// an engineer can defuse the explosives faster
+		local.fuse = local.fuse/level.dm_engineerDisarmExplSpeedup
+	}
+
+	local.fuse = int(local.fuse) // DScott, stopwatch time must be integral to be in sync w/HUD
+	local.player stopwatch local.fuse 3 progress_dyn_unplant
+	local.player hovericon defusing
+	local.startedUnplantingTime = level.time
+
+	while ((self != NULL) && (local.player != NULL) && (self.planter == local.player) && (local.player isinside self) && (IsAlive local.player) && (local.player.useheld) && (local.player canseenoents local.bomb 45))
+	{
+		waitframe
+		if (level.time - local.fuse >= local.startedUnplantingTime) {
+			local.bomb waitthread bomb_debug_message "mp_defuse_bomb.scr::dynamite_unplant - bomb defused"
+			self.bombPlanted = 0
+			local.bomb.radar_icon_pulsing = 0
+			
+			if (local.bomb.showStopwatch)
+				thread global/mp_extra.scr::shutdown_stopwatches
+			
+			// -------------- does not match MP GDD --------------
+			// set the disarmed (now throb box) so that its visible
+			// only by the team who can arm it
+			//if (local.bomb.alliesBomb)
+			//	local.bomb visibleteamonly 1
+			//else
+			//	local.bomb visibleteamonly 2
+			// ---------------------------------------------------
+			
+			// all teams should be able to see where a bomb can be planted -stc
+			local.bomb visibleteamonly 0
+			
+			//local.bomb model local.bomb.preModel
+			local.bomb altmodel "throbbing"
+			local.bomb notsolid
+			if (self.soundUnplant != NIL && self.soundUnplant != NULL)
+				self playsound self.soundUnplant
+
+			// give the player credit for defusing the bomb
+			local.player incrementstat numDemoChargesDefused
+
+			if (self.bomb.disarmCallback != NIL && self.bomb.disarmCallback != NULL)
+				self thread self.bomb.disarmCallback self.planter
+			
+			self.planter = NULL
+			break
+		}
+	}
+
+	if (local.player != NULL)
+	{
+		local.player stopwatch 0 3 progress_dyn_unplant
+		local.player hovericon none
+	}
+	if (self != NULL)
+		self.planter = NULL
+end
+
+ 
+//--------------------
+can_plant_bomb local.bomb:
+//--------------------
+
+	// returns 1 if the given (self) player is on the team that
+	// can arm the given bomb
+	
+	// self is the player in question
+	
+	local.retval = 0
+	
+	// there must be a bomb
+	if( local.bomb != NIL && local.bomb != NULL )
+	{
+		// are combatclasses on?
+		if( int(getcvar("dm_combatClassesEnabled")) )		
+		{	
+			// you must be an engineer
+			if( self.backpacktype == "engineer" )
+			{
+				// you must be on the right team
+				if( self.dmteam == "allies" && local.bomb.alliesBomb )
+				{
+					// you must have bombs
+					if (self.explosivepackcount > 0)
+						local.retval = 1
+						
+				} 
+				else if ( self.dmteam != "allies" && !local.bomb.alliesBomb )
+				{
+					// you must have bombs
+					if (self.explosivepackcount > 0)
+						local.retval = 1
+				}
+			}
+		}
+		else
+		{	
+			// anyone can plant a bomb when combatclasses are off, except
+			// you must be on the right team
+			if( self.dmteam == "allies" && local.bomb.alliesBomb )				
+					local.retval = 1										
+			else if ( self.dmteam != "allies" && !local.bomb.alliesBomb )									
+					local.retval = 1										
+		}
+						
+	}
+	
+end local.retval
+
+
+//--------------------
+can_unplant_bomb local.bomb:
+//--------------------
+
+	// returns 1 if the given (self) player is on the team that
+	// can disarm the given bomb
+	
+	// self is the player in question
+	
+	local.retval = 0
+	if (local.bomb == NIL || local.bomb == NULL)
+		local.retval = 0
+	else if (self.dmteam == "allies" && !local.bomb.alliesBomb)
+		local.retval = 1
+	else if (self.dmteam != "allies" && local.bomb.alliesBomb)
+		local.retval = 1
+end local.retval
+
+
+//--------------------
+bomb_debug_message local.message:
+//--------------------
+	
+	// used to print the given message depending on if 
+	// self.debug is set to 1
+	
+	// self is the bomb script_model
+
+	if (self.debug != NIL && self.debug != NULL && self.debug == 1)
+		dprintln local.message
+end

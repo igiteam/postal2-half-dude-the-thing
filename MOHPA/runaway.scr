@@ -1,0 +1,49 @@
+
+
+start local.node local.awayfrom:
+
+	if ( self.health > 0 )
+	{
+		if ( self.runningaway == NIL )
+		{
+			self.runningaway = 1
+		}
+		else
+		{
+			//make sure we are not running two runaway threads at the same time
+			if ( self.runningaway == 1 )
+				end
+		}
+
+		self.enableEnemy = 0
+		local.distance = vector_length(self.origin - $(local.awayfrom).origin)
+		
+		if (local.distance < 600)
+		{
+			self exec global/moveto.scr anim/dive.scr local.node
+
+			local.r = randomint( 100 )
+			if ( local.r < 50 )
+			{
+				//sound placeholder
+				self playsound DENJP_COMBAT_JS06
+			}
+		}
+		else
+		{
+	 		self exec global/moveto.scr anim/run.scr local.node
+
+			local.r = randomint( 100 )
+			if ( local.r < 50 )
+			{
+	 			//sound placeholder
+	 			self playsound DENJP_GVGRND_JS01
+			}
+		}
+		
+		self waittill movedone
+		self.enableEnemy = 1
+		self.runningaway = 0
+	}
+
+end

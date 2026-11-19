@@ -1,0 +1,4215 @@
+// --------------------------------------------------------------------------------
+// plane_utils.scr
+//
+//	
+//	Useful functions for working with and managing vehicles in levels.
+//	
+//
+//
+// --------------------------------------------------------------------------------
+
+
+// SPAWN PLANES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+SpawnPlaneVRP local.spawnPosition local.health local.deathanim local.stayInvulnerable local.dontProtect:
+//
+//	Spawns a Vehicle_Ridable_Plane at the specified position, and returns a reference to the spawned plane
+//
+//	local.spawnPosition is a reference to an info_waypoint (or similar object), with 
+//	the filename of the model of the plane you want to spawn specified as $mymodel
+//
+//	If the supplied waypoint has a target, the plane will take it on as its target.
+//
+//	Accepts:
+//		local.spawnPosition:	reference to an info_waypoint with $mymodel specified.	Required.	No default
+//	
+//	Returns:
+//		a reference to the spawned plane
+//----------------------------------------------------------------------------
+	
+	Assert (local.spawnPosition != NIL && "SpawnPlane requires a valid waypoint.")
+	Assert (local.spawnPosition != NULL && "SpawnPlane was given a waypoint argument, but that argument didn't name a valid object in the map.")
+	Assert (local.spawnPosition.mymodel != NIL && "SpawnPlaneVRP has been called on a spawnPosition that doesn't have its $mymodel key specified.")
+	
+	// Assigns local.spawnedPlane a class type and a model 
+	local.spawnedPlane = spawn VehicleRidablePlane model local.spawnPosition.mymodel
+	local.spawnedPlane waitthread ApplyPlaneVariables
+	
+	// Set the angle and the origin to the position passed
+	local.spawnedPlane angles local.spawnPosition.angles
+	local.spawnedPlane.origin = local.spawnPosition.origin
+	
+	// override this plane's health if we've been given a health value as an argument or on the spawner
+	if (local.health != NIL && local.health > 0)
+		local.spawnedPlane.health = local.health
+	else if (local.spawnPosition.health != NIL && local.spawnPosition.health > 0)
+		local.spawnedPlane.health = local.spawnPosition.health
+	
+	// if we've been provided a specific deathanim, apply it here
+	if (local.deathanim != NIL)
+		local.spawnedPlane.deathanim = local.deathanim	// long_crash, particle_death01, particle_death02, particle_death03
+	
+	if (local.spawnPosition.target != NIL)
+	{
+		//println "[PLANE_UTILS]: Target assigned to Plane"
+		local.spawnedPlane.target = local.spawnPosition.target
+	}
+	
+	if(local.stayInvulnerable == NIL)
+		local.stayInvulnerable = 0
+	
+	local.spawnedPlane.stayInvulnerable = local.stayInvulnerable
+	
+	if(local.dontProtect != 1 )
+		local.spawnedPlane thread ProtectPlane
+	
+end local.spawnedPlane
+
+
+//----------------------------------------------------------------------------
+ProtectPlane:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	self nodamage
+	if(!self.stayInvulnerable)
+	{
+		wait 1
+		if(isAlive self)
+			self takedamage
+	}
+	
+end
+
+
+// SET COMMON PLANE PROPERTIES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+ApplyPlaneVariables:
+//
+//	Reads the supplied plane's model filename, and calls the appropriate thread to set up its characteristics.
+//	Must be run on an object with a recognized model filename.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------	
+	assert (self != NULL)
+	
+	self stop
+	self runsounds 0
+	
+	// Init plane based on which model spawned
+	switch ( self.model )
+	{
+	case "models/vehicles/sbddauntless.hag":
+	
+		self waitthread ApplySBDVariables
+		break
+
+	case "models/vehicles/sbddauntless_ground.hag":
+
+		self waitthread ApplySBDGroundVariables
+		break
+
+	case "models/vehicles/wildcat.hag":
+	
+		self waitthread ApplyWildcatVariables
+		break
+
+	case "models/vehicles/wildcat_ground.hag":
+	
+		self waitthread ApplyWildcatGroundVariables
+		break
+		
+	case "models/vehicles/P400.hag":
+	
+		self waitthread ApplyP400Variables
+		break
+		
+	case "models/vehicles/P400_ground.hag":
+		
+		self waitthread ApplyP400Variables
+		break
+	
+	case "models/vehicles/P40.hag":
+	
+		self waitthread ApplyP40Variables
+		break
+		
+	case "models/vehicles/kingfisher.hag":
+	
+		self waitthread ApplyKingfisherVariables
+		break
+		
+	case "models/vehicles/zero.hag":
+	case "models/vehicles/zero_pearl.hag":
+	case "models/vehicles/zero_pearl_nearplayer.hag":
+	
+		self waitthread ApplyZeroVariables
+		break
+		
+	case "models/vehicles/val.hag":
+	case "models/vehicles/val_pearl.hag":
+	
+		self waitthread ApplyValVariables
+		break
+		
+	case "models/vehicles/kate.hag":
+	
+		self waitthread ApplyKateVariables
+		break
+		
+	case "models/vehicles/mitsubishig4m3betty.hag":
+	
+		self waitthread ApplyBettyVariables
+		break
+	
+	case "models/vehicles/blackcat/blackcat.gr2":
+		
+		self waitthread ApplyCatalinaVariables
+		break
+		
+	default:
+		dprintln "[PLANE_UTILS]: WARNING: ApplyPlaneVariables was run on a model it hasn't yet been set up to handle: " self.model
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+ApplySBDVariables:
+//
+//	Applies flight characteristics appropriate to an SBD
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	//self setmaxturnspeed 50 35 70 	// Float max_roll, Float max_yaw, Float max_pitch
+	self maxrollrate 	50 
+	self maxyawrate 	35
+	self maxpitchrate 	70 	
+	self setmaxrollangle	90
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+	self.flybysound = Dauntless_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplySBDGroundVariables:
+//
+//	Applies flight characteristics appropriate to an SBD
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	
+	self maxrollrate	0 
+	self maxyawrate		35
+	self maxpitchrate	0 
+	self setmaxrollangle	0
+	
+	self taxiing		1 
+
+	self health		1000
+	
+	// added to broadcast engine sounds to clients, who then 
+	// know to have their renderer cull the model
+	self svflags "+broadcast"
+	
+	self.team = "ALLIES"
+	self allies
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyWildcatVariables:
+//
+//	Applies flight characteristics appropriate to a Wildcat
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	40 
+	self maxyawrate 	25
+	self maxpitchrate 	100	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+	self.flybysound = Wildcat_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyWildcatGroundVariables:
+//
+//	Applies flight characteristics appropriate to a Wildcat on the ground
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	
+	self maxrollrate	0 
+	self maxyawrate		25
+	self maxpitchrate	0 
+	self setmaxrollangle	0
+	
+	self taxiing		1 
+
+	self health		1000
+	
+	// added to broadcast engine sounds to clients, who then 
+	// know to have their renderer cull the model
+	self svflags "+broadcast"
+	
+	self.team = "ALLIES"
+	self allies
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyP400Variables:
+//
+//	Applies flight characteristics appropriate to a P-40
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	100 
+	self maxyawrate 	30
+	self maxpitchrate 	60 	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+	self.flybysound = Aircobra_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyP40Variables:
+//
+//	Applies flight characteristics appropriate to a P-40
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	100 
+	self maxyawrate 	30
+	self maxpitchrate 	60 	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+	self.flybysound = Aircobra_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyCatalinaVariables:
+//
+//	Applies flight characteristics appropriate to a PBY Catalina
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	20 
+	self maxyawrate 	20
+	self maxpitchrate 	120 	
+	self setmaxrollangle	50
+	
+	
+	self speed		2500	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyKingfisherVariables:
+//
+//	Applies flight characteristics appropriate to a Kingfisher
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	50
+	self maxyawrate 	35
+	self maxpitchrate 	70
+	self setmaxrollangle	90
+	
+	self speed		2500	1
+	
+	self health		1000
+	
+	self.team = "ALLIES"
+	self allies
+	
+	self.flybysound = Dauntless_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyZeroVariables:
+//
+//	Applies flight characteristics appropriate to a Zero
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	self maxrollrate 	50
+	self maxyawrate 	40
+	self maxpitchrate 	50
+	self setmaxrollangle	88
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "AXIS"
+	self axis
+	
+	self.flybysound = Zero_Plane_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyValVariables:
+//
+//	Applies flight characteristics appropriate to a Val
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	
+	self maxrollrate 	70
+	self maxyawrate 	40
+	self maxpitchrate 	100	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "AXIS"
+	self axis
+	
+	self.flybysound = Val_Plane_By
+end
+
+//----------------------------------------------------------------------------
+ApplyKateVariables:
+//
+//	Applies flight characteristics appropriate to a Kate
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	
+	self maxrollrate 	70
+	self maxyawrate 	40
+	self maxpitchrate 	100	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "AXIS"
+	self axis
+	
+	self.flybysound = Kate_Plane_By
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyBettyVariables:
+//
+//	Applies flight characteristics appropriate to a Betty
+//	Usually called by ApplyPlaneVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	
+	self maxrollrate 	70
+	self maxyawrate 	40
+	self maxpitchrate 	100	
+	self setmaxrollangle	80
+	
+	self speed		4000	1
+	
+	self health		1000
+	
+	self.team = "AXIS"
+	self axis
+	
+end
+
+
+// FLY BY
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+DoFlyBy local.speed local.maxturnspeed local.health local.deathanim local.soundOnPlayer:
+//
+//	Spawn a plane and execute a one-time fly-by
+//	
+//	Plane will spawn at spawnPoint origin, then fly its target path.  Removes self when finished.
+//
+//	Accepts:
+//		local.spawnPoint:	An origin with a plane model defined and a valid splinepath targeted	REQUIRED	NO DEFAULT
+//		local.speed:	The plane's speed for the flyby						OPTIONAL	Defaults to plane's default speed
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	
+	// Spawn plane
+	local.spawnedPlane = waitthread SpawnPlaneVRP self local.health local.deathanim		// pass arguments through
+	local.spawnedPlane.targetname = "SpawnedFlybyPlane"
+	local.spawnedPlane.actiondone = false
+	
+	// if we've opted to override the plane's default speed, set it here
+	if (local.speed != NIL)
+		local.spawnedPlane speed local.speed 1	// accelerate instantly
+	
+	if(local.maxturnspeed == NIL)
+		local.maxturnspeed = "30 20 20"
+	local.spawnedPlane setmaxturnspeed local.maxturnspeed		// default "60 30 30"	reduce turn rates for a more elegant turn
+		
+	local.spawnedPlane artificial_terrain_altitude 0	// he's on a spline - we don't care where the terrain is.
+	
+	if(local.soundOnPlayer == NIL)
+		local.soundOnPlayer = 0
+	
+	local.spawnedPlane thread ExecuteFlyby local.soundOnPlayer
+	
+end local.spawnedPlane
+
+
+//----------------------------------------------------------------------------
+ExecuteFlyby local.soundOnPlayer:
+//
+//	Execute the flyby
+//----------------------------------------------------------------------------
+	assert (self != NULL)
+	assert ( $(self.target) != NULL && "DoFlyBy: Plane isn't targeting a valid path.")
+	
+	self runsounds 0
+	self thread DoFlyBySound NIL NIL local.soundOnPlayer
+	
+	// Autopilot the path if we can - otherwise, just fly to the node.
+	switch (self.target.classname)
+	{
+	case "SplinePath":
+		self autopilot self.target
+		break
+	default:
+		self flyto self.target.origin
+	}
+	
+	self thread DeleteAtDest
+	
+end
+
+
+// STRAFE
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+StrafeAttack local.target local.speed local.patrolalt local.attackalt local.minimumAlt local.floor local.cannon_dist local.strafe_length local.maxturnspeed local.strafeType local.strafesound local.health local.deathanim:
+//
+//	Spawn a plane and instruct it to strafe a target.
+//	
+//	Plane will spawn at spawnPoint origin, and attack the specified target.  Removes self when finished.
+//		maxturnspeed, speed, patrolalt, and minimumAlt may be specified on the spawnpoint as well.
+//
+//	Accepts:
+//		self:	An origin with a plane model defined and a valid splinepath targeted	REQUIRED	NO DEFAULT
+//		local.target:		The target we plan to attack						REQUIRED	NO DEFAULT
+//					(usually a script object under the terrain)
+//		local.speed:		Plane's speed while attacking						OPTIONAL	3700
+//		local.patrolalt:	Altitude to which he'll return when done attacking			OPTIONAL	10000
+//		local.attackalt:	Altitude at which he'll begin his attack				OPTIONAL	local.minimumAlt + ((local.patrolalt -  local.minimumAlt) / 2)
+//		local.minimumAlt:	Minimum altitude he'll approach while attacking				OPTIONAL	3000
+//		local.cannon_dist:	Distance at which he'll switch from guns to cannons			OPTIONAL	5000
+//		local.strafe_length:	
+//		local.floor:		Artificial terrain height - prevents planes from pinging terrain live	OPTIONAL	NO DEFAULT
+//					(substantial framerate-saver.  use this.)
+//		local.maxturnspeed:	String: Roll Pitch Yaw							OPTIONAL	defaults to plane defaults
+//		local.strafeType:	Strafing mode								OPTIONAL	1
+//		local.strafesound:	Sound to play while strafing						OPTIONAL	"Zero_Plane_snd_run01"
+//
+//	Returns:
+//		A reference to the spawned plane
+//----------------------------------------------------------------------------
+	
+	// spawn the plane
+	assert (self != NULL && "StrafeAttack requires a spawn point.")
+	local.spawnedPlane = waitthread SpawnPlaneVRP self local.health local.deathanim
+	local.spawnedPlane.targetname = "SpawnedStrafer"
+	local.spawnedPlane.actiondone = false
+	
+	
+	// Apply passed, node-supplied, or default values
+	if (local.speed == NIL)
+	{
+		if (self.speed != NIL)
+			local.speed = self.speed
+		else
+			local.speed = 3700
+	}
+	local.spawnedPlane speed local.speed 1	// accelerate instantly
+	
+	
+	// altitudes
+	if (local.minimumAlt == NIL)
+	{
+		if (self.minimumAlt != NIL)
+			local.minimumAlt = self.minimumAlt
+		else
+			local.minimumAlt = 50
+	}
+	
+	if (local.patrolalt == NIL)
+	{
+		if (self.patrolalt != NIL)
+			local.patrolalt = self.patrolalt
+		else
+			local.patrolalt = 5000
+	}
+	assert (local.minimumAlt < local.patrolalt && "Minimum altitude must be less than patrol altitude.")
+	
+	if (local.attackalt == NIL)
+	{
+		if (self.attackalt != NIL)
+			local.attackalt = self.attackalt
+		else
+			local.attackalt = local.minimumAlt + ((local.patrolalt -  local.minimumAlt) / 2)
+	}
+	
+	local.spawnedPlane patrolalt local.patrolalt
+	local.spawnedPlane minimumAlt local.minimumAlt
+	local.spawnedPlane attackAlt local.attackalt
+	
+	//  Sets an artificial groundplane altitude if desired (prevents otherwise expensive ground traces)
+	if (local.floor == NIL)
+	{
+		if (self.floor != NIL)
+			local.floor = self.floor
+		else
+			local.floor = 0
+	}
+	if(local.floor != -1)
+		local.spawnedPlane artificial_terrain_altitude local.floor
+	
+	// cannon distance
+	local.spawnedPlane cannon_dist_2D	// use 2D cannon dist
+	if (local.cannon_dist == NIL)
+	{
+		if (self.cannon_dist != NIL)
+			local.cannon_dist = self.cannon_dist
+		else
+			local.cannon_dist = 5000
+	}
+	local.spawnedPlane cannon_dist local.cannon_dist
+	
+	if (local.strafe_length == NIL)
+	{
+		if (self.strafe_length != NIL)
+			local.strafe_length = self.strafe_length
+		else
+			local.strafe_length = 2500
+	}
+	local.spawnedPlane strafe_length local.strafe_length
+	
+	
+	// maxturnspeed
+	if (local.maxturnspeed == NIL)
+	{
+		if (self.maxturnspeed != NIL)
+			local.maxturnspeed = self.maxturnspeed
+		else
+			local.maxturnspeed = "60 30 30"
+	}
+	local.spawnedPlane setmaxturnspeed local.maxturnspeed
+	
+	
+	// strafetype
+	if (local.strafeType == NIL)
+		local.strafeType = 1
+	local.spawnedPlane strafeattack local.strafeType
+	
+	
+	// sound
+	if (local.strafesound == NIL)
+		local.strafesound = Zero_Plane_By		//"Zero_Plane_snd_run01"
+	//skm: OBSOLETE
+	//local.spawnedPlane loopsound local.strafesound
+	
+	local.spawnedPlane.target = self.target
+	local.spawnedPlane thread ExecuteStrafeAttack local.target
+	
+end local.spawnedPlane
+
+
+//----------------------------------------------------------------------------
+ExecuteStrafeAttack local.target:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	assert (local.target != NIL && "local.target hasn't been properly initialized.")
+	assert (local.target != NULL && "local.target doesn't reference a valid object in the world.")
+	
+	// execute the attack
+	self runsounds 0
+	self thread DoFlyBySound
+	
+	// find out whether our target has a target, and detach the last point in the chain if it has (that last point is the exit point)
+	assert (self.target != NIL && "self.target hasn't been properly initialized.")
+	self.exitpoint = waitthread FindExitPoint self.target
+	// if our target is not our exitpoint, fly to our target first.
+	if (self.exitpoint != self.target)
+	{
+		//dprintln "[PLANE_UTILS]: Strafer Flying to attackstartpoint: " self.target
+		switch (self.target.classname)
+		{
+		case "SplinePath":
+			self autopilot self.target
+			break
+		default:
+			self flyto self.target.origin
+		}
+		self waittill movedone
+		//dprintln "[PLANE_UTILS]: Strafer Reached attackstartpoint: " self.target
+		// set attack altitude appropriate to our current position
+		if( isvector(local.target) ) {
+			local.targetalt = local.target[2]	// if our target _is_ an origin, simply use it directly
+		} else {
+			local.targetalt = local.target.origin[2]	// otherwise, take its origin property
+		}
+		//println "plane " self " targeting " local.target ": plane alt == " self.origin[2] " target alt == " local.targetalt
+		local.attackalt = ( self.origin[2] - local.targetalt ) / 2
+		self attackAlt local.attackalt
+	}
+	//dprintln "[PLANE_UTILS]: Starting Attack"
+	
+	
+	// attack the target
+	assert (local.target != NIL && "StrafeAttack needs a valid target.")
+	self.attacking = true	// allow external scripts to see whether plane is on its final attack run
+	self attack_ground_object local.target
+	self waittill movedone
+	self.attacking = false
+	self.actiondone = true
+	
+	//dprintln "[PLANE_UTILS]: Finished Attack"
+	
+	if (self.isAlive)
+	{		
+		// After the target has been strafed, the zero flies to a far point and is removed
+		//println "[PLANE_UTILS]: Strafer Flying to exitpoint: " self.exitpoint
+		self flyto self.exitpoint.origin	
+		self thread DeleteAtDest
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+FindExitPoint local.target:
+//
+//	Separates the exit point from the attackstart path, if any.
+//----------------------------------------------------------------------------
+	
+	//assert (local.target != NIL && "local.target hasn't been properly initialized.")
+	//assert ( $(local.target) != NULL && "local.target doesn't reference a valid entity in the map.")
+	//println "[PLANE_UTILS]: FindExitPoint examining point: " local.target
+	
+	// initialize everything
+	local.firstpoint = local.target
+	local.exitpoint = local.target
+	local.lastpoint = local.target
+
+	if(local.firstpoint.exitpoint == NIL)
+	{
+		// iterate through the chain, and find the last and second to last points
+		while($(local.exitpoint.target) != NULL)
+		{
+			local.lastpoint = local.exitpoint
+			local.exitpoint = local.exitpoint.target
+			waitframe
+		}
+		// detach final point from penultimate point
+		local.firstpoint.exitpoint = local.exitpoint
+		local.lastpoint.target = NIL
+		local.exitpoint.penult = local.lastpoint
+	}
+	else
+	{
+		// we've already done this operation on this path before - just return the cached value
+		local.exitpoint = local.firstpoint.exitpoint
+	}
+	//println "[PLANE_UTILS]: FindExitPoint: attackstartpoint: " local.firstpoint ", exitpoint: " local.exitpoint
+
+	
+	assert (local.exitpoint != NIL && "local.exitpoint hasn't been properly initialized.")
+	assert( $(local.exitpoint) != NULL && "FindExitPoint found an exitpoint, but it doesn't reference a valid entity in the map.  Does a plane's path have a bogus target value at its end?")
+	// return exit point
+
+end local.exitpoint
+
+
+//----------------------------------------------------------------------------
+DoFlyBySound local.alias local.delay local.onPlayer:
+//
+// Play the passed in flyby sound after the delay.  This will play in the players head
+//----------------------------------------------------------------------------
+	//skm: this is disabled 'cause this is handled by the engine...
+	/*assert (self.classname == "VehicleRidablePlane")
+	// apply defaults
+	if (local.alias == NIL)
+		if(self.flybysound != NIL)
+			local.alias = self.flybysound
+		else
+			local.alias = Zero_Plane_By
+	
+	if (local.delay == NIL)
+		local.delay = 0
+	
+	// run sound
+	wait local.delay
+	
+	if(local.onPlayer == NIL)
+		local.onPlayer = 0
+	if(local.onPlayer)
+		$player playsound local.alias auto
+	else
+		self playsound local.alias auto*/
+	
+end
+
+
+// PLANE CRASH
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+DoPlaneCrash local.crashtarget local.rolltype local.explodeonimpact local.speed local.nodeproximitydist local.chaser local.deathanim local.floor local.planesound local.crashsound:
+//
+//	Spawn a plane and execute a one-time crash
+//	
+//	Plane will spawn at spawnPoint origin, then fly its target path.  Removes self when finished.
+//
+//	Accepts:
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	
+	// Spawn plane
+	local.spawnedPlane = waitthread SpawnPlaneVRP self NIL local.deathanim
+	local.spawnedPlane.targetname = "SpawnedCrashPlane"
+	local.spawnedPlane nodamage
+	
+	// if we've opted to override the plane's default speed, set it here
+	if (local.speed != NIL)
+		local.spawnedPlane speed local.speed 1	// accelerate instantly
+
+	if( local.floor != NIL )
+		local.spawnedPlane artificial_terrain_altitude local.floor
+
+	
+	if (local.chaser != NIL)
+	{
+		local.spawnedChaser = waitthread SpawnPlaneVRP local.chaser
+		local.spawnedChaser.targetname = "SpawnedCrashPlaneChaser"
+		local.spawnedChaser thread ChaseCrasher local.spawnedPlane
+	}
+	
+	// Autopilot the path if we can - otherwise, just fly to the node.
+	assert (local.spawnedPlane.target != NIL && "DoPlaneCrash: Plane isn't targeting a valid path.")
+	switch (local.spawnedPlane.target.classname)
+	{
+	case "SplinePath":
+		local.spawnedPlane autopilot local.spawnedPlane.target
+		break
+	default:
+		local.spawnedPlane flyto local.spawnedPlane.target.origin
+	}
+	local.spawnedPlane runsounds 0
+	local.spawnedPlane thread DoFlyBySound
+	local.spawnedPlane waittill movedone
+	
+	// damage the plane at the end of its spline and crash it into its target
+	local.spawnedPlane takedamage
+	if (local.planesound == NIL)
+	{
+		local.spawnedPlane playsound "5_5Explos_lrg" auto
+	}
+	else
+	{
+		$player playsound local.planesound wait
+	}
+	thread global/vfx.scr::oneshotfx "models/fx/aircraft_explosion.tik" local.spawnedPlane.origin
+	
+	// kill plane
+	local.spawnedPlane hurt local.spawnedPlane.health
+	
+	// execute post-death roll
+	if(local.rolltype == NIL)
+		local.rolltype = 1	// 1 == roll, 2 == pitch, 3 == roll & pitch, 0 == do nothing
+	if(local.explodeonimpact == NIL)
+		local.explodeonimpact = 1
+	level.pierplane = local.spawnedPlane
+	local.spawnedPlane dying_roll local.rolltype local.crashtarget local.explodeonimpact
+	
+	// adjust movedoneradius, if desired, to tune impact location
+	if(local.nodeproximitydist != NIL)
+		local.spawnedPlane node_proximity_dist local.nodeproximitydist
+	
+	local.spawnedPlane waittill movedone
+	if (local.crashsound == NIL)
+	{
+		local.spawnedPlane playsound "5_5Explos_lrg" auto
+	}
+	else
+	{
+		$player playsound local.crashsound wait
+	}
+	
+	// remove it once we're done
+	local.spawnedPlane remove
+	
+end
+
+
+//----------------------------------------------------------------------------
+ChaseCrasher local.mytarget:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane")
+	
+	local.startpoint = self.origin
+	self runsounds 0
+	self notsolid
+	self nodamage
+	
+	self speed local.mytarget.speed 1	// match speed with the plane we're chasing
+	self attack local.mytarget
+	
+	while (local.mytarget.isAlive)
+		wait 1
+	
+	wait 2	// keep firing a bit longer before pulling off
+	self flyto local.startpoint
+	self node_proximity_dist 2048
+	self thread DeleteAtDest
+	
+end
+
+
+// TAKE-OFF PATH
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+TakeOff local.runwayPath:
+//
+//	local.runwayPath is either North, South, or Center
+//----------------------------------------------------------------------------
+	
+	assert (local.runwayPath != NIL && "TakeOff needs a valid runwayPath.")
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+//	self flysplinepath local.runwayPath 3000 300 256
+	self thread FlySplinePathThread local.runwayPath 3000 300 256 1 0
+	
+	self anim dust_on
+	self waitthread TailUp
+	self waitthread GearUp
+	self anim dust_off
+	
+	self thread DoFlyBySound Aircobra_Plane_by_fast 3	
+	
+	self thread DeleteAtDest
+	
+end
+
+//----------------------------------------------------------------------------
+TailUp:
+//
+//  Lift the tail in preperation of take off
+//----------------------------------------------------------------------------
+	
+	wait 5
+	self anim raise
+	self waittill animdone
+	self anim level_full
+	
+end
+
+//----------------------------------------------------------------------------
+GearUp:
+//
+//  Lift the landing gear for take off
+//----------------------------------------------------------------------------
+	
+	wait 3
+	self anim gear
+	self waittill animdone
+	self anim gear_full
+	
+end
+
+
+// AMBIENT DOGFIGHT
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+StartAmbientDogfight local.planeSpawners local.mincount local.maxcount local.mindelay local.maxdelay local.dogfightHome local.leash local.altleash local.speed local.floor local.allowdamage local.health local.deathanim:
+//
+//	Start an Ambient Dogfight 
+//----------------------------------------------------------------------------
+	
+	// spawn an object in the world to hold our system's properties
+	local.planemanager = spawn info_waypoint
+	local.timestamp = int(level.time)	// use integer component of timestamp to provide unique ID
+	local.planemanager.targetname = "PlaneManager" + local.timestamp
+	
+	
+	// store passed arguments on this object
+	assert (local.planeSpawners != NIL && "local.planeSpawners hasn't been properly initialized.")
+	local.planemanager.planeSpawners = local.planeSpawners
+	
+	// count
+	assert (local.mincount != NIL && "local.mincount hasn't been properly initialized.")
+	local.planemanager.mincount = local.mincount
+	assert (local.maxcount != NIL && "local.maxcount hasn't been properly initialized.")
+	local.planemanager.maxcount = local.maxcount
+	
+	// delay
+	assert (local.mindelay != NIL && "local.mindelay hasn't been properly initialized.")
+	local.planemanager.mindelay = local.mindelay
+	assert (local.maxdelay != NIL && "local.maxdelay hasn't been properly initialized.")
+	local.planemanager.maxdelay = local.maxdelay
+	
+	// home & leashes
+	assert (local.dogfightHome != NIL && "StartAmbientDogfight needs a dogfight home.")
+	local.planemanager.dogfightHome = local.dogfightHome
+	if (local.leash == NIL)
+		local.leash = 13000
+	local.planemanager.leash = local.leash
+	if (local.altleash == NIL)
+		local.altleash = 5000
+	local.planemanager.altleash = local.altleash
+	
+	// speed
+	local.planemanager.speed = local.speed
+	
+	// floor
+	local.planemanager.floor = local.floor
+	
+	// allowdamage
+	if(local.allowdamage == NIL)
+		local.allowdamage = 0
+	local.planemanager.allowdamage = local.allowdamage
+	
+	local.planemanager.health = local.health	// if it's left NIL, we'll just execute default death behavior
+	local.planemanager.deathanim = local.deathanim	// if it's left NIL, we'll just execute default death behavior
+	
+	
+	// start the dogfight
+	local.planemanager thread RunAmbientDogfight
+	
+	// return a handle to the spawned manager object
+end local.planemanager
+
+
+//----------------------------------------------------------------------------
+RunAmbientDogfight:
+//
+//	Run the named Ambient Dogfight 
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	assert (self.maxcount != NIL && "self.maxcount hasn't been properly initialized.")
+	assert (self.mincount != NIL && "self.mincount hasn't been properly initialized.")
+	assert (self.planeSpawners != NIL && "self.planeSpawners hasn't been properly initialized.")
+	assert (self.maxdelay != NIL && "self.maxdelay hasn't been properly initialized.")
+	assert (self.mindelay != NIL && "self.mindelay hasn't been properly initialized.")
+	
+	// run the dogfight
+	self.isrunning = 1
+	local.curcount = 0
+	while (self.isrunning)
+	{
+		// randomize our count a bit so we don't always maintain an identical population
+		local.desiredcount = randomint(self.maxcount - self.mincount) + self.mincount
+		//println "[PLANE_UTILS]: Ambient dogfight current population: " local.curcount ", desired: " local.desiredcount
+		if (local.curcount < local.desiredcount)
+		{
+			// spawn somebody
+			local.spawnerIdx = randomint(self.planeSpawners.size - 1) + 1
+			self waitthread SpawnDogfighterPair self.planeSpawners[local.spawnerIdx]
+		}
+		else if (local.curcount > local.desiredcount)
+		{
+			// kill somebody
+			local.rndIdx = randomint($SpawnedDogfighter_Evade.size - 1) + 1
+			local.evader = $SpawnedDogfighter_Evade[local.rndIdx]
+			local.evader thread KillPlane
+		}
+		// Update our count
+		local.curcount = $SpawnedDogfighter_Chase.size
+
+		// wait before cycling again
+		local.delay = randomfloat(self.maxdelay - self.mindelay) + self.mindelay
+		wait local.delay
+	}
+	
+	// clean up the dogfight
+	if(self.exitpoint != NIL)
+	{
+		$SpawnedDogfighter_Evade thread LeaveTheWorld self.exitpoint
+		$SpawnedDogfighter_Chase thread LeaveTheWorld self.exitpoint
+	}
+	else
+	{
+		$SpawnedDogfighter_Chase thread LeaveTheWorld
+		$SpawnedDogfighter_Evade thread KillPlane
+	}
+	
+	// remove the manager object
+	self delete
+	
+end
+
+
+//----------------------------------------------------------------------------
+SpawnDogfighterPair local.planeSpawner:
+//
+//  Start the Ambient Dogfight 
+//----------------------------------------------------------------------------
+	
+	assert (local.planeSpawner != NIL && "SpawnDogfighterPair requires a valid spawn point.")
+	assert (local.planeSpawner.target != NIL && "SpawnDogfighterPair:: Spawner needs a valid target.")
+	
+	local.spawnedPlane_chase = waitthread global/plane_utils.scr::SpawnPlaneVRP local.planeSpawner
+	local.spawnedPlane_evade = waitthread global/plane_utils.scr::SpawnPlaneVRP local.planeSpawner.target
+	
+	// Target Chaser and Evader
+	local.spawnedPlane_chase.targetname = "SpawnedDogfighter_Chase"
+	local.spawnedPlane_evade.targetname = "SpawnedDogfighter_Evade"
+	local.spawnedPlane_chase.dftarget = local.spawnedPlane_evade
+	local.spawnedPlane_evade.dftarget = local.spawnedPlane_chase
+	
+	// Prepare chaser
+	local.spawnedPlane_chase waitthread SetDogfighterProperties self
+	local.spawnedPlane_chase aggressive_dogfighter
+	local.spawnedPlane_chase attack local.spawnedPlane_evade
+	
+	local.spawnedPlane_chase thread ManageDogfighterSpeed self
+	local.spawnedPlane_chase.dfspeedmanager = parm.previousthread
+	local.spawnedPlane_chase thread WatchDogfightDeath local.spawnedPlane_evade.origin
+	local.spawnedPlane_chase.deathwatcher = parm.previousthread	
+	local.spawnedPlane_chase thread DogFightOnDeath
+	
+	// Prepare evader
+	local.spawnedPlane_evade waitthread SetDogfighterProperties self
+	local.spawnedPlane_evade evade local.spawnedPlane_chase
+	
+	local.spawnedPlane_evade thread ManageDogfighterSpeed self
+	local.spawnedPlane_evade.dfspeedmanager = parm.previousthread
+	local.spawnedPlane_evade thread WatchDogfightDeath local.spawnedPlane_chase.origin
+	local.spawnedPlane_evade.deathwatcher = parm.previousthread
+	local.spawnedPlane_evade thread DogFightOnDeath
+	
+end
+
+//----------------------------------------------------------------------------
+DogFightOnDeath:
+//
+//
+//----------------------------------------------------------------------------
+
+	self waittill death
+
+	if( parm.other == $player )
+	{	
+		if( self.team == "ALLIES" )
+		{		
+			$player aid_generic_random 1 "SQSHOOTPLANE"
+		}
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+SetDogfighterProperties local.myManager:
+//
+// 
+//----------------------------------------------------------------------------	
+	
+	assert(self != NULL)
+	assert (local.myManager != NULL)
+
+	// protect dogfight participants
+	assert (local.myManager.allowdamage != NIL && "local.myManager.allowdamage hasn't been properly initialized.")
+	if(!local.myManager.allowdamage)
+	{
+		self notsolid
+		self nodamage
+	}
+	self no_shooting
+	self runsounds 0
+	
+	// apply dogfight management values
+	
+	// Set the planes' home
+	assert (local.myManager.dogfightHome != NIL && "local.myManager.dogfightHome hasn't been properly initialized.")
+	self home local.myManager.dogfightHome
+	
+	//  Sets the distance the planes will travel from their home
+	assert (local.myManager.leash != NIL && "local.myManager.leash hasn't been properly initialized.")
+	self leash local.myManager.leash
+	
+	//  Sets the maximum altitude that a plane will travel
+	assert (local.myManager.altleash != NIL && "local.myManager.altleash hasn't been properly initialized.")
+	self altleash local.myManager.altleash
+	
+	// if we've chosen to override the plane's default speed, set it here
+	if (local.myManager.speed != NIL)
+		self speed local.myManager.speed 1	// accelerate instantly
+	
+	//  Sets an artificial groundplane altitude if desired (prevents otherwise expensive ground traces)
+	if (local.myManager.floor != NIL)
+		self artificial_terrain_altitude local.myManager.floor
+		
+	if (local.myManager.health != NIL)
+		self health local.myManager.health
+		
+	if (local.myManager.deathanim != NIL)
+	{
+		if(local.myManager.deathanim == "random")
+		{
+			local.deathtypes = long_crash::particle_death01::particle_death02::particle_death03
+			local.rndIdx = randomint(local.deathtypes.size - 1) + 1
+			//println "[PLANE_UTILS]: Dogfighter setting random death: " local.deathtypes[local.rndIdx]
+			self.deathanim = local.deathtypes[local.rndIdx]
+		}
+		else
+		{
+			self.deathanim = local.myManager.deathanim
+		}
+	}
+		
+	self.myManager = local.myManager
+	
+end
+
+
+//----------------------------------------------------------------------------
+LeaveTheWorld local.exitpoint:
+//
+//	 
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Sending " self " out of world."
+	self.dfspeedmanager delete	// kill the looped thread we have running on this entity
+	self.deathwatcher delete	// kill the looped thread we have running on this entity
+	if(local.exitpoint != NIL)
+	{
+		self flyto local.exitpoint.origin
+	}
+	else
+	{
+		assert (self.myExitPoint != NIL && "self.myExitPoint hasn't been properly initialized.")
+		self flyto self.myExitPoint
+	}
+	self thread DeleteAtDest
+	
+end
+
+
+//----------------------------------------------------------------------------
+StopAmbientDogfight local.exitpoint:
+//
+//  Stop the named Ambient Dogfight 
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	assert (self.isrunning != NIL && "self.isrunning hasn't been properly initialized.")
+	
+	self.exitpoint = local.exitpoint
+	self.isrunning = 0
+	
+end
+
+
+//----------------------------------------------------------------------------
+ManageDogfighterSpeed local.myManager:
+//
+//	Run higher dogfighters slower, lower ones faster.  Poll periodically.
+//----------------------------------------------------------------------------	
+	
+	assert(self != NULL)
+	assert (local.myManager != NULL)
+	
+	if(local.myManager.floor != NIL)
+		local.floor = local.myManager.floor
+	else
+	local.floor = 0
+	
+	// derived values
+	assert (local.myManager.altleash != NIL && "local.myManager.altleash hasn't been properly initialized.")
+	local.paramceiling = local.myManager.altleash - local.floor
+	local.speedvariance = local.myManager.speed / 2
+	local.speedvaroffset = local.speedvariance / 2
+	
+	// loop and adjust speed
+	while(self.isAlive)
+	{
+		// how high am I relative to my floor and altleash?
+		local.curalt = self.origin[2] - local.floor
+		local.speedadjust = (local.curalt * local.speedvariance) / local.paramceiling
+		local.speedadjust -= local.speedvaroffset
+		local.newspeed = local.myManager.speed - local.speedadjust
+		//println "[PLANE_UTILS]: plane at " self.origin[2] ". new speed = " local.newspeed
+		
+		// apply speeds - higher == slower.
+		self speed local.newspeed
+		
+		// poll periodically
+		wait 4
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+KillPlane local.deathanim:
+//
+//	Kill the specified plane immediately 
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane")
+	
+	if(local.deathanim != NIL)
+		self.deathanim = local.deathanim
+	
+	self takedamage
+	self solid
+	self hurt self.health
+	
+end
+
+
+//----------------------------------------------------------------------------
+WatchDogfightDeath local.myExitPoint:
+//
+//  
+//----------------------------------------------------------------------------	
+	//println "[PLANE_UTILS]: Thread launched: WatchDogfightDeath, on " self ", with " local.myExitPoint
+	assert (local.myExitPoint != NIL && "local.myExitPoint hasn't been properly initialized.")
+	
+	self.myExitPoint = local.myExitPoint	// store this value on the object so we can access it elsewhere
+	
+	while(self.isAlive)
+	{
+		if(!self.dftarget.isAlive)
+		{
+			//println self "'s target (" self.dftarget ") died.  Flying out of world."
+			self.dfspeedmanager delete
+			self flyto self.myExitPoint
+			self thread DeleteAtDest 1
+			break
+		}
+		wait 1
+	}
+	self.targetname = "Dead_" + self.targetname
+	//println "[PLANE_UTILS]: Plane killed: " self
+	
+end
+
+
+// LEVEL BOMBING
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+StartBomber local.waves local.bomberStartLocations local.fillExtent:
+//
+//  Spawn in enemy bombers from 6 different spawn points.  Spawns 3 waves and 
+//  randomizes the order in which they spawn.
+//----------------------------------------------------------------------------
+	
+	// check values and apply defaults
+	if (local.waves == NIL)
+		local.waves = 1
+	if( local.fillExtent == NIL )
+		local.fillExtent = 0
+	assert (local.bomberStartLocations != NIL && "StartBomber must be supplied with an array of bomber start locations.")
+	
+	//println "[PLANE_UTILS]: Bombers started: " local.waves " waves, with " local.bomberStartLocations.size " locations."
+	
+	// Spawn each wave
+	//Welcome to hackville!
+	local.extentBombers[0] = NIL
+	for(local.b = 0; local.b <= local.waves; local.b++)
+	{
+		local.randGroup = 0 					// initialize and reset the group number
+		local.groupCount = local.bomberStartLocations.size	// Reset the counter to the number of start locations
+		
+		// Reset all flags 
+		// When a group is picked it sets the flag to 0 so that it won't get picked again
+		for(local.i = 1; local.i <= local.bomberStartLocations.size; local.i++)
+		{
+			local.group[local.i] = 1
+		}
+		
+		// Start spawning groups
+		while(local.groupCount > 1)
+		{
+			// Get random group 
+			local.randGroup = randomint(local.bomberStartLocations.size) + 1
+			
+			// Check to see if group has already been picked
+			if (local.group[local.randGroup] )
+			{
+				// Set group flag to 0 so that it won't get picked again and decrement counter
+				local.group[local.randGroup] = 0
+				local.groupCount--
+				
+				// spawn group selected
+				assert (local.bomberStartLocations[local.randGroup] != NULL && "StartBomber tried to spawn bombers at an invalid location.")
+				local.bomber = local.bomberStartLocations[local.randGroup] waitthread SpawnBombingGroup
+				local.waitTimeBetweenGroups = 1
+				if( local.fillExtent != 0 )
+				{
+					local.extentBombers[local.extentBombers.size] = local.bomber
+					waitthread FFBombers local.extentBombers local.waitTimeBetweenGroups
+				}
+				else
+				{
+					wait local.waitTimeBetweenGroups		// time between spawning next group, staggers the wave
+				}
+
+				
+			}	//end if
+		
+		}	//end while
+		local.BomberDelay = 0					// reset time between each wave		
+		local.BomberDelay = randomint(2) + 1	// Get random time between each wave
+		if( local.fillExtent != 0 )
+		{
+			waitthread FFBombers local.extentBombers local.BomberDelay
+
+			local.fillExtent--
+			local.b = -1
+		}
+		else
+		{
+			wait local.BomberDelay					// wait time for next wave
+		}
+	}	//end for
+	
+end
+
+//----------------------------------------------------------------------------
+FFBombers local.bomberArray local.time:
+//----------------------------------------------------------------------------
+	//bump bombers ahead
+	for( local.j = 1; local.j < local.bomberArray.size; local.j++ )
+	{
+		local.bomber = local.bomberArray[local.j]
+		local.vF = local.bomber.forwardvector
+		local.translationScale = local.bomber.warpSpeed * local.time
+		local.vF = vector_scale local.vF local.translationScale
+		local.bomber jumpto (local.vF + local.bomber.origin)
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+SpawnBombingGroup:
+//
+// Adjust the planes so that three planes spawn out of the info null with distance
+// based on the scale of the plane.  The scale is choosen at random.
+//----------------------------------------------------------------------------
+	
+	// set local varables
+	local.max_distance = 1200.0  	// distance that two full size planes must be from origin
+	local.scale = waitthread GetScale
+	
+	
+	////LEFT PLANE
+	//// get the origin for the left plane	
+	//local.left_spawn_origin = self.origin
+	//local.left_spawn_origin[1] = local.left_spawn_origin[1] - (local.max_distance * local.scale) 
+	//// get the target origin for the left plane
+	//local.left_spawn_target_origin = self.target.origin
+	//local.left_spawn_target_origin[1] = local.left_spawn_target_origin[1] - (local.max_distance * local.scale)
+	//
+	
+	//FRONT PLANE
+	// get the origin for the front plane
+	local.front_spawn_origin = self.origin
+	local.front_spawn_origin[0] = local.front_spawn_origin[0] - (local.max_distance * local.scale)
+	// get the target origin for the front plane
+	local.front_spawn_target_origin = $(self.target).origin
+	local.front_spawn_target_origin[0] = local.front_spawn_target_origin[0] - (local.max_distance * local.scale)
+	local.front_spawn_angles = self.angles
+	
+	
+	////RIGHT PLANE	
+	//// get the origin for the right plane
+	//local.right_spawn_origin = self.origin
+	//local.right_spawn_origin[1] = local.right_spawn_origin[1] + (local.max_distance * local.scale) 
+	//// get the target origin for the right plane
+	//local.right_spawn_target_origin = self.target.origin
+	//local.right_spawn_target_origin[1] = local.right_spawn_target_origin[1] + (local.max_distance * local.scale)
+	//
+	
+	// Spawn the set of three planes
+//	self thread BombingRun local.scale local.left_spawn_origin local.left_spawn_target_origin
+//	self thread BombingRun local.scale local.front_spawn_origin local.front_spawn_target_origin
+//	self thread BombingRun local.scale local.right_spawn_origin local.right_spawn_target_origin
+	
+	
+	
+	local.bomber = self waitthread BombingRun local.scale local.front_spawn_origin local.front_spawn_target_origin local.front_spawn_angles
+	
+end local.bomber
+
+
+//----------------------------------------------------------------------------
+GetScale:
+//
+// Returns a random scale
+//----------------------------------------------------------------------------
+	
+	//local.bomberScale = 0
+	local.bomberScale = (randomfloat(4) + 1) / 3.0
+	
+end local.bomberScale
+
+
+//----------------------------------------------------------------------------
+BombingRun local.bomberScale local.plane_spawn_origin local.plane_spawn_target_origin local.front_spawn_angles:
+//
+// Spawn the planes with their respective origin and target.  Add speed based on the scale.
+//----------------------------------------------------------------------------
+	
+	assert (local.bomberScale != NIL && "local.bomberScale hasn't been properly initialized.")
+	assert (local.plane_spawn_origin != NIL && "local.plane_spawn_origin hasn't been properly initialized.")
+	assert (local.plane_spawn_target_origin != NIL && "local.plane_spawn_target_origin hasn't been properly initialized.")
+	
+	if(self.mymodel == NIL)
+		local.spawnedFleet			= spawn models/vehicles/betty_fleet.hag classname script_model
+	else
+		local.spawnedFleet			= spawn self.mymodel classname script_model
+	
+	local.spawnedFleet.scale	= local.bomberScale
+	local.spawnedFleet.origin	= local.plane_spawn_origin
+	local.spawnedFleet.angles	= local.front_spawn_angles
+	
+	local.spawnedFleet nodamage
+	local.spawnedFleet notsolid
+	local.spawnedFleet anim idle
+	
+	local.spawnedFleet.targetname = "SpawnedBomber"
+	
+	local.speed = (local.bomberScale * 250) + 250
+	local.spawnedFleet speed local.speed 1
+	local.spawnedFleet.warpSpeed = local.speed
+	//local.spawnedFleet time 20
+	local.spawnedFleet moveto local.plane_spawn_target_origin
+	local.spawnedFleet move
+	local.spawnedFleet thread DeleteAtDest
+	
+	//println "[PLANE_UTILS]: Done moving"
+	
+	/*
+	// Spawn in plane
+	local.spawnedPlane = spawn VehicleRidablePlane model self.mymodel
+	local.spawnedPlane waitthread ApplyPlaneVariables
+	local.spawnedPlane.targetname = "SpawnedBomber"
+	local.spawnedPlane stop
+	local.spawnedPlane notsolid
+	local.spawnedPlane nodamage
+	
+	// Get speed based on the scale of the bomber
+	local.speed = (local.bomberScale * 500) + 500
+	
+	// Set Scale, angle and speed
+	local.spawnedPlane.scale = local.bomberScale
+	local.spawnedPlane angles self.angles
+	local.spawnedPlane speed local.speed 1	// accelerate instantly
+	
+	// Spawn the plane at this location
+	local.spawnedPlane.origin = local.plane_spawn_origin
+	
+	// Fly to target and remove the plane when target is reached	
+	local.spawnedPlane flyto local.plane_spawn_target_origin
+	local.spawnedPlane waittill movedone
+	local.spawnedPlane remove		
+	*/
+	
+end local.spawnedFleet
+
+
+// 
+// DIVE BOMBERS
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+SpawnDiveBombers local.myTarget local.bombercount local.mindelay local.maxdelay local.descpitch local.ascendpitch local.attackalt local.speed local.do_rollover local.accuracy local.health local.deathanim local.bomb_hag local.usemanagespeed:
+//
+//	Spawns one or more dive bombers in formation, sends them to bomb the designated target, then sends them to their target exit point for deletion.
+//
+//	Thread must be run on an info_waypoint (or similar object), with 
+//	the filename of the model of the plane you want to spawn specified as $mymodel
+//
+//
+//	Accepts:
+//		local.myTarget:		Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//		local.bombercount:	How many bombers in this formation?		OPTIONAL	1
+//		local.mindelay:		Minimum delay between their spawns		OPTIONAL	1
+//		local.maxdelay:		Maximum delay between their spawns		OPTIONAL	2
+//		local.descpitch:	Bombing descent pitch - how steep a dive?	OPTIONAL	50	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.ascendpitch:	Bombing ascent pitch - how steep a pullout?	OPTIONAL	-95	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.attackalt:	Altitude at which he'll release the bomb.	OPTIONAL	1500	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.speed:		How fast should he be moving during the run?	OPTIONAL	DEFAULTS TO PLANE'S DEFAULT SPEED
+//		local.bomb_hag		The hag file for the bomb	OPTIONAL	Defaults to "ammo/us_bomb.hag"
+//		local.usemanagespeed	Whether you should use managespeed on it	OPTIONAL	1
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: SpawnDiveBombers, on " self
+	
+	// check values and apply defaults
+	assert (self != NULL)
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	
+	if (local.bombercount == NIL)
+		local.bombercount = 1
+	
+	if (local.mindelay == NIL)
+		local.mindelay = 1
+	
+	if (local.maxdelay == NIL)
+		local.maxdelay = 2
+	
+	if (local.descpitch == NIL)
+	{
+		if (self.descpitch != NIL)
+			local.descpitch = self.descpitch
+		else
+			local.descpitch = 50
+	}
+	
+	if (local.ascendpitch == NIL)
+	{
+		if (self.ascendpitch != NIL)
+			local.ascendpitch = self.ascendpitch
+		else
+			local.ascendpitch = -95
+	}
+	
+	if (local.attackalt == NIL)
+	{
+		if (self.attackalt != NIL)
+			local.attackalt = self.attackalt
+		else
+			local.attackalt = 1500
+	}
+	
+	if (local.do_rollover == NIL)
+	{
+		if (self.do_rollover != NIL)
+			local.do_rollover = self.do_rollover
+		else
+			local.do_rollover = 0
+	}
+	
+	if (local.accuracy == NIL)
+	{
+		if (self.accuracy != NIL)
+			local.accuracy = self.accuracy
+		else
+			local.accuracy = 0
+	}
+	
+	// TEMP: for E3 demo /////////////////////////////////////
+	if (local.speed == NIL)
+	{
+		if (self.speed != NIL)
+			local.speed = self.speed
+		else
+			local.speed = 3500
+	}
+	//////////////////////////////////////////////////////////
+	
+	if( local.bomb_hag == NIL )
+	{
+		local.bomb_hag = "ammo/us_bomb.hag";
+	}
+
+	// Spawn planes in formation
+	local.lastBomberInFormation = NIL
+	local.newOrigin = 0
+	for(local.d = 0; local.d < local.bombercount; local.d++)
+	{		
+		// Spawn in Bomber and attach the bomb
+		local.spawnedPlane[local.d] = waitthread global/plane_utils.scr::SpawnPlaneVRP self local.health local.deathanim
+		local.spawnedPlane[local.d].actiondone = false
+		
+		local.bomb = local.spawnedPlane[local.d] attachbomb 0 "Joint_Bomb" local.bomb_hag
+		local.spawnedPlane[local.d].myBomb = local.bomb
+
+	
+		local.spawnedPlane[local.d].targetname = "SpawnedDiveBomber"
+		
+		// Set the planes flying characteristics
+		if (local.speed != NIL)
+			local.spawnedPlane[local.d] speed local.speed 1
+		
+		// Send the planes to attack their target
+		local.spawnedPlane[local.d] thread ExecuteDiveBomb local.myTarget local.descpitch local.ascendpitch local.attackalt local.do_rollover local.accuracy local.usemanagespeed
+		
+		local.myDelay = randomfloat(local.maxdelay - local.mindelay) + local.mindelay
+		wait local.myDelay
+		
+		//  Change spawn location of plane
+		local.left = angles_toleft self.angles
+		local.newOrigin = self.origin + (local.left * -1000)
+		self.origin = local.newOrigin
+		
+		// give end-user a handle to the last bomber in formation if desired
+		local.lastBomberInFormation = local.spawnedPlane[local.d]
+	}
+	
+end local.lastBomberInFormation
+
+
+//----------------------------------------------------------------------------	
+ExecuteDiveBomb local.myTarget local.descpitch local.ascendpitch local.attackalt local.do_rollover local.accuracy local.usemanagespeed:
+//
+//	Executes a divebombing attack
+//
+//	Thread must be run on a VehicleRidablePlane
+//
+//	Accepts:
+//		local.myTarget:		Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//		local.descpitch:	Bombing descent pitch - how steep a dive?	REQUIRED	NO DEFAULT
+//		local.ascendpitch:	Bombing ascent pitch - how steep a pullout?	REQUIRED	NO DEFAULT
+//		local.attackalt:	Altitude at which he'll release the bomb.	REQUIRED	NO DEFAULT
+//		local.usemanagespeed:	Determines whether to run a managespeed thread	OPTIONAL	1
+//					on the DB
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: ExecuteDiveBomb, with " local.myTarget
+	
+	// check values and apply defaults
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	assert (local.descpitch != NIL && "local.descpitch hasn't been properly initialized.")
+	assert (local.ascendpitch != NIL && "local.ascendpitch hasn't been properly initialized.")
+	assert (local.attackalt != NIL && "local.attackalt hasn't been properly initialized.")
+	
+	self runsounds 0
+	
+	// find out whether our target has a target, and detach the last point in the chain if it has (that last point is the exit point)
+	assert (self.target != NIL && "self.target hasn't been properly initialized.")
+	local.exitpoint = waitthread FindExitPoint self.target
+	// if our target is not our exitpoint, fly to our target first.
+	if (local.exitpoint != self.target)
+	{
+		//println "[PLANE_UTILS]: Divebomber Flying to attackstartpoint: " self.target
+		switch (self.target.classname)
+		{
+		case "SplinePath":
+			self autopilot self.target
+			break
+		default:
+			self flyto self.target.origin
+		}
+		self waittill movedone
+		//println "[PLANE_UTILS]: Divebomber Reached attackstartpoint: " self.target
+	}
+	
+	if (local.myTarget.isAlive || local.myTarget.isAlive == NIL)
+	{
+		// Play sound
+		self thread DiveBombSound
+		self thread DoFlyBySound NIL 5 1	//local.alias local.delay local.onPlayer
+		// bomb the target
+		//println "[PLANE_UTILS]: Divebomber: " self " bombing " local.mytarget ", with descpitch: " local.descpitch ", ascendpitch: " local.ascendpitch ", attackalt: " local.attackalt
+		if (local.usemanagespeed == NIL || local.usemanagespeed == 1)
+		{
+			self thread ManageDBSpeed
+		}
+		else
+		{
+			self thread ManageDBSpeed2
+		}
+		self bombtarget local.myTarget local.descpitch local.ascendpitch local.attackalt -1 local.do_rollover local.accuracy	// Entity target, Float descpitch, Float ascendpitch, Float attackalt, Float bombspeed(opt)
+		if(local.myTarget.isAlive != NIL)
+			self thread WatchTarget local.myTarget
+		self waittill movedone				// movedone after pulling up above the attackAltitude
+	}
+	
+	self.actiondone = true
+	
+	//println "[PLANE_UTILS]: Event: DiveBomb-->movedone"
+	
+	if (self.isAlive)
+	{		
+		// fly plane out of playable area and delete
+		//println "[PLANE_UTILS]: Divebomber Flying to exitpoint: " local.exitpoint
+		self flyto local.exitpoint.origin
+		self thread DeleteAtDest
+		
+		//println "[PLANE_UTILS]: Dive bomber removed"
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------	
+ManageDBSpeed:
+//
+//	
+//----------------------------------------------------------------------------
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	
+	//-----------------------------------
+	// prior to dive
+	//-----------------------------------
+	local.origspeed = self.speed
+	local.origpitchrate = 100	//self.maxpitchrate
+//	if(self.acceleration != NIL)
+//		local.origaccel = self.acceleration
+//	else
+		local.origaccel = 100
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	
+	//-----------------------------------
+	// dive
+	self waittill dive_begun
+	self playsound Val_Plane_DiveBomb
+
+	//-----------------------------------
+	local.newspeed = local.origspeed * 6
+	self acceleration 20
+	self speed local.newspeed
+	
+	//-----------------------------------
+	// pullup
+	self waittill bomb_dropped
+	self.myBomb playsound bomb_whistle_long
+	//-----------------------------------
+	self nodamage
+	local.newspeed = local.origspeed * 0.25
+	self acceleration local.origaccel
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	self speed local.newspeed
+	
+	//-----------------------------------
+	wait 1
+	//-----------------------------------
+	self takedamage
+	self speed local.origspeed
+	self maxpitchrate local.origpitchrate
+	
+end
+
+//----------------------------------------------------------------------------	
+ManageDBSpeed2:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	
+	//-----------------------------------
+	// prior to dive
+	//-----------------------------------
+	local.origspeed = self.speed
+	local.origpitchrate = 100	//self.maxpitchrate
+//	if(self.acceleration != NIL)
+//		local.origaccel = self.acceleration
+//	else
+		local.origaccel = 100
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	
+	//-----------------------------------
+	// dive
+	self waittill dive_begun
+	self playsound Val_Plane_DiveBomb
+	//-----------------------------------
+	self.doaccel = true
+	self thread DBAccelerate
+	
+	
+	//-----------------------------------
+	// pullup
+	self waittill bomb_dropped
+	self.myBomb playsound bomb_whistle_long
+	//-----------------------------------
+	self.doaccel = false
+	self nodamage
+	local.newspeed = local.origspeed * 0.25
+	self acceleration local.origaccel
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	self speed local.newspeed
+	
+	//-----------------------------------
+	wait 1
+	//-----------------------------------
+	self takedamage
+	self speed local.origspeed
+	self maxpitchrate local.origpitchrate
+	
+end
+
+DBAccelerate:
+	local.gospeed = self.speed
+	while (self != NULL && self.doaccel && local.gospeed < 10000)
+	{
+		self speed local.gospeed 1
+		local.gospeed += 250
+		wait 0.2
+	}
+end
+
+//----------------------------------------------------------------------------
+DiveBombSound:
+//
+//	play dive bomber sound
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	
+	//-----------------------------------
+	// dive
+	self waittill dive_begun
+	//-----------------------------------
+	//skm: OBSOLETE
+	//$player playsound "dive_bomber_whine"
+	
+	//-----------------------------------
+	// pullup
+	self waittill bomb_dropped
+	//-----------------------------------
+	
+end
+
+
+//----------------------------------------------------------------------------
+WatchTarget local.target:
+//
+//	Watches divebomber's target and directs him to fly away if it's no longer valid
+//
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	assert (local.target != NIL && "local.target hasn't been properly initialized.")
+	
+	while (self.bombcount > 0 && local.target.health > 0)
+	{
+		wait 1
+	}
+	
+	// Target no longer valid - fly away
+	assert (self.target != NIL && "self.target hasn't been properly initialized.")
+	assert ($(self.target) != NULL && "No object exists in map with name $(self.target)")
+	self flyto $(self.target)
+	self thread DeleteAtDest
+	
+end
+
+// 
+// TORPEDO PLANES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+SpawnTorpedoPlane local.myTarget local.descpitch local.ascendpitch local.attackalt local.speed local.deathanim local.bomb_hag local.torpedo_target local.torpedo_speed local.torpedo_timeout local.distBeforeLeave:
+//
+//	Spawns one or more dive bombers in formation, sends them to bomb the designated target, then sends them to their target exit point for deletion.
+//
+//	Thread must be run on an info_waypoint (or similar object), with 
+//	the filename of the model of the plane you want to spawn specified as $mymodel
+//
+//
+//	Accepts:
+//		local.myTarget:			Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//		local.descpitch:		Bombing descent pitch - how steep a dive?		OPTIONAL	20	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.ascendpitch:		Bombing ascent pitch - how steep a pullout?		OPTIONAL	-45	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.attackalt:		Altitude at which he'll release the bomb.		OPTIONAL	1500	(MAY BE SPECIFIED ON INFO_WAYPOINT)
+//		local.speed:			How fast should he be moving during the run?	OPTIONAL	DEFAULTS TO PLANE'S DEFAULT SPEED
+//		local.deathanim:		This bomber's death style (long_crash, etc.)	OPTIONAL	DEFAULTS TO PLANE'S HAG SPEC
+//		local.bomb_hag			The hag file for the bomb						OPTIONAL	Defaults to "ammo/torpedo.hag"
+//		local.torpedo_target	The target that the torpedo should hit			OPTIONAL	Defaults to no target
+//		local.torpedo_speed 	The speed in water of the torpedo				OPTIONAL	DEFAULTS TO TORPEDO'S HAG SPEC
+//		local.torpedo_timeout 	The torpedo will blow up after this time		OPTIONAL	DEFAULTS TO TORPEDO'S HAG SPEC
+//		local.distBeforeLeave	Distance plane will travel before leaving		OPTIONAL	DEFAULTS TO 0
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: SpawnTorpedoPlane, on " self
+	
+	// check values and apply defaults
+	assert (self != NULL)
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	
+	
+	if (local.descpitch == NIL)
+	{
+		if (self.descpitch != NIL)
+			local.descpitch = self.descpitch
+		else
+			local.descpitch = 20
+	}
+	
+	if (local.ascendpitch == NIL)
+	{
+		if (self.ascendpitch != NIL)
+			local.ascendpitch = self.ascendpitch
+		else
+			local.ascendpitch = -45
+	}
+	
+	if (local.attackalt == NIL)
+	{
+		if (self.attackalt != NIL)
+			local.attackalt = self.attackalt
+		else
+			local.attackalt = 1500
+	}
+	
+	if (local.speed == NIL)
+	{
+		if (self.speed != NIL)
+			local.speed = self.speed
+		// else use whatever was specified in this plane's init or HAG
+	}
+	
+	if( local.bomb_hag == NIL )
+	{
+		local.bomb_hag = "ammo/torpedo.hag"
+	}
+	
+	// Spawn in Bomber and attach the torpedo
+	local.spawnedPlane = waitthread global/plane_utils.scr::SpawnPlaneVRP self local.health local.deathanim
+	local.torpedo = local.spawnedPlane attachbomb 1 "Joint_Bomb" local.bomb_hag
+	local.spawnedPlane.actiondone = false
+	
+//	local.torpedo svflags "+broadcast"
+	
+	// Set torpedo's characteristics
+	if( local.torpedo_target != NIL )
+	{
+		local.torpedo SetTargetPosition local.torpedo_target
+	}
+
+	if( local.torpedo_speed != NIL )
+	{
+		local.torpedo SetInWaterSpeed local.torpedo_speed
+	}
+
+	if( local.torpedo_timeout != NIL )
+	{
+		local.torpedo timeout local.torpedo_timeout
+	}
+
+
+	local.spawnedPlane.targetname = "SpawnedTorpedoBomber"
+	local.spawnedPlane.torpedo = local.torpedo
+	local.spawnedPlane.torpedo.targetname = local.spawnedPlane.targetname + "_torpedo"
+
+	// Set the plane's flying characteristics
+	if (local.speed != NIL)
+		local.spawnedPlane speed local.speed 1
+
+	// Send the plane to attack its target
+	local.spawnedPlane thread ExecuteTorpedoBomb local.myTarget local.descpitch local.ascendpitch local.attackalt local.distBeforeLeave
+	
+end local.spawnedPlane
+
+
+//----------------------------------------------------------------------------	
+ExecuteTorpedoBomb local.myTarget local.descpitch local.ascendpitch local.attackalt local.distBeforeLeave:
+//
+//	Executes a divebombing attack
+//
+//	Thread must be run on a VehicleRidablePlane
+//
+//	Accepts:
+//		local.myTarget:		Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//		local.descpitch:	Bombing descent pitch - how steep a dive?	REQUIRED	NO DEFAULT
+//		local.ascendpitch:	Bombing ascent pitch - how steep a pullout?	REQUIRED	NO DEFAULT
+//		local.attackalt:	Altitude at which he'll release the bomb.	REQUIRED	NO DEFAULT
+//		local.distBeforeLeave	Distance plane will travel before leaving		OPTIONAL	DEFAULTS TO 0
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: ExecuteTorpedoBomb, with " local.myTarget
+	
+	// check values and apply defaults
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	assert (local.descpitch != NIL && "local.descpitch hasn't been properly initialized.")
+	assert (local.ascendpitch != NIL && "local.ascendpitch hasn't been properly initialized.")
+	assert (local.attackalt != NIL && "local.attackalt hasn't been properly initialized.")
+	
+	self runsounds 0
+	
+	// find out whether our target has a target, and detach the last point in the chain if it has (that last point is the exit point)
+	assert (self.target != NIL && "self.target hasn't been properly initialized.")
+	local.exitpoint = waitthread FindExitPoint self.target
+	// if our target is not our exitpoint, fly to our target first.
+	if (local.exitpoint != self.target)
+	{
+		//println "[PLANE_UTILS]: Torpedo bomber Flying to attackstartpoint: " self.target
+		switch (self.target.classname)
+		{
+		case "SplinePath":
+			self autopilot self.target
+			break
+		default:
+			self flyto self.target.origin
+		}
+		self waittill movedone
+		//println "[PLANE_UTILS]: Torpedo bomber Reached attackstartpoint: " self.target
+	}
+
+	
+	if (local.myTarget.isAlive || local.myTarget.isAlive == NIL)
+	{
+		// Play sound
+		self thread DoFlyBySound NIL 5 1	//local.alias local.delay local.onPlayer
+		self thread ManageTorpedoBomberSpeed
+		//Save approach angles
+		self bombtarget local.myTarget local.descpitch local.ascendpitch local.attackalt	// Entity target, Float descpitch, Float ascendpitch, Float attackalt, Float bombspeed(opt)
+		self waittill movedone				// movedone after pulling up above the attackAltitude
+		if (self.torpedo != NULL)
+		{
+			self.torpedo svflags "+broadcast"
+		}
+	}
+	
+	//dprintln "[PLANE_UTILS]: Event: DiveBomb-->movedone"
+	
+	self.actiondone = true
+	
+	if (self.isAlive)
+	{
+		if( local.distBeforeLeave != NIL )
+		{
+			local.origin = self.origin
+			local.moveTo = angles_toforward local.angles
+			local.moveTo = vector_scale local.moveTo local.distBeforeLeave
+			local.moveTo = vector_add local.moveTo local.origin
+			self flyto local.moveTo
+			self waittill movedone
+		}
+		// fly plane out of playable area and delete
+		//println "[PLANE_UTILS]: Divebomber Flying to exitpoint: " local.exitpoint
+		self flyto local.exitpoint.origin
+		self thread DeleteAtDest
+		
+		//println "[PLANE_UTILS]: Dive bomber removed"
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------	
+ManageTorpedoBomberSpeed:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	
+	/*
+	//-----------------------------------
+	// prior to dive
+	//-----------------------------------
+	local.origspeed = self.speed
+	local.origpitchrate = 100	//self.maxpitchrate
+//	if(self.acceleration != NIL)
+//		local.origaccel = self.acceleration
+//	else
+		local.origaccel = 100
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	
+	//-----------------------------------
+	// dive
+	self waittill dive_begun
+	//-----------------------------------
+	local.newspeed = local.origspeed * 6
+	self acceleration 20
+	self speed local.newspeed
+	
+	//-----------------------------------
+	// pullup
+	self waittill bomb_dropped
+	//-----------------------------------
+	self nodamage
+	local.newspeed = local.origspeed * 0.25
+	self acceleration local.origaccel
+	local.rndpitch = 70 + randomint(30)
+	self maxpitchrate local.rndpitch
+	self speed local.newspeed
+	
+	//-----------------------------------
+	wait 1
+	//-----------------------------------
+	self takedamage
+	self speed local.origspeed
+	self maxpitchrate local.origpitchrate
+	*/
+	
+end
+
+
+// MOVEMENT UTILITIES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// ----------------------------------------------------------------------------------
+DeleteAtDest local.use_failsafe:
+//
+//	
+//
+// ----------------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: global/plane_utils::DeleteAtDest, on " self
+	
+	if ( local.use_failsafe == 1 )
+	{
+		self thread DeleteAtDestFailSafe
+	}	
+	
+	self waittill movedone
+	//println "[PLANE_UTILS]: At destination: " self ".  Removing."
+	self remove
+	
+end
+
+// -----------------------------------------------------------------------------------
+DeleteAtDestFailSafe:
+//
+// If this plane is near it's intended destination but it's taking too long to get there,
+// change the maneuvering parameters to allow him to continue
+// -----------------------------------------------------------------------------------
+
+	dprintln "DeleteAtDestFailSafe"
+
+	local.start_time = level.time
+	local.timer = 0
+	
+	local.max_failsafe_time = 10
+
+	while ( self != NULL && self != NIL )
+	{
+		local.vd = vector_subtract self.flyto_dest self.origin
+		local.distance_to_dest = vector_length local.vd
+		
+		if ( local.distance_to_dest >= self.node_proximity_dist && local.distance_to_dest < ( self.node_proximity_dist * 2 ) )
+		{			
+			local.timer++
+						
+			if ( local.timer >= local.max_failsafe_time )
+			{
+				dprintln "DeleteAtDestFailSafe USED"
+				self.node_proximity_dist = ( self.node_proximity_dist * 2 )
+				break
+			}						
+		}
+		else
+		{
+			local.timer++
+						
+			if ( local.timer >= local.max_failsafe_time )
+			{
+				self force_explode
+				wait 5
+				self remove
+				break
+			}	
+		}
+		
+		wait 1
+	}
+
+end
+
+
+// AA GUNS
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// -----------------------------------------------------------------------------------
+StartRandomAAGun local.x local.y local.speed local.fakebullets:
+//
+//	
+// -----------------------------------------------------------------------------------
+
+	Assert (self.classname == "ProjectileGenerator_Gun")
+	
+	// set defaults
+	if(local.x == NIL)
+		local.x = 3000
+	if(local.y == NIL)
+		local.y = 3000
+	if(local.speed == NIL)
+		local.speed = 2000
+
+	if(local.fakebullets == NIL)
+		local.fakebullets = 1
+
+	// set up our root origin and values
+	local.xDiv = local.x/2.0
+	local.yDiv = local.y/2.0
+	local.offsetOrigin = self.origin
+	local.offsetOrigin[2] += 2000
+	
+	// create target object
+	local.guntarget = spawn script_object
+	local.guntarget.origin = local.offsetOrigin
+	local.guntarget speed local.speed
+	
+	// prepare the gun to fire at the target
+	self setnewtarget local.guntarget
+	self fakebullets local.fakebullets
+	self maxnumshots 100
+	self turnon
+	self.targetingplane = 0
+	self leadtarget 0
+	
+	// select new targets
+	while (isAlive self && self isturnedon && !self.targetingplane)
+	{
+		// Get offsets
+		local.offsetOrigin[0] = (self.origin[0] + randomint(local.x)) - local.xDiv
+		local.offsetOrigin[1] = (self.origin[1] + randomint(local.y)) - local.yDiv
+		
+		local.guntarget moveto local.offsetOrigin
+		local.guntarget waitmove
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+AAGunWatchForPlane local.x local.y local.speed local.fakebullets local.myteam:
+//
+//	Watches for plane to enter kill zone and switches target to it
+// -----------------------------------------------------------------------------------	
+
+	//println "[PLANE_UTILS]: Thread Launched: AAGunWatchForPlane"
+	
+	// set defaults
+	if(local.myteam == NIL)
+		local.myteam = "ALLIES"
+	
+	// start random aa gun behavior
+	self thread StartRandomAAGun local.x local.y local.speed local.fakebullets
+	
+	// watch for planes
+	while (isAlive self && self isturnedon)
+	{
+		$(self.mytrigger) waittill trigger
+		// ---------------------------
+		// set variable to entity which tripped trigger
+		self.planetarget = parm.other
+		
+		// set targeting plane to 1
+		self.targetingplane = 1
+		
+		// check if plane is ok to shoot at, if so shoot at it
+		if (self.planetarget.team != local.myteam && self.planetarget.ignoreme != 1)
+		{
+			self setnewtarget self.planetarget
+			self leadtarget 1
+
+			// check to see if plane has left trigger
+			while (self.planetarget isinside self.mytrigger && self.planetarget.isAlive)
+			{
+				wait 1
+			}
+		}
+		
+		// return to random firing
+		self thread StartRandomAAGun local.x local.y local.speed local.fakebullets
+		
+		wait .2
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+StartFakeAAGun local.amplitude local.period:
+//
+//	
+// -----------------------------------------------------------------------------------
+	assert (local.amplitude != NIL && "local.amplitude hasn't been properly initialized.")
+	assert (local.period != NIL && "local.period hasn't been properly initialized.")
+
+	// spawn effect
+	local.fx = spawn script_model model "models/fx/aa_fake.hag"
+	local.fx.targetname = "AAGun" + int(level.time)
+	local.fx.origin = self.origin
+	local.fx.angles = "270 0 0"
+	
+	wait 1
+	//println "[PLANE_UTILS]: Spawned effect: " local.fx ", with origin: " local.fx.origin ", and angles: " local.fx.angles
+	$(local.fx) anim fx_on
+	
+	local.i = 0
+	local.lasttime = level.time
+	// we'll be varying amplitude and period as we run - set the base values
+	local.curamplitude = local.amplitude
+	local.curperiod = local.period
+	while(1)
+	{
+		// execute roll
+		local.roll = local.curamplitude * sin(local.i)
+		local.fx.angles = (270 + local.roll) + " " + (90 + local.roll) + " 0"
+
+		// determine next roll angle
+		local.deltatime = level.time - local.lasttime
+		local.lasttime = level.time
+		if (local.i < 360.00)
+		{
+			local.i+= local.deltatime * 360.00 / local.curperiod
+		}
+		else
+		{
+			local.i = 0
+			// set new apmplitude and period values to vary it up a bit
+			local.curamplitude = local.amplitude + (randomfloat(local.amplitude / 2) - local.amplitude / 2)
+			local.curperiod = local.period + (randomfloat(local.period / 2) - local.period / 2)
+			//println "[PLANE_UTILS]: Adjusting FakeAAGun: curamplitude: " local.curamplitude ", curperiod: " local.curperiod
+		}
+		waitframe
+	}
+	
+end
+
+//----------------------------------------------------------------------------
+StartFlakGun local.x local.y local.z local.minwait local.maxwait:
+//
+//  Start a flak gun
+//----------------------------------------------------------------------------
+
+//	dprintln "Thread launched: StartFlakGun, with " local.flakOrigin ", (" local.x " " local.y " " local.z ")"
+
+	assert (self != NULL && "Invalid offset origin passed for flak gun.")
+
+	if (local.x == NIL)
+		local.x = 2000
+	if (local.y == NIL)
+		local.y = 2000
+	if (local.z == NIL)
+		local.z = 2000
+	if (local.maxwait == NIL)
+		local.maxwait = 2.5
+	if (local.minwait == NIL)
+		local.minwait = 1.5
+
+	local.xDiv = local.x/2.0
+	local.yDiv = local.y/2.0
+	local.zDiv = local.z/2.0
+	
+	local.offsetTime = randomfloat(2.0)
+	wait local.offsetTime
+
+	// Do effect
+	while (1)
+	{
+		// Reset to original origin
+		local.offsetOrigin = self.origin
+		
+		// Get random directions
+		local.offsetOrigin[0] = (local.offsetOrigin[0] + randomint(local.x)) - local.xDiv
+		local.offsetOrigin[1] = (local.offsetOrigin[1] + randomint(local.y)) - local.yDiv
+		local.offsetOrigin[2] = (local.offsetOrigin[2] + randomint(local.z)) - local.zDiv
+				
+		// Spawn effect and play sound for bofor firing
+		// Effect
+		//$(local.flakOrigin.target + "_turret0") anim fire2
+		
+		//wait .3
+		
+		// Spawn effect and play sound for Flak explosion		
+		local.fx = spawn "models/fx/flak_explosion.tik"
+		local.fx.origin = local.offsetOrigin
+		local.fx playsound 5_1_flak
+		local.fx thread global/vfx.scr::DeleteWhenDone
+		
+		// recycle
+		local.reloadTime = randomfloat(local.maxwait - local.minwait) + local.minwait
+		wait local.reloadTime
+	}
+	
+end
+
+
+// AMBIENT FURBALL
+// Create a group of planes that circle and attack random locations
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//----------------------------------------------------------------------------
+StartAmbientFurball local.planeSpawners local.targets local.count local.home local.leash local.altleash local.speed local.floor local.spawnAlt local.tightness:
+//
+//----------------------------------------------------------------------------
+	
+	// spawn an object in the world to hold our system's properties
+	local.planemanager = spawn info_waypoint
+	local.timestamp = int(level.time)	// use integer component of timestamp to provide unique ID
+	local.planemanager.targetname = "PlaneManager" + local.timestamp
+
+	// count
+	assert (local.count != NIL && "local.count hasn't been properly initialized.")
+	local.planemanager.count = local.count
+
+	// home & leashes
+	assert (local.home != NIL && "StartAmbientFurball needs a home position.")
+
+	local.pos = local.home.origin
+	local.pos[2] = local.floor
+	local.home origin local.pos
+
+
+	local.planemanager.home = local.home
+	if (local.leash == NIL)
+		local.leash = 13000
+	local.planemanager.leash = local.leash
+	if (local.altleash == NIL)
+		local.altleash = 5000
+	local.planemanager.altleash = local.altleash
+	
+	// speed
+	local.planemanager.speed = local.speed
+	
+	// floor
+	local.planemanager.floor = local.floor
+	local.planemanager.spawnAlt = local.spawnAlt
+	local.planemanager.tightness = local.tightness
+	
+	// store passed arguments on this object
+	if( local.planeSpawners == NIL || local.planeSpawners == NULL )
+	{
+		local.planemanager waitthread GeneratePlaneSpawners
+	}
+	else
+	{
+		local.planemanager.planeSpawners = local.planeSpawners
+	}
+
+	if ( local.targets == NIL || local.targets == NULL )
+	{
+		local.planemanager waitthread GenerateGroundTargets
+	}
+	else
+	{
+		local.planemanager.targets = local.targets
+	}
+
+	// start the furball
+	local.planemanager thread RunAmbientFurball
+	
+	// return a handle to the spawned manager object
+end local.planemanager
+
+//----------------------------------------------------------------------------
+GeneratePlaneSpawners:
+// Generate plane spawners around home point
+//----------------------------------------------------------------------------
+	local.timestamp = int(level.time)	// use integer component of timestamp to provide unique ID
+	local.targetname = "FurballPlaneSpawnPoint" + local.timestamp
+	for( local.i = 0; local.i < self.count; local.i++ )
+	{
+		self waitthread CreatePlaneSpawner local.targetname
+	}
+	self.planeSpawners = $(local.targetname)
+end
+
+//----------------------------------------------------------------------------
+CreatePlaneSpawner local.targetname:
+// Create a single plane spawn point
+//----------------------------------------------------------------------------
+
+	local.rad = 4000
+	local.pos = self.home.origin
+
+	//Calc the number of degrees to rotate around the homepoint when spawning planes
+	local.degrees = 360 / self.count
+
+	local.angle		= self.home.angle
+	local.vF		= self.home.forwardvector
+	local.vF		= vector_scale local.vF local.rad
+	local.pos		= vector_add local.pos local.vF
+	local.angle		+= local.degrees
+	self.home.angle	= local.angle
+
+	local.pos[2] += self.spawnAlt
+
+	local.spawnpoint = spawn info_waypoint
+
+	local.spawnpoint origin local.pos
+	local.spawnpoint.angle = randomfloat(360)
+	local.spawnpoint.mymodel = "vehicles/zero.hag"
+	local.spawnpoint.targetname = local.targetname
+
+end local.spawnpoint
+
+//----------------------------------------------------------------------------
+GenerateGroundTargets:
+// Generate plane spawners around home point
+//----------------------------------------------------------------------------
+	local.timestamp = int(level.time)	// use integer component of timestamp to provide unique ID
+	local.targetname = "FurballGroundTargets" + local.timestamp
+	for( local.i = 0; local.i < self.count; local.i++ )
+	{
+		self waitthread CreateGroundTarget local.targetname
+	}
+	self.targets = $(local.targetname)
+end
+
+//----------------------------------------------------------------------------
+CreateGroundTarget local.targetname:
+// Create a single plane spawn point
+//----------------------------------------------------------------------------
+	local.rad = 1000 * randomfloat(1) + 3000
+	local.pos = self.home.origin
+
+	//Calc the number of degrees to rotate around the homepoint when spawning planes
+	local.degrees = 360 / self.count
+
+	local.angle		= self.home.angle
+	local.vF		= self.home.forwardvector
+	local.vF		= vector_scale local.vF local.rad
+	local.pos		= vector_add local.pos local.vF
+	local.angle		+= local.degrees
+	self.home.angle	= local.angle
+
+	local.pos[2] = self.floor
+
+	local.groundTarget = spawn info_waypoint
+	local.groundTarget origin local.pos
+	local.groundTarget.targetname = local.targetname
+
+end local.groundTarget
+
+//----------------------------------------------------------------------------
+RunAmbientFurball:
+//
+//	Run the named ambient Furball
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	assert (self.count != NIL && "self.count hasn't been properly initialized.")
+	assert (self.planeSpawners != NIL && "self.planeSpawners hasn't been properly initialized.")
+
+	self.isrunning = 1
+	local.curcount = 0
+
+	local.spawnCount = 1
+
+	while (self.isrunning == 1)
+	{
+		if( self.count >= local.spawnCount )
+		{
+			self waitthread SpawnFurballPlane self.planeSpawners[local.spawnCount]
+			local.spawnCount++
+			wait 0.1
+		}
+		else
+			wait 1
+	}
+
+	waitthread FinishFurball self
+
+end
+
+// ----------------------------------------------------------------------------------
+FinishFurball local.myManager:
+// Clean up Plane action.  Despawn planes, etc.
+// ----------------------------------------------------------------------------------
+
+	local.sector = $player waitthread GetFarSector local.myManager
+
+	if( local.sector > 0 )
+	{
+		local.pos = vector_subtract local.myManager.planeSpawners[local.sector].origin local.myManager.home.origin
+		local.pos = vector_scale local.pos 5
+		local.pos = vector_add local.pos local.myManager.home.origin
+
+
+		$SpawnedFurballPlane thread GoAwayAndDie local.pos
+	}
+	else
+	{
+		dprintln "we killed em!"
+		$SpawnedFurballPlane thread KillPlane
+	}
+    
+end
+
+//----------------------------------------------------------------------------
+GoAwayAndDie local.pos:
+//----------------------------------------------------------------------------
+
+	if( self.flyToThread != NIL && self.flyToThread != NULL )
+	{
+		self.flyToThread remove
+	}
+
+	if(self.flyToFarThread != NIL && self.flyToFarThread != NULL )
+	{
+		self.flyToFarThread remove
+	}
+
+	if(self.attackFarThread != NIL && self.attackFarThread != NULL )
+	{
+		self.attackFarThread remove
+	}
+
+	if(self.attackRandomThread != NIL && self.attackRandomThread != NULL )
+	{
+		self.attackRandomThread remove
+	}
+
+
+	self flyto local.pos
+	self thread DeleteAtDest
+end
+
+
+//----------------------------------------------------------------------------
+SpawnFurballPlane local.planeSpawner:
+//
+//----------------------------------------------------------------------------
+	
+	assert (local.planeSpawner != NIL && "SpawnFurballPlane requires a valid spawn point.")
+	
+	local.spawnedPlane= waitthread global/plane_utils.scr::SpawnPlaneVRP local.planeSpawner
+	
+	// Save targetname of this spawned plane
+	local.spawnedPlane.targetname = "SpawnedFurballPlane"
+	
+	// Prepare chaser
+	local.spawnedPlane waitthread SetFurballerProperties self
+	//local.spawnedPlane attack self.home
+	local.spawnedPlane.spawnPoint = local.planeSpawner
+
+	// Run spawned plane threads
+	//Todo: select attack point thread
+	local.spawnedPlane thread AttackRandomTargets self
+end
+
+//----------------------------------------------------------------------------
+SetFurballerProperties local.myManager:
+//
+// 
+//----------------------------------------------------------------------------	
+	
+	assert(self != NULL)
+	assert (local.myManager != NULL)
+
+	//Do not allow damage on this plane
+	self notsolid
+	self nodamage
+
+	self no_shooting
+	self runsounds 0
+	
+	// Set the planes' home
+	assert (local.myManager.home != NIL && "local.myManager.home hasn't been properly initialized.")
+	self home local.myManager.home
+	
+	//  Sets the distance the planes will travel from their home
+	assert (local.myManager.leash != NIL && "local.myManager.leash hasn't been properly initialized.")
+	self leash local.myManager.leash
+	
+	//  Sets the maximum altitude that a plane will travel
+	assert (local.myManager.altleash != NIL && "local.myManager.altleash hasn't been properly initialized.")
+	self altleash local.myManager.altleash
+
+	//self.peeloff_distance = 100
+
+	// if we've chosen to override the plane's default speed, set it here
+	if (local.myManager.speed != NIL)
+		self speed local.myManager.speed 1	// accelerate instantly
+	
+	//  Sets an artificial groundplane altitude if desired (prevents otherwise expensive ground traces)
+	if (local.myManager.floor != NIL)
+		self artificial_terrain_altitude local.myManager.floor
+		
+	self.myManager = local.myManager
+	
+	local.patrolalt = 5000
+	local.minimumAlt = local.myManager.floor
+//	local.attackalt = local.minimumAlt + ((local.patrolalt -  local.minimumAlt) / 2)
+	local.attackalt = local.myManager.floor
+
+	self patrolalt local.patrolalt
+	self minimumAlt local.minimumAlt
+	self.attackalt = local.attackalt
+	//self.node_proximity_dist_inner = 4000
+
+	//Change tightness
+	switch( local.myManager.tightness )
+	{
+	case 1:
+		self maxrollrate 	200
+		self maxyawrate 	120
+		self maxpitchrate 	200
+		break
+	case 2:
+		self maxrollrate 	100
+		self maxyawrate 	80
+		self maxpitchrate 	100
+		break
+	case 3:
+		self maxrollrate 	60
+		self maxyawrate 	50
+		self maxpitchrate 	60
+		break
+	default:
+		self maxrollrate 	50
+		self maxyawrate 	40
+		self maxpitchrate 	50
+	}
+end
+
+//----------------------------------------------------------------------------	
+AttackRandomTargets local.myManager:
+//
+//----------------------------------------------------------------------------	
+
+	self.attackRandomThread = local
+
+	self attackalt 1
+
+	while( self.isAlive )
+	{
+
+		//Fly to farthest known point
+		self waitthread FlyToFarPoint local.myManager
+
+		self waitthread AttackFarPoint local.myManager
+
+		self waitthread FlyToFarPoint local.myManager
+	}
+
+end
+
+//----------------------------------------------------------------------------	
+FlyToFarPoint local.myManager local.noMoveDoneWait:
+//
+//----------------------------------------------------------------------------	
+
+	self.flyToFarThread = local
+	local.sector = self waitthread GetFarSector local.myManager
+
+	if( local.sector > 0 )
+	{
+		local.pos = vector_subtract local.myManager.planeSpawners[local.sector].origin local.myManager.home.origin
+		local.pos = vector_scale local.pos 2
+		local.pos = vector_add local.pos local.myManager.home.origin
+
+		self thread CheckFlyTo local.pos local.myManager
+
+		self flyto local.pos
+		if( local.noMoveDoneWait == NIL || local.noMoveDoneWait == 0 )
+		{
+			self waittill movedone
+		}
+
+	}
+    
+end
+
+//----------------------------------------------------------------------------	
+GetDist local.vec1 local.vec2:
+//
+//----------------------------------------------------------------------------	
+	local.v = vector_subtract local.vec1 local.vec2
+	local.length = vector_length local.v
+end local.length
+
+//----------------------------------------------------------------------------	
+CheckFlyTo local.flyToPoint local.myManager:
+//
+//----------------------------------------------------------------------------	
+	local.dist = waitthread GetDist self.origin local.flyToPoint
+	self.timeToArrive = local.dist * 2
+	self.timeToArrive = self.timeToArrive / self.speed
+
+	if( self.flyToThread != NIL && self.flyToThread != NULL )
+	{
+		end
+	}
+
+	//Save this thread
+	self.flyToThread = local
+
+	while( self.timeToArrive > 0 )
+	{
+		wait 1
+		self.timeToArrive--
+	}
+
+	self Thread FlyToFarPoint local.myManager 1
+
+end
+
+//----------------------------------------------------------------------------	
+AttackFarPoint local.myManager:
+//
+//----------------------------------------------------------------------------	
+	self.attackFarThread = local
+	local.sector = self waitthread GetFarSector local.myManager
+
+	if( local.sector > 0 )
+	{
+		local.target = local.myManager.targets[local.sector]
+
+		self thread CheckFlyTo local.target.origin local.myManager
+
+		self attack_ground_object local.target
+		self waittill movedone
+
+		thread global/vfx.scr::oneshotfx "models/fx/3fuel_tank_explosion.tik" local.explosionPos
+	}
+
+end
+
+//----------------------------------------------------------------------------	
+GetFarSector local.myManager:
+//
+//----------------------------------------------------------------------------	
+	local.homeAngle = local.myManager.home.angle
+	local.v = vector_subtract self.origin local.myManager.origin
+	local.angles = vector_toangles local.v
+	local.yaw = local.angles[1]
+
+	local.sector = -1
+
+	if( local.yaw > 0 )
+	{
+		local.sector = int( local.yaw / ( 360 / local.myManager.count ) )
+		//Find the sector (my nearest spawnindex)
+		local.sector = local.sector % local.myManager.count
+
+		if( local.myManager.count > 6 )
+		{
+			//Swizzle the value
+			local.sector = ( local.sector - 1 ) + randomint( 3 )
+		}
+		//Find the opposite sector (my furthest spawn index)
+		local.sector = int( local.sector + (local.myManager.count / 2)) % local.myManager.count
+	}
+
+end local.sector
+//----------------------------------------------------------------------------	
+FlyToPoint local.pos local.time:
+// Check and see if this point is too high/low to fly to
+//----------------------------------------------------------------------------	
+
+	self flyto local.pos
+	self waittill movedone
+
+	//local.waitTime = randomfloat(local.time) + local.time
+	//wait local.waitTime
+
+end
+
+//----------------------------------------------------------------------------	
+RemovePath local.Path:
+//----------------------------------------------------------------------------	
+	
+	assert (local.Path != NULL && local.Path != NIL && "plane_utils.scr::RemovePath was passed a bad value for local.path")
+	
+	local.CurrentNode = local.Path
+	local.NextNode = local.Path.target
+
+	local.CurrentNode remove
+
+	while (NULL != local.NextNode && NIL != local.NextNode && 0 < local.NextNode.size)
+	{
+		local.CurrentNode = local.NextNode
+		local.NextNode = local.CurrentNode.target
+
+		local.CurrentNode remove	
+	}
+end
+
+//----------------------------------------------------------------------------
+SpawnPearlDiveBombers local.myTarget local.bombercount local.mindelay local.maxdelay local.health local.deathanim local.bomb_hag local.forceDivePath:
+//
+//	Spawns one or more dive bombers in formation, sends them to bomb the designated target, then sends them to their target exit point for deletion.
+//
+//	Thread must be run on an info_waypoint (or similar object), with 
+//	the filename of the model of the plane you want to spawn specified as $mymodel
+//
+//
+//	Accepts:
+//		local.myTarget:		Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//		local.bombercount:	How many bombers in this formation?		OPTIONAL	1
+//		local.mindelay:		Minimum delay between their spawns		OPTIONAL	1
+//		local.maxdelay:		Maximum delay between their spawns		OPTIONAL	2
+//		local.bomb_hag		The hag file for the bomb	OPTIONAL	Defaults to "ammo/us_bomb.hag"
+//		local.forceDivePath	Bomber takes a specific divePath		OPTIONAL	Defaults to random
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: SpawnPearlDiveBombers, on " self
+
+	if( level.PDB_DivePathsLoaded != 1 )
+	{
+		level.PDB_DivePathsLoaded = 1
+		waitthread LoadDivePaths
+	}
+	
+	// check values and apply defaults
+	assert (self != NULL)
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	
+	if (local.bombercount == NIL)
+		local.bombercount = 1
+	
+	if (local.mindelay == NIL)
+		local.mindelay = 1
+	
+	if (local.maxdelay == NIL)
+		local.maxdelay = 2
+	
+	
+	if( local.bomb_hag == NIL )
+	{
+		local.bomb_hag = "ammo/us_bomb.hag";
+	}
+
+	local.speed = 3000
+
+	// Spawn planes in formation
+	local.lastBomberInFormation = NIL
+	local.newOrigin = 0
+	for(local.d = 0; local.d < local.bombercount; local.d++)
+	{		
+		// Spawn in Bomber and attach the bomb
+		local.spawnedPlane[local.d] = waitthread global/plane_utils.scr::SpawnPlaneVRP self local.health local.deathanim
+
+		local.spawnedPlane[local.d].actiondone = false
+		
+		local.bomb = local.spawnedPlane[local.d] attachbomb 0 "Joint_Bomb" local.bomb_hag
+	
+		local.spawnedPlane[local.d].targetname = "SpawnedPearlDiveBomber"
+		
+		// Set the planes flying characteristics
+		if (local.speed != NIL)
+			local.spawnedPlane[local.d] speed local.speed 1
+		
+		// Send the planes to attack their target
+		local.spawnedPlane[local.d].myBomb = local.bomb
+
+		local.spawnedPlane[local.d].myDivePath = local.forceDivePath
+
+		local.spawnedPlane[local.d] thread ExecutePearlDiveBomb local.myTarget
+
+		local.myDelay = randomfloat(local.maxdelay - local.mindelay) + local.mindelay
+		//wait local.myDelay
+		
+		// give end-user a handle to the last bomber in formation if desired
+		local.lastBomberInFormation = local.spawnedPlane[local.d]
+	}
+	
+end local.lastBomberInFormation
+
+
+//----------------------------------------------------------------------------	
+ExecutePearlDiveBomb local.myTarget:
+//
+//	Executes a divebombing attack
+//
+//	Thread must be run on a VehicleRidablePlane
+//
+//	Accepts:
+//		local.myTarget:		Target you'd like the spawned planes to bomb	REQUIRED	NO DEFAULT
+//	
+//	Returns:
+//		Nothing
+//	
+//----------------------------------------------------------------------------
+	
+	//println "[PLANE_UTILS]: Thread launched: ExecutePearlDiveBomb, with " local.myTarget
+	
+	// check values and apply defaults
+	assert (self.classname == "VehicleRidablePlane" && "This method only applies to VehicleRidablePlanes.")
+	assert (local.myTarget != NIL && "local.myTarget hasn't been properly initialized.")
+	
+	self runsounds 0
+	
+	// find out whether our target has a target, and detach the last point in the chain if it has (that last point is the exit point)
+	assert (self.target != NIL && "self.target hasn't been properly initialized.")
+	local.exitpoint = waitthread global/plane_utils.scr::FindExitPoint self.target
+
+	//Create divebomb path, setup dive bomb approach spline
+	self waitthread CreateDiveBombPath local.exitpoint local.myTarget
+
+	// if our target is not our exitpoint, fly to our target first.
+	if (local.exitpoint != self.target)
+	{
+		//println "[PLANE_UTILS]: Divebomber Flying to attackstartpoint: " self.target
+		switch (self.target.classname)
+		{
+		case "SplinePath":
+			self autopilot self.target
+			break
+		default:
+			self flyto self.target.origin
+		}
+		self waittill movedone
+		//println "[PLANE_UTILS]: Divebomber Reached attackstartpoint: " self.target
+	}
+
+	//Perform divebomb operation
+	self waitthread PerformDiveBomb
+	//println "[PLANE_UTILS]: Event: DiveBomb-->movedone"
+	self.actiondone = true
+	
+	if (self != NULL && self.isAlive)
+	{		
+		// fly plane out of playable area and delete
+		//println "[PLANE_UTILS]: Divebomber Flying to exitpoint: " local.exitpoint
+		self flyto local.exitpoint.origin
+		self thread global/plane_utils.scr::DeleteAtDest
+		
+		//println "[PLANE_UTILS]: Dive bomber removed"
+	}
+	
+end
+
+//----------------------------------------------------------------------------
+CreateDiveBombPath  local.exitpoint local.myTarget local.levelOutDistance:
+//
+//----------------------------------------------------------------------------
+
+	if ( level.CreateDiveBombPathInstanceCounter == NIL )
+		level.CreateDiveBombPathInstanceCounter = 0
+
+	local.NUMDIVEBOMBPATHS = 4
+
+	if( self.myDivePath == NIL || self.myDivePath == NULL )
+	{
+		//select random divebomb path
+		self.myDivePath = randomint( local.NUMDIVEBOMBPATHS ) + 1
+	}
+
+	local.divePath = $PearlDiveBomberPath[self.myDivePath]
+
+	if( local.levelOutDistance == NIL )
+	{
+		local.levelOutDistance = 8000
+	}
+
+	//Find target position based on plane starting position
+
+	local.startPoint = self.origin
+	if (local.exitpoint != self.target)
+	{
+		//start at end of spline, if one exists
+		local.startPoint = local.exitpoint.penult.origin
+	}
+
+	local.targetPoint = local.myTarget.origin
+	local.targetPoint[2] += 800
+
+	//Make startpoint co-planar with targetpoint
+	local.startPoint[2] = local.targetPoint[2]
+
+	//Calculate vector between startpoint and targetPos
+	local.dispVec = vector_subtract local.startPoint local.targetPoint
+	local.dispVec = vector_normalize local.dispVec
+	assert( local.divePath.dropZDisp > local.divePath.myFloor )
+	local.bombFallDist = local.divePath.dropZDisp - local.divePath.myFloor
+
+	//Calc distance from target to bomb drop
+	local.targetToDropDist = local.bombFallDist / ((tan local.divePath.dropPitch) * 2.0 )
+
+	//Calc distance from target to start dive
+	local.targetToStartDiveDist = local.targetToDropDist + local.divePath.dropXDisp
+
+	//Calc distance from target to start level out
+	local.targetToStartLevelOutDist = local.targetToStartDiveDist + local.levelOutDistance
+
+	//Calc position where bomb is dropped
+	local.dropPos = vector_scale local.dispVec local.targetToDropDist
+	local.dropPos[2] = local.bombFallDist
+	local.dropPos = vector_add local.dropPos local.targetPoint
+
+	//Calc position where dive bomb spline begins
+	local.startDivePos = vector_scale local.dispVec local.targetToStartDiveDist
+	local.startDivePos[2] = 0.0 - local.divePath.myFloor
+	local.startDivePos = vector_add local.startDivePos local.targetPoint
+
+	//Calc position where the plane must level out
+	local.levelOutPos = vector_scale local.dispVec local.targetToStartLevelOutDist
+	local.levelOutPos[2] = 0.0 - local.divePath.myFloor
+	local.levelOutPos = vector_add local.levelOutPos local.targetPoint
+
+	//Add spline path for plane to follow
+	local.timeStamp = level.CreateDiveBombPathInstanceCounter
+	level.CreateDiveBombPathInstanceCounter++
+
+	local.splineStartDive = spawn info_waypoint
+	local.splineStartDive.targetname = "splineStartDive" + local.timeStamp
+	local.splineStartDive origin local.startDivePos
+
+	local.splineLevelOut = spawn info_waypoint
+	local.splineLevelOut.targetname = "splineLevelOut" + local.timeStamp
+	local.splineLevelOut origin local.levelOutPos
+	local.splineLevelOut.target = local.splineStartDive
+
+
+//	level.DRAWMYDEBUGLINE = 1
+//	level.DEBUGLINES[level.DEBUGLINES.size+1] = local.startPoint
+//	level.DEBUGLINES[level.DEBUGLINES.size+1] = local.splineLevelOut.origin
+//	level.DEBUGLINES[level.DEBUGLINES.size+1] = local.splineStartDive.origin
+//	self.lastLine = level.DEBUGLINES.size
+
+	self.vNormalizedForwardVector = vector_normalize (local.startDivePos - local.levelOutPos)
+	self.startDiveTarget = local.splineStartDive
+	self.levelOutTarget = local.splineLevelOut
+	self.startDiveAlt = local.levelOutPos[2]
+
+	self.exitpoint = local.exitpoint
+
+end
+
+//----------------------------------------------------------------------------
+LoadDivePaths:
+//
+//----------------------------------------------------------------------------
+	dprintln "Preloading dive bomb paths"
+
+	level.divePath1 = spawn info_waypoint targetname "PearlDiveBomberPath"
+	level.divePath1 waitthread DivePath1
+
+	level.divePath2 = spawn info_waypoint targetname "PearlDiveBomberPath"
+	level.divePath2 waitthread DivePath2
+
+	level.divePath3 = spawn info_waypoint targetname "PearlDiveBomberPath"
+	level.divePath3 waitthread DivePath3
+
+	level.divePath4 = spawn info_waypoint targetname "PearlDiveBomberPath"
+	level.divePath4 waitthread DivePath4
+end
+
+//----------------------------------------------------------------------------
+AddDiveBombPath local.pitchDelta local.xDelta local.zDelta:
+//
+//----------------------------------------------------------------------------
+	self.numDiveBombPaths++
+	self.diveBombPathPitchDelta[self.numDiveBombPaths] = local.pitchDelta
+	self.diveBombPathXDelta[self.numDiveBombPaths] = local.xDelta
+	self.diveBombPathZDelta[self.numDiveBombPaths] = local.zDelta
+
+end
+
+//----------------------------------------------------------------------------
+PerformDiveBomb:
+//----------------------------------------------------------------------------
+
+	waitframe
+	if (self == NULL)
+	{
+		dprintln "Dive bomber failed!!"
+		end
+	}
+	local.altTolerance = 100
+	//Put self into position for divebomb
+	self flyto self.levelOutTarget.origin
+	self waittill movedone
+	self flyto self.startDiveTarget.origin
+	self waittill movedone
+
+	self.startDiveTarget remove
+	self.levelOutTarget remove
+
+	//Check to see if we're at the right altitude
+	local.origin = self.origin
+
+	local.altDif = abs( self.startDiveAlt - local.origin[2] )
+
+	if( local.altDif > local.altTolerance )
+	{
+		//dprintln "Dive bomber altitude off by: " local.altDif
+		//dprintln "We didn't make it to altitude, abort dive bomb!"
+		end
+	}
+
+
+
+	self thread DropBomb
+
+	self thread SoundDiveBomb
+
+	//Flatten me out
+	local.angles = self.angles
+	local.angles[0] = 0.0
+	local.angles[2] = 0.0
+	self angles local.angles
+
+	self taxiing 1
+
+	local.divePath = $PearlDiveBomberPath[self.myDivePath]
+
+	for( local.i = 1; local.i <= local.divePath.numDiveBombPaths; local.i++ )
+	{
+		if( local.i == local.divePath.flipInvertFrame )
+		{
+//			dprintln "flip invert"
+			self anim flip_invert
+		}
+		else if( local.i == local.divePath.flipBackFrame )
+		{
+//			dprintln "flip back"
+			self anim flip_back
+		}
+
+		self waitthread FlyDiveBombPath local.i
+		if( !isAlive self )
+		{
+			break
+		}
+
+	}
+
+	self taxiing 0
+	if( !isAlive self )
+	{
+		//dprintln "COOOOOOOOORPSE!"
+		//check to see if the bomb drop thread was garbage collected
+		if( self.dropBombThread != NULL )
+		{
+			self.dropBombThread remove
+//			dprintln "removing drop bomb thread"
+		}
+		local.angles = self.angles
+		local.planeVelocity = angles_toforward local.angles
+		local.planeVelocity = vector_scale local.planeVelocity ( 0.0 - self.speed )
+		self.velocity = local.planeVelocity
+	}
+
+end
+
+//----------------------------------------------------------------------------
+SoundDiveBomb:
+//----------------------------------------------------------------------------
+	wait 2
+	self playsound Val_Plane_DiveBomb
+end
+
+
+//----------------------------------------------------------------------------
+DropBomb:
+//----------------------------------------------------------------------------
+	local.divePath = $PearlDiveBomberPath[self.myDivePath]
+	self.dropBombThread = local
+	wait ( local.divePath.dropBombFrame * local.divePath.diveBombPathTimeSlice )
+
+	local.angles = self.angles
+	local.planeVelocity = angles_toforward local.angles
+	local.planeVelocity = vector_scale local.planeVelocity local.divePath.bombDropVelocity
+	self.myBomb dropbomb 0.1
+
+	self.myBomb.velocity = local.planeVelocity
+
+	self.myBomb svflags "+broadcast"
+
+end
+
+//----------------------------------------------------------------------------
+FlyDiveBombPath local.i:
+//----------------------------------------------------------------------------
+	local.divePath = $PearlDiveBomberPath[self.myDivePath]
+
+	local.pitchDelta = local.divePath.diveBombPathPitchDelta[local.i]
+	local.xDelta = local.divePath.diveBombPathXDelta[local.i]
+	local.zDelta = local.divePath.diveBombPathZDelta[local.i]
+	local.timeSlice = local.divePath.diveBombPathTimeSlice
+
+	//Find the destination pitch of the plane
+	local.angles = self.angles
+	local.destPitch = local.angles[0] + local.pitchDelta
+	local.destAngles = local.angles
+	local.destAngles[0] = local.destPitch
+
+	//Find the pitch change per second
+	local.pitchChangePerSecond = local.pitchDelta / local.timeSlice
+
+	local.origin = self.origin
+	local.xChangePerSecond = local.xDelta / local.timeSlice
+	local.zChangePerSecond = local.zDelta / local.timeSlice
+
+	local.offset = vector_scale self.vNormalizedForwardVector local.xDelta
+	local.offset[2] = local.zDelta
+	local.destOrigin = vector_add local.origin local.offset
+
+	local.timeNow = level.time
+	local.stopMoveTime = level.time + local.timeSlice
+
+	while( level.time < local.stopMoveTime )
+	{
+		local.lastTime = level.time
+		waitframe
+
+		if( !isAlive self )
+		{
+			//Bail out, we dead
+			end
+		}
+
+		local.timeNow = level.time
+
+		local.dt = local.timeNow - local.lastTime
+		assert( local.dt > 0 )
+
+		//Find the current pitch of the plane
+		local.angles = self.angles
+		local.currentPitch = local.angles[0]
+
+		//Adjust the pitch
+		local.currentPitch += local.pitchChangePerSecond * local.dt
+		if( local.currentPitch > local.destPitch )
+		{
+			local.currentPitch = local.destPitch
+		}
+
+
+		//Restore the pitch
+		local.angles[0] = local.currentPitch
+
+		//Find the current position of the plane
+		local.origin = self.origin
+		local.xDisplacement = local.xChangePerSecond * local.dt
+		local.zDisplacement = local.zChangePerSecond * local.dt
+
+		//Find yaw'ed forward vector
+		local.offset = vector_scale self.vNormalizedForwardVector local.xDisplacement
+		local.offset[2] = local.zDisplacement
+
+		local.origin = vector_add local.origin local.offset
+
+		self angles local.angles
+		self origin local.origin
+
+	}
+
+	//last stop
+	self angles local.destAngles
+	self origin local.destOrigin
+
+
+end
+
+//----------------------------------------------------------------------------
+DivePath1:
+//----------------------------------------------------------------------------
+//	dprintln "I have divepath 1!"
+	self.numDiveBombPaths = 0
+
+//	self waitthread AddDiveBombPath 0	0.00	0.00
+	self waitthread AddDiveBombPath -7	382.13	46.92
+	self waitthread AddDiveBombPath -7	359.01	89.51
+	self waitthread AddDiveBombPath -7	331.42	127.22
+	self waitthread AddDiveBombPath -7	300.20	159.62
+	self waitthread AddDiveBombPath -7	266.22	186.41
+	self waitthread AddDiveBombPath -6	233.96	203.38
+	self waitthread AddDiveBombPath -5	204.92	212.21
+	self waitthread AddDiveBombPath -4	179.98	214.49
+	self waitthread AddDiveBombPath -4	155.76	214.39
+	self waitthread AddDiveBombPath -4	132.48	212.01
+	self waitthread AddDiveBombPath -4	117.37	220.74
+	self waitthread AddDiveBombPath -3	105.65	226.58
+	self waitthread AddDiveBombPath -3	93.65	231.80
+	self waitthread AddDiveBombPath -3	81.39	236.38
+	self waitthread AddDiveBombPath 0	81.39	236.38
+	self waitthread AddDiveBombPath 4	97.68	230.13
+	self waitthread AddDiveBombPath 4	113.50	222.75
+	self waitthread AddDiveBombPath 5	132.48	212.01
+	self waitthread AddDiveBombPath 5	150.45	199.66
+	self waitthread AddDiveBombPath 5	167.28	185.79
+	self waitthread AddDiveBombPath 5	182.84	170.50
+	self waitthread AddDiveBombPath 5	197.00	153.92
+	self waitthread AddDiveBombPath 5	209.67	136.16
+	self waitthread AddDiveBombPath 5	220.74	117.37
+	self waitthread AddDiveBombPath 5	230.13	97.68
+	self waitthread AddDiveBombPath 5	237.76	77.25
+	self waitthread AddDiveBombPath 5	243.59	56.24
+	self waitthread AddDiveBombPath 5	247.57	34.79
+	self waitthread AddDiveBombPath 5	249.66	13.08
+	self waitthread AddDiveBombPath 5	264.84	-9.25
+	self waitthread AddDiveBombPath 5	277.91	-34.12
+	self waitthread AddDiveBombPath 5	288.55	-61.33
+	self waitthread AddDiveBombPath 5	296.45	-90.64
+	self waitthread AddDiveBombPath 5	301.33	-121.75
+	self waitthread AddDiveBombPath 5	302.94	-154.36
+	self waitthread AddDiveBombPath 5	301.06	-188.12
+	self waitthread AddDiveBombPath 5	295.50	-222.67
+	self waitthread AddDiveBombPath 5	286.11	-257.62
+	self waitthread AddDiveBombPath 5	272.80	-292.54
+	self waitthread AddDiveBombPath 5	255.50	-327.02
+	self waitthread AddDiveBombPath 5	234.19	-360.63
+	self waitthread AddDiveBombPath 5	208.91	-392.91
+	self waitthread AddDiveBombPath 5	179.74	-423.43
+	self waitthread AddDiveBombPath 5	146.78	-451.75
+	self waitthread AddDiveBombPath 0	149.87	-461.26
+	self waitthread AddDiveBombPath 0	152.96	-470.77
+	self waitthread AddDiveBombPath 0	156.05	-480.28
+	self waitthread AddDiveBombPath 0	159.14	-489.79
+	self waitthread AddDiveBombPath 0	162.23	-499.30
+	self waitthread AddDiveBombPath 0	165.32	-508.82
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath 0	168.41	-518.33
+	self waitthread AddDiveBombPath -4	200.41	-496.04
+	self waitthread AddDiveBombPath -4	230.14	-471.87
+	self waitthread AddDiveBombPath -4	257.50	-446.00
+	self waitthread AddDiveBombPath -4	282.39	-418.66
+	self waitthread AddDiveBombPath -4	304.75	-390.07
+	self waitthread AddDiveBombPath -4	324.53	-360.43
+	self waitthread AddDiveBombPath -4	341.69	-329.96
+	self waitthread AddDiveBombPath -4	356.21	-298.90
+	self waitthread AddDiveBombPath -4	368.10	-267.44
+	self waitthread AddDiveBombPath -4	377.38	-235.81
+	self waitthread AddDiveBombPath -4	384.08	-204.22
+	self waitthread AddDiveBombPath -4	388.26	-172.86
+	self waitthread AddDiveBombPath -4	389.97	-141.94
+	self waitthread AddDiveBombPath -4	389.31	-111.63
+	self waitthread AddDiveBombPath -2	383.27	-95.56
+	self waitthread AddDiveBombPath -2	376.59	-80.05
+	self waitthread AddDiveBombPath -2	369.30	-65.12
+	self waitthread AddDiveBombPath -2	361.45	-50.80
+	self waitthread AddDiveBombPath -2	353.06	-37.11
+	self waitthread AddDiveBombPath -2	344.16	-24.07
+	self waitthread AddDiveBombPath -2	334.80	-11.69
+	self waitthread AddDiveBombPath -2	325.00	0.00
+	self waitthread AddDiveBombPath -2	314.81	10.99
+	self waitthread AddDiveBombPath -2	304.26	21.28
+	self waitthread AddDiveBombPath -2	293.38	30.84
+	self waitthread AddDiveBombPath -1	292.80	35.95
+	self waitthread AddDiveBombPath -1	292.13	41.06
+	self waitthread AddDiveBombPath -1	291.37	46.15
+	self waitthread AddDiveBombPath -1	290.52	51.23
+	self waitthread AddDiveBombPath -1	289.58	56.29
+	self waitthread AddDiveBombPath -1	288.55	61.33
+	self waitthread AddDiveBombPath -1	287.44	66.36
+	self waitthread AddDiveBombPath -1	286.24	71.37
+	self waitthread AddDiveBombPath -1	284.95	76.35
+	self waitthread AddDiveBombPath -1	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+	self waitthread AddDiveBombPath 0	283.57	81.31
+
+	self.diveBombPathTimeSlice = 0.1
+	self.dropBombFrame = 57
+	self.bombDropVelocity = 5450.0
+	self.dropPitch = 72
+	self.dropXDisp = 11574.61
+	self.dropZDisp = -4682.97
+	self.myFloor = -10948.17
+	self.flipInvertFrame = 10
+	self.flipBackFrame = 50
+
+end
+
+//----------------------------------------------------------------------------
+DivePath2:
+//----------------------------------------------------------------------------
+//	dprintln "I have divepath 2!"
+	self.numDiveBombPaths = 0
+
+//	self waitthread AddDiveBombPath 0	0.00	0.00
+	self waitthread AddDiveBombPath -7	382.13	46.92
+	self waitthread AddDiveBombPath -7	359.01	89.51
+	self waitthread AddDiveBombPath -7	331.42	127.22
+	self waitthread AddDiveBombPath -6	302.94	154.36
+	self waitthread AddDiveBombPath -5	275.62	172.22
+	self waitthread AddDiveBombPath -4	250.80	182.21
+	self waitthread AddDiveBombPath -4	225.98	189.62
+	self waitthread AddDiveBombPath -4	201.42	194.50
+	self waitthread AddDiveBombPath -4	177.32	196.93
+	self waitthread AddDiveBombPath -4	153.92	197.00
+	self waitthread AddDiveBombPath -3	143.39	204.79
+	self waitthread AddDiveBombPath -3	132.48	212.01
+	self waitthread AddDiveBombPath 0	132.48	212.01
+	self waitthread AddDiveBombPath 0	132.48	212.01
+	self waitthread AddDiveBombPath 0	132.48	212.01
+	self waitthread AddDiveBombPath 5	150.45	199.66
+	self waitthread AddDiveBombPath 5	167.28	185.79
+	self waitthread AddDiveBombPath 5	182.84	170.50
+	self waitthread AddDiveBombPath 5	197.00	153.92
+	self waitthread AddDiveBombPath 5	209.67	136.16
+	self waitthread AddDiveBombPath 5	220.74	117.37
+	self waitthread AddDiveBombPath 5	230.13	97.68
+	self waitthread AddDiveBombPath 5	237.76	77.25
+	self waitthread AddDiveBombPath 5	243.59	56.24
+	self waitthread AddDiveBombPath 5	247.57	34.79
+	self waitthread AddDiveBombPath 5	249.66	13.08
+	self waitthread AddDiveBombPath 5	249.85	-8.72
+	self waitthread AddDiveBombPath 5	248.14	-30.47
+	self waitthread AddDiveBombPath 5	244.54	-51.98
+	self waitthread AddDiveBombPath 5	239.08	-73.09
+	self waitthread AddDiveBombPath 5	231.80	-93.65
+	self waitthread AddDiveBombPath 5	222.75	-113.50
+	self waitthread AddDiveBombPath 5	212.01	-132.48
+	self waitthread AddDiveBombPath 5	199.66	-150.45
+	self waitthread AddDiveBombPath 5	208.08	-187.36
+	self waitthread AddDiveBombPath 5	211.42	-226.72
+	self waitthread AddDiveBombPath 5	209.32	-267.92
+	self waitthread AddDiveBombPath 5	201.52	-310.31
+	self waitthread AddDiveBombPath 5	187.79	-353.18
+	self waitthread AddDiveBombPath 5	168.01	-395.82
+	self waitthread AddDiveBombPath 5	142.15	-437.49
+	self waitthread AddDiveBombPath 5	110.23	-477.44
+	self waitthread AddDiveBombPath 0	116.97	-506.67
+	self waitthread AddDiveBombPath 0	123.72	-535.90
+	self waitthread AddDiveBombPath 0	130.47	-565.13
+	self waitthread AddDiveBombPath 0	137.22	-594.37
+	self waitthread AddDiveBombPath 0	143.97	-623.60
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath -4	187.12	-612.04
+	self waitthread AddDiveBombPath -4	225.77	-588.16
+	self waitthread AddDiveBombPath -4	262.02	-561.91
+	self waitthread AddDiveBombPath -4	295.73	-533.52
+	self waitthread AddDiveBombPath -4	326.78	-503.20
+	self waitthread AddDiveBombPath -4	355.07	-471.19
+	self waitthread AddDiveBombPath -4	380.51	-437.73
+	self waitthread AddDiveBombPath -4	403.05	-403.05
+	self waitthread AddDiveBombPath -4	422.64	-367.39
+	self waitthread AddDiveBombPath -4	439.25	-331.00
+	self waitthread AddDiveBombPath -4	452.88	-294.11
+	self waitthread AddDiveBombPath -4	463.55	-256.95
+	self waitthread AddDiveBombPath -4	471.28	-219.76
+	self waitthread AddDiveBombPath -4	476.13	-182.77
+	self waitthread AddDiveBombPath -4	478.15	-146.19
+	self waitthread AddDiveBombPath -4	477.44	-110.23
+	self waitthread AddDiveBombPath -4	474.09	-75.09
+	self waitthread AddDiveBombPath -4	468.21	-40.96
+	self waitthread AddDiveBombPath -4	459.93	-8.03
+	self waitthread AddDiveBombPath -4	449.38	23.55
+	self waitthread AddDiveBombPath -4	436.72	53.62
+	self waitthread AddDiveBombPath -4	422.10	82.05
+	self waitthread AddDiveBombPath -4	405.69	108.70
+	self waitthread AddDiveBombPath -2	392.08	119.87
+	self waitthread AddDiveBombPath -2	378.21	130.23
+	self waitthread AddDiveBombPath -2	373.43	143.35
+	self waitthread AddDiveBombPath -2	368.20	156.29
+	self waitthread AddDiveBombPath -2	362.52	169.05
+	self waitthread AddDiveBombPath -2	356.40	181.60
+	self waitthread AddDiveBombPath -2	349.85	193.92
+	self waitthread AddDiveBombPath -1	346.41	200.00
+	self waitthread AddDiveBombPath -1	342.87	206.02
+	self waitthread AddDiveBombPath -1	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+	self waitthread AddDiveBombPath 0	339.22	211.97
+
+	self.diveBombPathTimeSlice = 0.1
+	self.dropBombFrame = 51
+	self.bombDropVelocity = 6500
+	self.dropPitch = 77
+	self.dropXDisp = 10047.89
+	self.dropZDisp = -4190.49
+	self.myFloor = -11600.43
+	self.flipInvertFrame = 10
+	self.flipBackFrame = 46
+end
+
+//----------------------------------------------------------------------------
+DivePath3:
+//----------------------------------------------------------------------------
+//	dprintln "I have divepath 3!"
+	self.numDiveBombPaths = 0
+
+//	self waitthread AddDiveBombPath 0	0.00	0.00
+	self waitthread AddDiveBombPath -7	382.13	46.92
+	self waitthread AddDiveBombPath -7	359.01	89.51
+	self waitthread AddDiveBombPath -8	329.15	132.99
+	self waitthread AddDiveBombPath -7	297.37	164.84
+	self waitthread AddDiveBombPath -7	262.93	191.03
+	self waitthread AddDiveBombPath -6	230.37	207.43
+	self waitthread AddDiveBombPath -4	204.92	212.21
+	self waitthread AddDiveBombPath -4	179.98	214.49
+	self waitthread AddDiveBombPath -4	155.76	214.39
+	self waitthread AddDiveBombPath -4	132.48	212.01
+	self waitthread AddDiveBombPath -3	121.20	218.65
+	self waitthread AddDiveBombPath -3	109.59	224.70
+	self waitthread AddDiveBombPath -3	97.68	230.13
+	self waitthread AddDiveBombPath 0	97.68	230.13
+	self waitthread AddDiveBombPath 0	97.68	230.13
+	self waitthread AddDiveBombPath 5	117.37	220.74
+	self waitthread AddDiveBombPath 5	136.16	209.67
+	self waitthread AddDiveBombPath 5	153.92	197.00
+	self waitthread AddDiveBombPath 5	170.50	182.84
+	self waitthread AddDiveBombPath 5	185.79	167.28
+	self waitthread AddDiveBombPath 5	199.66	150.45
+	self waitthread AddDiveBombPath 5	212.01	132.48
+	self waitthread AddDiveBombPath 5	222.75	113.50
+	self waitthread AddDiveBombPath 5	231.80	93.65
+	self waitthread AddDiveBombPath 5	239.08	73.09
+	self waitthread AddDiveBombPath 5	244.54	51.98
+	self waitthread AddDiveBombPath 5	248.14	30.47
+	self waitthread AddDiveBombPath 5	249.85	8.72
+	self waitthread AddDiveBombPath 5	249.66	-13.08
+	self waitthread AddDiveBombPath 5	247.57	-34.79
+	self waitthread AddDiveBombPath 5	243.59	-56.24
+	self waitthread AddDiveBombPath 5	237.76	-77.25
+	self waitthread AddDiveBombPath 5	230.13	-97.68
+	self waitthread AddDiveBombPath 5	220.74	-117.37
+	self waitthread AddDiveBombPath 5	234.83	-152.50
+	self waitthread AddDiveBombPath 5	244.28	-190.86
+	self waitthread AddDiveBombPath 5	248.66	-231.88
+	self waitthread AddDiveBombPath 5	247.58	-274.96
+	self waitthread AddDiveBombPath 5	240.73	-319.45
+	self waitthread AddDiveBombPath 5	227.87	-364.66
+	self waitthread AddDiveBombPath 5	208.84	-409.86
+	self waitthread AddDiveBombPath 5	183.56	-454.32
+	self waitthread AddDiveBombPath 5	152.03	-497.28
+	self waitthread AddDiveBombPath 5	114.35	-537.98
+	self waitthread AddDiveBombPath 5	70.68	-575.68
+	self waitthread AddDiveBombPath 5	21.29	-609.63
+	self waitthread AddDiveBombPath 0	22.34	-639.61
+	self waitthread AddDiveBombPath 0	22.68	-649.60
+	self waitthread AddDiveBombPath 0	22.68	-649.60
+	self waitthread AddDiveBombPath 0	22.68	-649.60
+	self waitthread AddDiveBombPath 0	22.68	-649.60
+	self waitthread AddDiveBombPath 0	22.68	-649.60
+	self waitthread AddDiveBombPath -4	66.90	-636.49
+	self waitthread AddDiveBombPath -4	109.40	-620.43
+	self waitthread AddDiveBombPath -4	149.99	-601.58
+	self waitthread AddDiveBombPath -4	188.50	-580.14
+	self waitthread AddDiveBombPath -4	224.76	-556.31
+	self waitthread AddDiveBombPath -4	258.64	-530.29
+	self waitthread AddDiveBombPath -4	290.00	-502.29
+	self waitthread AddDiveBombPath -4	318.74	-472.55
+	self waitthread AddDiveBombPath -4	344.77	-441.29
+	self waitthread AddDiveBombPath -4	368.02	-408.73
+	self waitthread AddDiveBombPath -4	388.44	-375.12
+	self waitthread AddDiveBombPath -4	406.00	-340.68
+	self waitthread AddDiveBombPath -4	420.69	-305.65
+	self waitthread AddDiveBombPath -4	432.50	-270.26
+	self waitthread AddDiveBombPath -4	441.47	-234.74
+	self waitthread AddDiveBombPath -4	447.64	-199.30
+	self waitthread AddDiveBombPath -4	451.05	-164.17
+	self waitthread AddDiveBombPath -4	451.79	-129.55
+	self waitthread AddDiveBombPath -4	449.95	-95.64
+	self waitthread AddDiveBombPath -4	445.62	-62.63
+	self waitthread AddDiveBombPath -4	438.93	-30.69
+	self waitthread AddDiveBombPath -4	430.00	0.00
+	self waitthread AddDiveBombPath -4	418.98	29.30
+	self waitthread AddDiveBombPath -4	406.01	57.06
+	self waitthread AddDiveBombPath -4	391.26	83.16
+	self waitthread AddDiveBombPath -2	388.12	96.77
+	self waitthread AddDiveBombPath -2	384.50	110.25
+	self waitthread AddDiveBombPath -2	380.42	123.61
+	self waitthread AddDiveBombPath -2	375.88	136.81
+	self waitthread AddDiveBombPath -2	370.87	149.84
+	self waitthread AddDiveBombPath -2	365.42	162.69
+	self waitthread AddDiveBombPath -2	359.52	175.35
+	self waitthread AddDiveBombPath -1	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+	self waitthread AddDiveBombPath 0	356.40	181.60
+
+	self.diveBombPathTimeSlice = 0.1
+	self.dropBombFrame = 58
+	self.bombDropVelocity = 6000
+	self.dropPitch = 88
+	self.dropXDisp = 10168.95
+	self.dropZDisp = -7446.65
+	self.myFloor = -12010.22
+	self.flipInvertFrame = 16
+	self.flipBackFrame = 48
+end
+
+//----------------------------------------------------------------------------
+DivePath4:
+//----------------------------------------------------------------------------
+//	dprintln "I have divepath 4!"
+	self.numDiveBombPaths = 0
+
+//	self waitthread AddDiveBombPath 0	0.00	0.00
+	self waitthread AddDiveBombPath -7	382.13	46.92
+	self waitthread AddDiveBombPath -7	359.01	89.51
+	self waitthread AddDiveBombPath -7	331.42	127.22
+	self waitthread AddDiveBombPath -7	300.20	159.62
+	self waitthread AddDiveBombPath -7	266.22	186.41
+	self waitthread AddDiveBombPath -6	233.96	203.38
+	self waitthread AddDiveBombPath -4	208.60	208.60
+	self waitthread AddDiveBombPath -4	183.70	211.32
+	self waitthread AddDiveBombPath -4	159.48	211.64
+	self waitthread AddDiveBombPath -4	136.16	209.67
+	self waitthread AddDiveBombPath -3	125.00	216.51
+	self waitthread AddDiveBombPath -3	113.50	222.75
+	self waitthread AddDiveBombPath -3	101.68	228.39
+	self waitthread AddDiveBombPath 0	101.68	228.39
+	self waitthread AddDiveBombPath 2	109.59	224.70
+	self waitthread AddDiveBombPath 2	117.37	220.74
+	self waitthread AddDiveBombPath 2	125.00	216.51
+	self waitthread AddDiveBombPath 2	132.48	212.01
+	self waitthread AddDiveBombPath 2	139.80	207.26
+	self waitthread AddDiveBombPath 4	153.92	197.00
+	self waitthread AddDiveBombPath 4	167.28	185.79
+	self waitthread AddDiveBombPath 5	182.84	170.50
+	self waitthread AddDiveBombPath 5	197.00	153.92
+	self waitthread AddDiveBombPath 5	209.67	136.16
+	self waitthread AddDiveBombPath 5	220.74	117.37
+	self waitthread AddDiveBombPath 5	230.13	97.68
+	self waitthread AddDiveBombPath 5	237.76	77.25
+	self waitthread AddDiveBombPath 5	243.59	56.24
+	self waitthread AddDiveBombPath 5	247.57	34.79
+	self waitthread AddDiveBombPath 5	249.66	13.08
+	self waitthread AddDiveBombPath 5	249.85	-8.72
+	self waitthread AddDiveBombPath 5	248.14	-30.47
+	self waitthread AddDiveBombPath 5	244.54	-51.98
+	self waitthread AddDiveBombPath 5	239.08	-73.09
+	self waitthread AddDiveBombPath 5	259.61	-104.89
+	self waitthread AddDiveBombPath 5	276.21	-140.74
+	self waitthread AddDiveBombPath 5	288.34	-180.17
+	self waitthread AddDiveBombPath 5	295.50	-222.67
+	self waitthread AddDiveBombPath 5	297.26	-267.65
+	self waitthread AddDiveBombPath 5	293.26	-314.48
+	self waitthread AddDiveBombPath 5	283.20	-362.48
+	self waitthread AddDiveBombPath 5	266.87	-410.95
+	self waitthread AddDiveBombPath 5	244.13	-459.13
+	self waitthread AddDiveBombPath 5	214.90	-506.28
+	self waitthread AddDiveBombPath 5	179.23	-551.61
+	self waitthread AddDiveBombPath 5	137.22	-594.37
+	self waitthread AddDiveBombPath 0	143.97	-623.60
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath 0	146.22	-633.34
+	self waitthread AddDiveBombPath -5	196.23	-603.92
+	self waitthread AddDiveBombPath -5	242.25	-570.71
+	self waitthread AddDiveBombPath -5	286.38	-538.60
+	self waitthread AddDiveBombPath -3	309.02	-514.30
+	self waitthread AddDiveBombPath -3	329.92	-489.13
+	self waitthread AddDiveBombPath -3	349.05	-463.21
+	self waitthread AddDiveBombPath -3	366.39	-436.65
+	self waitthread AddDiveBombPath -3	381.92	-409.56
+	self waitthread AddDiveBombPath -3	395.64	-382.06
+	self waitthread AddDiveBombPath -3	407.54	-354.27
+	self waitthread AddDiveBombPath -3	417.65	-326.30
+	self waitthread AddDiveBombPath -3	425.96	-298.26
+	self waitthread AddDiveBombPath -3	432.50	-270.26
+	self waitthread AddDiveBombPath -3	437.31	-242.40
+	self waitthread AddDiveBombPath -3	440.41	-214.80
+	self waitthread AddDiveBombPath -3	441.84	-187.55
+	self waitthread AddDiveBombPath -2	438.78	-168.43
+	self waitthread AddDiveBombPath -2	434.94	-149.76
+	self waitthread AddDiveBombPath -2	430.34	-131.57
+	self waitthread AddDiveBombPath -2	425.01	-113.88
+	self waitthread AddDiveBombPath -2	418.98	-96.73
+	self waitthread AddDiveBombPath -2	412.28	-80.14
+	self waitthread AddDiveBombPath -2	404.95	-64.14
+	self waitthread AddDiveBombPath -2	397.02	-48.75
+	self waitthread AddDiveBombPath -2	388.52	-33.99
+	self waitthread AddDiveBombPath -2	389.47	-20.41
+	self waitthread AddDiveBombPath -2	389.94	-6.81
+	self waitthread AddDiveBombPath -2	389.94	6.81
+	self waitthread AddDiveBombPath -2	389.47	20.41
+	self waitthread AddDiveBombPath -2	388.52	33.99
+	self waitthread AddDiveBombPath -2	387.09	47.53
+	self waitthread AddDiveBombPath -2	385.20	61.01
+	self waitthread AddDiveBombPath -2	382.83	74.42
+	self waitthread AddDiveBombPath -2	380.00	87.73
+	self waitthread AddDiveBombPath -2	376.71	100.94
+	self waitthread AddDiveBombPath -2	372.96	114.02
+	self waitthread AddDiveBombPath -2	368.75	126.97
+	self waitthread AddDiveBombPath -2	364.10	139.76
+	self waitthread AddDiveBombPath -2	359.00	152.39
+	self waitthread AddDiveBombPath -1	356.28	158.63
+	self waitthread AddDiveBombPath -1	353.46	164.82
+	self waitthread AddDiveBombPath 0	353.46	164.82
+	self waitthread AddDiveBombPath 0	353.46	164.82
+	self waitthread AddDiveBombPath 0	353.46	164.82
+	self waitthread AddDiveBombPath 0	353.46	164.82
+	self waitthread AddDiveBombPath 0	353.46	164.82
+
+	self.diveBombPathTimeSlice = 0.1
+	self.dropBombFrame = 55
+	self.bombDropVelocity = 6500
+	self.dropPitch = 77
+	self.dropXDisp = 11151.96
+	self.dropZDisp = -4465.36
+	self.myFloor = -11681.95
+	self.flipInvertFrame = 14
+	self.flipBackFrame = 49
+end
+
+//----------------------------------------------------------------------------
+DrawDebugLine:
+//----------------------------------------------------------------------------
+	level.DEBUGLINES[1] = NIL
+	while( 1 )
+	{
+		if( level.DRAWMYDEBUGLINE == 1 )
+		{
+			for( local.i = 2; local.i <= level.DEBUGLINES.size; local.i++ )
+			{
+				local.vec1 = level.DEBUGLINES[local.i-1]
+				local.vec2 = level.DEBUGLINES[local.i]
+				debugline local.vec1 local.vec2 1.0 1.0 0.0 1.0
+			}
+			waitframe
+		}
+		else
+		{
+			wait 1
+		}
+	}
+end
+
+
+
+//----------------------------------------------------------------------------
+FlySplinePathThread local.flyto local.speed local.acceleration local.lookahead local.invokefailsafe local.dobadplace:
+//
+//
+//----------------------------------------------------------------------------
+
+	if ( local.invokefailsafe==NIL )
+		local.invokefailsafe	= 0
+
+	if ( local.dobadplace==NIL )
+		local.dobadplace		= 0
+
+	// Move from parked position
+	self flysplinepath local.flyto local.speed local.acceleration local.lookahead
+	
+	if ( local.invokefailsafe )
+	{
+		self thread FlySplinePathFailsafe local.speed
+		local.failsafe = parm.previousthread
+	}
+
+	if ( local.dobadplace )
+	{
+		self thread DoBadPlace
+	}
+
+	self waittill movedone
+
+	self thread EndBadPlace
+	
+	local.failsafe delete
+
+end
+
+//----------------------------------------------------------------------------
+FlySplinePathFailsafe local.speed:
+//
+//
+//----------------------------------------------------------------------------
+
+//	local.endtime = level.inttime + 25000
+
+	local.origin = self.origin
+	local.angles = self.angles
+	local.angle = local.angles[1]
+
+	if ( self.isAlive==0 )
+		println "Cannot do failsafe on dead plane."
+
+//	while( level.inttime < local.endtime )
+	while( self!=NULL )
+	{
+		wait 0.2	// wait long enough to allow plane to turn.
+
+		if ( level.nofailsafes!=1 )
+		{
+			if ( vector_within self.origin local.origin 1.0 )
+			{
+				// make sure we're not turning
+				local.angles = self.angles
+				local.curr_angle = local.angles[1]
+
+				local.diff = local.curr_angle - local.angle
+
+				if ( local.diff < 1 && local.diff > -1 )
+				{
+					if ( self.isAlive )
+					{
+						println "Invoking stutter step for plane:" self.targetname " at location " self.origin
+						self speed 1
+						wait 3
+						self speed local.speed
+						// let it get up to speed...
+						wait 2
+					}
+				}
+				else
+				{
+					println "Plane is turning at: " self.origin " angle:" local.angle
+				}
+			}
+		}
+
+		local.origin = self.origin
+		local.angles = self.angles
+		local.angle = local.angles[1]
+	}
+
+//	println "Invoking failsafe for plane:" self.targetname
+
+end
+
+//----------------------------------------------------------------------------
+DoBadPlace:
+//----------------------------------------------------------------------------
+
+	self.dobadplace = 1
+
+	while ( self.dobadplace )
+	{
+		//level badplace self.targetname self.origin 300 both
+		self waitthread DoPlaneBadPlace
+		wait 0.5
+	}
+
+	end
+
+//----------------------------------------------------------------------------
+EndBadPlace:
+//----------------------------------------------------------------------------
+
+	self.dobadplace = 0
+
+	end
+
+//----------------------------------------------------------------------------
+DoPlaneBadPlace:
+//----------------------------------------------------------------------------
+
+	if ( self.lastorigin!=NIL && self.lastorigin==self.origin )
+		end
+
+	if ( self.targetname=="" )
+		self.targetname = "plane_" + self.entnum
+
+	self.lastorigin = self.origin
+
+	level badplace self.targetname self.origin 225 both
+
+
+	local.forward	= angles_toforward self.angles
+	local.backward	= vector_scale local.forward -300
+	local.left		= angles_toleft self.angles
+	local.right		= vector_scale local.left -300
+	local.left		= vector_scale local.left 300
+
+	local.tailpos	= vector_add self.origin local.backward
+	local.leftwing	= vector_add self.origin local.left
+	local.rightwing	= vector_add self.origin local.right
+
+	local.name = self.targetname + "_back"
+	level badplace local.name local.tailpos 150 both
+
+	local.name = self.targetname + "_left"
+	level badplace local.name local.leftwing 100 both
+
+	local.name = self.targetname + "_right"
+	level badplace local.name local.rightwing 100 both
+
+	end
+
+//----------------------------------------------------------------------------
+RemovePlaneBadPlace:
+//----------------------------------------------------------------------------
+
+
+	local.tailname			= self.targetname + "_back"
+	local.leftwingname		= self.targetname + "_left"
+	local.rightwingname		= self.targetname + "_right"
+	
+	level removebadplace self.targetname
+	level removebadplace local.tailname
+	level removebadplace local.leftwingname
+	level removebadplace local.rightwingname
+
+	end

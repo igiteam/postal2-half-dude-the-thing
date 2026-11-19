@@ -1,0 +1,136 @@
+// ----------------------------------------------------------------------------------
+//	global/spawn_replacements.scr
+//	
+//	Spawns replacements for the player's squad.  When the player hits the activation trigger,
+//	or the SpawnReplacement thread is called by hand, the system will loop through available
+//	spawn points until it finds one the player can't see.
+//	It'll spawn an actor at that point and insert him into the player's squad.
+//
+//	Usage:
+//	Plant info_waypoints in the map and set their properties as follows:
+//	$mymodel		no default		REQUIRED	What model should spawn?	($spawn_model is also a valid key here)
+//	#health			no default		OPTIONAL	What should this actor's health be?  Actor will spawn at HAG's default health otherwise.
+//	$gun			no default		OPTIONAL	What weapon should he carry? ($weapon is also a valid key here)  Actor will spawn with default weapon otherwise.
+//
+//	Plant a trigger in the map and target it to these waypoints.  (I usually name mine $t_spawn_replacements)
+//	Target the trigger to the points you've placed.
+//	Give the trigger a #threshold value.  If you leave this off, the system will spawn one replacement when triggered.
+//	If you supply a value here, the system will spawn however many guys it needs to bring your current count up to that number.
+//	If your squad, therefore, currently has 5 guys, and you hit a trigger with #threshold 9, it'll spawn 4 guys out of sight and add them to your squad.
+//
+//	Once you've set it up, run global/spawn_replacements.scr::WatchSpawnTrigger on that trigger.
+//
+//	You can always run global/spawn_replacements.scr::SpawnReplacement directly on a point
+//	or collection of points if you want.
+//	The syntax to do this is:
+//
+//	thread global/spawn_replacements.scr::SpawnReplacement mypoint 3
+//
+//		where mypoint is the targetname of the point or points you want to spawn at (without the $)
+//		and the number following is the number of replacements you want to spawn.
+// ----------------------------------------------------------------------------------
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXX    PUBLIC    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// ----------------------------------------------------------------------------------
+WatchSpawnTrigger:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/spawn_replacements.scr::WatchSpawnTrigger, on " self
+	
+	self waittill trigger
+	println "Triggered: " self
+	println "Squad size = " $squad.size ", replacement threshold = " self.threshold
+	if( $squad.size < self.threshold || self.threshold == NIL )	// if we're below our target squad size or if we haven't been given a target size, spawn
+	{
+		if(self.threshold == NIL) {
+			local.spawncount = 1
+		} else {
+			local.spawncount = self.threshold - $squad.size
+		}
+		thread SpawnReplacement self.target local.spawncount
+	}
+	self delete
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+SpawnReplacement local.mytarget local.spawncount:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/spawn_replacements.scr::SpawnReplacement, with " local.mytarget ", count: " local.spawncount
+
+	for(local.spawnidx = 1; local.spawnidx <= local.spawncount; local.spawnidx++)
+	{
+		println "global/spawn_replacements.scr --> spawning replacement #" local.spawnidx ", of " local.spawncount
+		// loop until we successfully spawn
+		local.bSpawned = 0
+		while( !local.bSpawned )
+		{
+			// look for a valid spawn point
+			local.selectedSpawnPoint = NIL
+			for(local.i = 1; local.i <= $(local.mytarget).size; local.i++)
+			{
+				local.visible = $(local.mytarget)[local.i] waitthread TestLocation
+				if( !local.visible )
+				{
+					local.selectedSpawnPoint = $(local.mytarget)[local.i]
+					break	// stop the search at the first valid point
+				}
+			}
+
+			// if we found a valid spawnpoint, spawn an actor there
+			if(local.selectedSpawnPoint != NIL)
+			{
+				if(local.selectedSpawnPoint.mymodel != NIL)	{
+					local.selectedSpawnPoint.spawn_model = local.selectedSpawnPoint.mymodel
+				}
+				local.spawnedReplacement = spawn local.selectedSpawnPoint.spawn_model origin local.selectedSpawnPoint.origin angles local.selectedSpawnPoint.angles targetname "squad"
+				local.spawnedReplacement.targetname = "squad"
+				local.spawnedReplacement waitthread global/squad.scr::InitSquad
+				if(local.selectedSpawnPoint.health != NIL) {
+					local.spawnedReplacement.health = local.selectedSpawnPoint.health
+				}
+				if(local.selectedSpawnPoint.gun != NIL) {
+					local.selectedSpawnPoint.weapon = local.selectedSpawnPoint.gun
+				}
+				if(local.selectedSpawnPoint.weapon != NIL) {
+					local.spawnedReplacement.weapon = local.selectedSpawnPoint.weapon
+				}
+				local.bSpawned = 1
+			}
+			// if we didn't, wait and loop again
+			wait 0.5
+		}
+		wait 0.5
+	}
+	
+end
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXX    PRIVATE   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// ----------------------------------------------------------------------------------
+TestLocation:
+//
+//
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/spawn_replacements.scr::TestLocation, on " self
+	
+	local.visible = 1
+	local.v_playerToObject = vector_normalize(self.origin - $player.origin)
+	local.v_playerForward = vector_normalize(angles_toforward $player.angles)
+	local.playerviewdot = vector_dot local.v_playerToObject local.v_playerForward
+	if (local.playerviewdot <= 0.5)	// if this object is 45 degrees or more from our facing vector, it's out of our view frustum
+		local.visible = 0
+	
+	println "global/spawn_replacements.scr::TestLocation --> " self " visibility == " local.visible
+	
+end local.visible

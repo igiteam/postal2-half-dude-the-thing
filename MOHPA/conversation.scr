@@ -1,0 +1,342 @@
+// ------------------------------------------------------------------------------------
+//	global/conversation.scr
+//
+//	This script is used to monitor the player before and during a conversation 
+//	with NPCs...  It's used to try to get the player to play nice... ;)
+//
+// ------------------------------------------------------------------------------------
+
+main:
+
+	level.monitorPlayerAction = false
+
+end
+
+
+// ------------------------------------------------------------------------------------
+BeginConversation local.dist_check_ent local.dist local.react_ent local.wait_time:
+//
+//	dist_check_ent		- entity to do the distance check
+//	dist				- distance to the dist_check_ent
+//	react_ent			- entity or entities to react toward the player
+//
+// ------------------------------------------------------------------------------------
+
+	local.playerdist = vector_length ($player.origin - local.dist_check_ent.origin)
+
+	if ( local.playerdist < local.dist )
+	{
+		// everythings just great, bail out...
+		dprintln " ---------------player's close enough right away..."
+		end true
+	}
+
+	// OK, let's try to get this guy over here!
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	if ( local.npc==NULL )
+		end true
+
+	dprintln "calling out to player to get here #1"
+	local.npc waitthread Dialog dfrus_NPCconv_5_6_01
+
+	local.player_here = waitthread WaitForPlayer local.dist_check_ent local.dist local.wait_time
+
+	if ( local.player_here==true )
+		end true
+
+	// Player still isn't here, time to call again...
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	local.npc waitthread Dialog dfrus_NPCconv_5_6_02
+
+	local.player_here = waitthread WaitForPlayer local.dist_check_ent local.dist local.wait_time
+
+	if ( local.player_here==true )
+		end true
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	local.npc waitthread Dialog dfrus_NPCconv_5_6_03
+
+	local.player_here = waitthread WaitForPlayer local.dist_check_ent local.dist local.wait_time
+
+	if ( local.player_here==true )
+		end true
+
+
+	// return false meaning don't bother doing the conversation cuz the player is blowing us off...
+	end false	
+
+
+// ------------------------------------------------------------------------------------
+CheckPlayerAttention_Combat local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	local.valid = waitthread IsPlayerCrouchedOrProne
+
+	if ( local.valid==true )
+		end
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	if ( local.npc==NULL )
+		end
+
+	local.npc waitthread Dialog TOMMY_GET_DOWN
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+CheckPlayerAttention_Normal local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	local.valid = waitthread IsPlayerCrouchedOrProne
+
+	if ( local.valid==true )
+		end
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	if ( local.npc==NULL )
+		end
+
+	local.npc waitthread Dialog YOU_WANNA_JOIN_US
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+CheckPlayerAttention_Whisper local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	local.valid = waitthread IsPlayerCrouchedOrProne
+
+	if ( local.valid==true )
+		end
+
+	local.npc = waitthread PickNPC local.react_ent
+
+	if ( local.npc==NULL )
+		end
+
+	local.npc waitthread Dialog TOMMY_GET_DOWN_HERE	// Whispered...
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerAction local.dist_check_ent local.dist local.react_ent local.medic:
+//
+//	Monitors player's action during a dialog sequence...
+//
+// ------------------------------------------------------------------------------------
+
+	level.monitorPlayerAction = true
+
+	thread MonitorPlayerRadius local.dist_check_ent local.dist local.react_ent
+	thread MonitorPlayerBinocs local.react_ent
+	thread MonitorPlayerWeapon local.react_ent
+	thread MonitorPlayerGrenade local.react_ent
+
+	thread MonitorPlayerCover local.react_ent
+
+	if ( local.medic!=NIL )
+		local.medic thread MonitorPlayerMedic
+
+	thread MonitorPlayerLooking local.react_ent
+	thread MonitorPlayerFiring local.react_ent
+
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerAction_Cancel:
+// ------------------------------------------------------------------------------------
+
+	level.monitorPlayerAction = false
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+PickNPC local.ent:
+// ------------------------------------------------------------------------------------
+
+	if ( local.ent==NIL || local.ent.size==0 )
+	{
+		dprintln "PickNPC: no entities to pick!"
+		end NULL
+	}
+
+	if ( local.ent.size==1 )
+		end local.ent
+
+	local.random = randomint local.ent.size
+
+	if ( local.random==0 )
+		local.random++
+
+	end local.ent[local.random]
+
+
+// ------------------------------------------------------------------------------------
+WaitForPlayer local.dist_check_ent local.dist local.waittime:
+//
+//	waits for player to get here....  If player doesn't arrive within waittime seconds
+//	we will end false...
+// ------------------------------------------------------------------------------------
+
+	local.abort_time = level.time + local.waittime
+
+
+	while ( level.time < local.abort_time )
+	{
+		local.playerdist = vector_length ($player.origin - local.dist_check_ent.origin)
+
+//		dprintln "player dist=" local.playerdist
+
+		if ( local.playerdist < local.dist )
+		{
+			end true
+		}
+
+		wait 0.1
+	}
+
+	end	false
+
+// ------------------------------------------------------------------------------------
+IsPlayerCrouchedOrProne:
+// ------------------------------------------------------------------------------------
+
+	local.check = waitthread IsPlayerCrouched
+
+	if (local.check==true )
+		end true
+
+	local.check = waitthread IsPlayerProne
+
+	if (local.check==true )
+		end true
+
+	end false
+
+// ------------------------------------------------------------------------------------
+IsPlayerCrouched:
+// ------------------------------------------------------------------------------------
+
+	end false
+
+// ------------------------------------------------------------------------------------
+IsPlayerProne:
+// ------------------------------------------------------------------------------------
+
+	end false
+
+
+// ------------------------------------------------------------------------------------
+Dialog local.anim:
+//
+//	"says" a dialog but will wait to play the dialog until the player has returned...
+//
+// ------------------------------------------------------------------------------------
+
+
+	dprintln "------------->Dialog:" local.anim
+
+	self turnto $player
+	self lookat $player
+
+	self say local.anim
+	self waittill saydone
+
+	self turnto NULL
+	self lookat NULL
+
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerRadius local.dist_check_ent local.dist local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	while ( level.monitorPlayerAction == true )
+	{
+		local.playerdist = vector_length ($player.origin - local.dist_check_ent.origin)
+
+		if ( local.playerdist > local.dist )
+		{
+			wait 1
+			if ( level.monitorPlayerAction == true )
+			{
+				waitthread RandomDialog local.react_ent dfrus_NPCconv_5_6_14
+			}
+			end
+		}
+		wait 3
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerBinocs local.react_ent:
+// ------------------------------------------------------------------------------------
+
+
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerWeapon local.react_ent:
+//
+//		Check if player is aiming his weapon at someone for too long...
+// ------------------------------------------------------------------------------------
+
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerGrenade local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerCover local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerMedic:
+// ------------------------------------------------------------------------------------
+	
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerLooking local.react_ent:
+// ------------------------------------------------------------------------------------
+	
+	end
+
+// ------------------------------------------------------------------------------------
+MonitorPlayerFiring local.react_ent:
+// ------------------------------------------------------------------------------------
+
+	end
+
+
+// ------------------------------------------------------------------------------------
+RandomDialog local.react_ent local.anim:
+// ------------------------------------------------------------------------------------
+
+	local.ent = waitthread PickNPC local.react_ent
+
+	local.ent waitthread Dialog local.anim
+
+	end

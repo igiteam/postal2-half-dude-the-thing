@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsRightArmSwing extends LPDamageTypeLarocheVsMelee;

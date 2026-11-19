@@ -1,0 +1,1 @@
+class LPDamageTypeFireWaspRam extends LPDamageTypeKnockOver;

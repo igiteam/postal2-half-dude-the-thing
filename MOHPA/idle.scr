@@ -1,0 +1,294 @@
+// -------------------------------------------------------------------------
+// Idle
+// Just be idle, don't do anything you don't have to.  Running or walking will
+// stop, but crouching people will keep crouching, curious people (if we ever have
+// them) will stay curious.  This does not make people relax - we need a specific
+// script to make people play a relaxing animation.
+// -------------------------------------------------------------------------
+
+
+// -------------------------------------------------------------------------
+IdleMain:
+// -------------------------------------------------------------------------
+
+	//println "Entering idle.scr"
+	//println "Called Idle.scr with position " self.position " mood " self.mood
+
+	waitexec "anim/default_inithandler.scr"
+
+	self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+	switch (self.position)
+	{
+		crouch:
+		crouchwalk:
+		crouchrun:
+			while (1)
+			{
+				self waitthread CheckCustomAnim
+				waitexec anim/opencombat.scr::CheckIntervalDir 0
+				waitexec anim/crouch.scr::transition
+				waitexec anim/idle.scr::Fidget
+///				waitexec anim/crouch.scr
+			}
+
+		stand:
+		walk:
+		run:
+			while (1)
+			{
+				self waitthread CheckCustomAnim
+				waitexec anim/opencombat.scr::CheckIntervalDir 0
+//				waitexec anim/stand.scr
+				waitexec anim/stand.scr::transition
+				waitexec anim/idle.scr::Fidget
+			}
+
+		prone:
+		pronewalk:
+			while (1)
+			{
+				self waitthread CheckCustomAnim
+				waitexec anim/opencombat.scr::CheckIntervalDir 0
+//				waitexec anim/prone.scr
+				waitexec anim/prone.scr::transition
+				waitexec anim/idle.scr::Fidget
+			}
+
+		dead:
+			println "^~^~^ Dead guy trying to idle."
+			waitframe
+			break
+		knees:
+		crawl:
+		floor:
+			// Oh my goodness I'm in agony!  Try to stand up, see if your legs will hold
+			// you.  (My first aid instructor always said that you should stay down so
+			// you didn't lose bloodflow to the brain and faint or worse.  These guys are
+			// more gung-ho than me I guess.)
+			waitexec anim/continue_pain.scr
+			goto IdleMain
+
+		default:
+			println ("^~^~^ Idle Default case for "+self.position+" position - fix idle.scr")
+			self.position = stand
+			waitframe
+			break
+	}
+
+	end
+
+// -------------------------------------------------------------------------
+CheckCustomAnim:
+// -------------------------------------------------------------------------
+
+	// jsl-->add some backward compatibility to the "customidle" variable...
+	if ( self.customidleanim==NIL || self.customidleanim==NULL )
+	{
+		if ( self.customidle!=NIL && self.customidle!=NULL && self.customidle!="" )
+			self.customidleanim = self.customidle
+	}
+
+
+	while ( self.customidleanim!=NIL && self.customidleanim!=NULL )
+		self waitthread DoCustomAnim
+
+	while ( self.customidlethread!=NIL && self.customidlethread!=NULL )
+		self waitthread DoCustomThread
+
+	end
+
+// -------------------------------------------------------------------------
+DoCustomAnim:
+//
+//	if custom anim is looping, we'll loop it until custom anim is something
+//	other than 
+// -------------------------------------------------------------------------
+
+	local.custom = self.customidleanim
+
+	self setmotionanim local.custom
+
+	if ( self.isloopinganim )
+	{
+		while ( self.customidleanim==local.custom )
+		{
+			wait 0.2
+		}
+		// exit out when custom anim changes...
+	}
+	else
+	{
+		self.customidleanim	= NULL
+		self waittill flaggedanimdone
+	}
+
+	end
+
+// -------------------------------------------------------------------------
+DoCustomThread:
+// -------------------------------------------------------------------------
+
+	local.thread = self.customidlethread
+	self waitthread local.thread
+
+	end
+
+
+// -------------------------------------------------------------------------
+SquadmateWait:
+//
+//	Play animation(s) while waiting for a squadmate.
+//
+// -------------------------------------------------------------------------
+
+	self waitthread IdleAnim
+
+	end
+
+
+// -------------------------------------------------------------------------
+Fidget:
+//
+//	Uses power of the HAT file to perform fidget animations.
+//
+// -------------------------------------------------------------------------
+
+	if ( self.posestyle==NIL )
+		self.posestyle	= a
+
+	if ( self.shiftcounter==NIL )
+	{
+		self.shiftcounter = (randomint 2) + 2			
+	}
+
+	if ( self.shiftcounter>0 )
+		self.shiftcounter --
+
+	// decide if we want to change something
+
+	if ( self.shiftcounter==0 )
+	{
+//		self.shiftcounter = (randomint 3) + 1
+
+		local.random		= randomint 100
+
+		if ( local.random < 20 )
+		{
+			self.shiftcounter = (randomint 3) + 1
+
+			local.random	= randomint 3
+
+			switch ( local.random )
+			{
+			case	0:
+				self.posestyle = a
+				break
+			case	1:
+				self.posestyle = b
+				break
+			default:
+				self.posestyle = c
+				break
+			}
+		}
+	}
+
+	switch ( self.posestyle )
+	{
+	case	a:
+		self setmotionanim (self getalias idle fidget_a)
+		break
+	case	b:
+		self setmotionanim (self getalias idle fidget_b)
+		break
+	case	c:
+	default:
+		self setmotionanim (self getalias idle fidget_c)
+		break
+	}
+
+	self waittill flaggedanimdone
+
+	self waitthread CheckForSmoke
+
+	end
+
+// ----------------------------------------------------------------------
+IdleAnim:
+// ----------------------------------------------------------------------
+	if ( self.weapongroup==pistol && self.mood==alert )
+	{
+		self setmotionanim (self getalias idle "" "" "" cautious)
+	}
+	else
+	{
+		self setmotionanim (self getalias idle)
+	}
+
+	self waittill flaggedanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+CheckForSmoke:
+//--------------------------------------------------------------------------------
+
+	// jsl-->Mohpa kicked the habit on 09/23/2004  (for ERSB reasons)
+	end
+
+	if ( self.ainosmoke )
+	{
+		// see if scriptor doesn't want us to do this...
+		end
+	}
+
+	if ( self.mood!=atease )
+		end
+
+	if ( self.position!=stand )
+		end
+
+	// don't smoke unless you have a weapon we animated it for.
+	switch ( self.weapongroup )
+	{
+	case	rifle:
+	case	machinegun:
+		break
+	default:
+		end	
+	}
+
+	if ( self.nextsmoketime==NIL )
+	{
+		self.nextsmoketime			= level.time + 10 + randomint 50
+		self.cigarettesremaining	= randomint 10
+	} 
+
+	else if ( self.nextsmoketime==0 || level.time > (self.nextsmoketime + 15) )
+	{
+		self.nextsmoketime			= level.time + 60 + randomint 60
+	}
+
+
+	if ( self.cigarettesremaining==0 )
+		end
+
+	if ( level.time < self.nextsmoketime )
+		end
+
+	local.random = randomint 100
+
+	if ( local.random > 30 )
+		end
+
+	// okay, time to light one up...
+
+	self.nextsmoketime	= 0
+	self.cigarettesremaining = self.cigarettesremaining - 1
+
+	self waitthread anim/smoking.scr::StartSmoking 30 60
+
+
+	end

@@ -1,0 +1,1 @@
+class LPAICmd_BeetleAttackBlindPof extends LPAICmd_BeetleAttackPoF within LPAIControllerBaseBeetle;

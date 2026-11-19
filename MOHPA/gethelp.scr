@@ -1,0 +1,97 @@
+// --------------------------------------------------------------------------------
+// gethelp.scr
+//
+//	1) Place trigger (trigger_multiple) objects with $targetname "aigethelptrigger".
+//	2) Link (Ctrl-K) trigger object to area node.
+//	3) Assign an optional $triggername that becomes the trigger's targetname post-processing.
+//
+// --------------------------------------------------------------------------------
+//level waittill prespawn		// make sure we're at least at the prespawn time when we do this
+
+	if ( $aigethelptrigger != NULL )
+	{
+		local.count = $aigethelptrigger.size
+		
+		for ( local.i = 1; local.i <= local.count; local.i++ )
+		{
+			$aigethelptrigger[local.i] thread gethelptrigger
+		}
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+gethelptrigger:
+// --------------------------------------------------------------------------------
+
+	self makegethelptrigger
+	
+	if ( self.triggername != NIL )
+	{
+		self.targetname = self.triggername
+	}
+	
+	if ( self.set == NIL )
+	{
+		dprintln "***** ERROR in gethelp.scr - Trigger is not active because no #set number was specified."
+		end
+	}
+
+gethelptriggerloop:
+
+	self waittill trigger
+//	dprintln "~~~~~~~~~~~~~~~ " self.targetname " was tripped, spawning set " self.set
+//	dprintln "~~~~~~~~~~~~~~~ parm.other is " parm.other
+//	dprintln "~~~~~~~~~~~~~~~ parm.other.squad_name is " parm.other.squad_name
+//	dprintln "~~~~~~~~~~~~~~~ trigger's helparea is " self.helparea
+
+	local.radioman = parm.other
+	local.squadname = local.radioman.squad_name
+
+	if ( (self.helparea != NIL) && ($(self.helparea) != NULL ) )
+	{
+		local.helparea = self.helparea
+	}
+	else
+	{
+		local.helparea = local.radioman.squadarea
+	}
+
+	local.helparea = local.radioman.squadarea	// MJG: for demo, simply send to radioman's area
+
+	if ( (parm.other != NIL) && (parm.other != NULL) && (local.squadname != NIL) )
+	{
+		local.tempname = "gethelp" + level.time
+		waitthread global/aispawn.scr::spawnset self.set local.tempname 0 0
+		$(local.tempname) waitthread initspawnedhelper local.squadname local.helparea
+	}
+
+	// MJG: remove the looping mechanism, making these one-shot triggers.  Per Nash.
+//	wait 5
+//	goto gethelptriggerloop
+
+end
+
+
+// --------------------------------------------------------------------------------
+initspawnedhelper local.squadname local.area:
+// --------------------------------------------------------------------------------
+
+//	dprintln "~~~~~~~~~~~~~~~ " self.targetname " is initializing..."
+	local.newname = self.targetname + "init"
+	
+	self.targetname = local.newname
+	self.squad_name = local.squadname
+
+	if ( (local.area != NIL) && (local.area != NULL) )
+	{
+//		dprintln "~~~~~~~~~~~~~~~~~ reinforcements headed to area " local.area
+		self order_advance local.area
+	}
+	else
+	{
+		dprintln "***** ERROR in gethelp.scr - Reinforcements can not be sent to NULL area."
+	}
+
+end

@@ -1,0 +1,1 @@
+class LPDamageTypeCarrierPincerPushPof extends LPDamageTypeCarrierMelee;

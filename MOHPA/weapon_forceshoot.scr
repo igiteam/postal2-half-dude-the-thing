@@ -1,0 +1,51 @@
+// ----------------------------------------------------------------------------
+// weapon_forceshoot.scr
+// ----------------------------------------------------------------------------
+// mostly does what shoot.scr does, except this script ALWAYS shoots
+// use this for shooting at "targets" that are NOT the actor's enemy
+
+//	iprintln "~~~~~~~~~~~~~ in weapon_forceshoot.scr"
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	self weaponcommand mainhand attachtohand mainhand
+
+	self waitthread anim/saymanager.scr::Init
+
+start:
+
+//	if ( self.enemy )
+//	{
+//		local.distance = self.distancetoenemy
+//		if ( local.distance < self.reallyshortrange )
+//		{
+//			waitexec anim/attack.scr::AttackDoMelee
+//			end
+//		}
+//	}
+
+	// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+	// lining up perfectly.
+	self.blendtime = 0.10
+
+	if ( self.weapongroup==bazooka )
+	{
+		switch ( self.position )
+		{
+		case	prone:
+		case	pronewalk:
+			// transition to crouch
+			waitexec anim/crouch.scr::transition
+			break
+		}
+	}
+
+//	self setmotionanim (self getalias idle legs)
+	waitexec anim/shoot.scr::Shoot
+///	self waittill upperanimdone
+
+
+	end
+
+

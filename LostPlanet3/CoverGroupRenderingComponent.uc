@@ -1,0 +1,1 @@
+class CoverGroupRenderingComponent extends PrimitiveComponent;

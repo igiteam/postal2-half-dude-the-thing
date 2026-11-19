@@ -1,0 +1,190 @@
+//
+// tour.scr
+//
+// Helper script to take a tour of all the invader spawn spots
+// 
+// 04.15.04 JABBOTT - original version
+//
+//
+// To use this script, place the following three lines at the VERY
+// begining of your main map script. There should be nothing that
+// comes before these lines. If you have more than or less than four
+// objectives in your level, you'll have to change the very first line
+// to accurately reflect what the count is:
+//
+//	level.spawnSetCount = 4
+//	exec global/tour.scr
+//	end
+//
+
+//----------------------------------------------------------------------------
+main:
+//------------------
+	level waittill spawn
+	thread precount_spawns
+	while ($player.size < 1)
+		wait 0.1
+	thread tour_spawn_sets $player[1]
+end
+
+
+//------------------
+precount_spawns:
+//------------------
+	for (local.a = 0; local.a < 2; local.a++)
+	{
+		if (local.a == 0)
+			local.side = "axis"
+		else
+			local.side = "allies"
+		for (local.i = 0; local.i <= level.spawnSetCount; local.i++)
+		{
+			if (local.i == 0)
+			{
+				local.spawnName = local.side + "_spawn_init"
+				if ($(local.spawnName) != NULL)
+					for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+						$(local.spawnName)[local.j].marked = 1
+			}
+			else
+			{
+				for (local.u = 0; local.u < 3; local.u++)
+				{
+					if (local.u == 0)
+						local.spawnName = local.side + "_spawn_" + local.i
+					else if (local.u == 1)
+						local.spawnName = local.side + "_spawn_" + local.i + "_small"
+					else if (local.u == 2)
+						local.spawnName = local.side + "_spawn_" + local.i + "_big"
+					if ($(local.spawnName) != NULL)
+						for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+							$(local.spawnName)[local.j].marked = 1
+				}
+			}
+		}
+	}
+end
+
+goto_spawn local.spawnSpot local.name local.o:
+	self.origin = local.spawnSpot.origin
+	self.angle = local.spawnSpot.angle
+	self.angles = local.spawnSpot.angles
+	if (local.o == NULL)
+		self iprint ( "now visiting " + local.name + " at " + self.origin )
+	else
+		self iprint ( "now visiting " + local.name + " at " + self.origin + "  dist=" + vector_length ( self.origin - local.o ))
+	while (!(self.useheld))
+		wait 0.1
+	while (self.useheld)
+		wait 0.1
+end
+
+//------------------
+tour_spawn_sets local.player:
+//------------------
+
+	while (local.player.isSpectator || !(isalive local.player))
+		wait 0.1
+
+	local.leftoverAxis = level playerspawncount mp enabled axis
+	if (local.leftoverAxis > 0)
+	{
+		for (local.i = 1; local.i <= local.leftoverAxis; local.i++)
+		{
+			local.sp = level playerspawn local.i mp enabled axis
+			if (local.sp.marked != 1)
+			{
+				if (local.sp.targetname == NIL || local.sp.targetname == NULL || local.sp.targetname == "")
+					local.name = "ILLEGAL Axis"
+				else
+					local.name = "ILLEGAL Axis (" + local.sp.targetname + ")"
+				local.player waitthread goto_spawn local.sp local.name NULL
+			}
+		}
+	}
+	local.leftoverAllied = level playerspawncount mp enabled allies
+	if (local.leftoverAllied > 0)
+	{
+		for (local.i = 1; local.i <= local.leftoverAllied; local.i++)
+		{
+			local.sp = level playerspawn local.i mp enabled allies
+			if (local.sp.marked != 1)
+			{
+				if (local.sp.targetname == NIL || local.sp.targetname == NULL || local.sp.targetname == "")
+					local.name = "ILLEGAL Allied"
+				else
+					local.name = "ILLEGAL Allied (" + local.sp.targetname + ")"
+				local.player waitthread goto_spawn local.sp local.name NULL
+			}
+		}
+	}
+ 
+
+	for (local.a = 0; local.a < 2; local.a++)
+	{
+		if (local.a == 0)
+			local.side = "axis"
+		else
+			local.side = "allies"
+		for (local.i = 0; local.i <= level.spawnSetCount; local.i++)
+		{
+			if (local.i == 0)
+			{
+				local.spawnName = local.side + "_spawn_init"
+				if ($(local.spawnName) != NULL)
+				{
+					local.o = ( 0 0 0 )
+					local.s = $(local.spawnName).size
+
+					for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+					{
+						local.l = $(local.spawnName)[local.j].origin
+						local.o = local.o + ( ( local.l[0] / local.s ) ( local.l[1] / local.s ) ( local.l[2] / local.s ) )
+					}
+
+					for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+						local.player waitthread goto_spawn $(local.spawnName)[local.j] ( local.side + "init#" + local.j ) local.o
+				}
+			}
+			else
+			{
+				for (local.u = 0; local.u < 3; local.u++)
+				{
+					if (local.u == 0)
+					{
+						local.spawnName = local.side + "_spawn_" + local.i
+						local.name = local.side + local.i
+					}
+					else if (local.u == 1)
+					{
+						local.spawnName = local.side + "_spawn_" + local.i + "_small"
+						local.name = local.side + "S" + local.i
+					}
+					else if (local.u == 2)
+					{
+						local.spawnName = local.side + "_spawn_" + local.i + "_big"
+						local.name = local.side + "B" + local.i
+					}
+					if ($(local.spawnName) != NULL)
+					{
+						local.o = ( 0 0 0 )
+						local.s = $(local.spawnName).size
+
+						for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+						{
+							local.l = $(local.spawnName)[local.j].origin
+							local.o = local.o + ( ( local.l[0] / local.s ) ( local.l[1] / local.s ) ( local.l[2] / local.s ) )
+						}
+
+						for (local.j = 1; local.j <= $(local.spawnName).size; local.j++)
+							local.player waitthread goto_spawn $(local.spawnName)[local.j] ( local.name + "#" + local.j ) local.o
+					}
+				}
+			}
+		}
+	}
+
+	local.player iprint ( " -- restarting loop -- " )
+
+	thread tour_spawn_sets local.player
+end

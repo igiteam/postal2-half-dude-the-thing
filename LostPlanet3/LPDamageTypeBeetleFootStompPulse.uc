@@ -1,0 +1,1 @@
+class LPDamageTypeBeetleFootStompPulse extends LPDamageTypeElectricalBeetle;

@@ -1,0 +1,979 @@
+//
+// mp_guns.scr
+//
+// Generic routines for initializing and managing guns and artillery in the
+// Pacific Assault maps.
+//
+// Each fixed gun (ie: MG) needs the following:
+//
+// - a set number
+// - it needs to target a trigger-multiple which will be its reload and 
+//   aim-assist slot
+// - there needs to be a trigger-use which shares the gun's set 
+//   number which is the use slot
+// - a thread needs to start for it: $mg thread global/mp_guns.scr::init_mg
+//
+//
+// Next to each gun must be a model with five alternate models that will
+// represent the stack of ammo to be fed to the weapon. These stacks must have
+// the following attributes:
+//
+//	#gunammo 1
+//	target   (the gun)
+//
+// models/weapons/MG_ammostack/MG_ammostack.hag is a good example
+
+// CCARON 6/22/2004 - added portable mortar / mg init functions
+
+//-----------------------------------------------------------------------------
+init_usm2_60mm:
+//------------------
+
+	// This func called by 'scriptinit' directly from the HAG file
+
+	if (self.targetname == NIL || self.targetname == NULL || self.targetname == "")
+		self.targetname = "cannon-us50mm" + self.entnum
+
+	// self is the turret
+	self thread wait_init
+end
+
+
+//------------------
+wait_init:
+//------------------
+
+	wait 1.0
+
+	self takedamage
+	self.health = level.dm_mgMaxHealth
+	self immune bash bullet melee
+	self thread track_mg_health
+	self solid
+
+end
+
+//-----------------------------------------------------------------------------
+init_uslewis local.previousUser:
+//------------------
+
+	// This func called by 'scriptinit' directly from the HAG file
+
+	// self is the turret (classname CarryableTurret)
+
+	// Since we're using this init routine, let's use the matching
+	// shutdown routine as well.
+	self scriptfinish "global/mp_guns.scr::finish_uslewis"
+
+	// These are often just dropped in place mid way through a game.
+	// ... so we have to set up the triggers for using and reloading
+
+	if (self.targetname == NIL || self.targetname == NULL || self.targetname == "")
+		self.targetname = "mg-uslewis" + self.entnum
+
+	local.slotname = "mg-lewis" + self.entnum
+	local.reloadSlot = $(local.slotname)
+
+	if (local.reloadSlot == NIL || local.reloadSlot == NULL)
+	{
+		local.reloadSlot = spawn Trigger_Multiple
+		local.reloadSlot.targetname = local.slotname
+		local.reloadSlot setsize ( -5 -5 -25 ) ( 5 5 125 )
+		local.reloadSlot.touchSlot = 1
+	}
+
+	self.target = local.reloadSlot
+	local.left = angles_toleft self.angles
+	local.forward = angles_toforward self.angles
+	local.origin = self.origin + ( 50 * local.left ) + ( 30 * local.forward )
+
+	// Calculate where to place the reload slot. Note that sometimes
+	//   the terrain can be above us (like in the Corregador tunnel)
+	local.terrainHeight = terrain_height 0 local.origin[0] local.origin[1]
+	local.gunHeight = self.origin[2]
+	if (local.terrainHeight < local.gunHeight)
+		local.lowestPoint = local.terrainHeight
+	else
+		local.lowestPoint = ( local.gunHeight - 100 )
+	local.origin = trace ( local.origin[0] local.origin[1] local.gunHeight ) ( local.origin[0] local.origin[1] local.lowestPoint )
+
+
+	local.reloadSlot.origin = local.origin
+	local.reloadSlot.gun = self
+
+	if (self.set == NIL || self.set == NULL || self.set == "")
+		self.set = "mg-set" + self.entnum
+		
+	// CCARON instead of searching the whole set of ents, search
+	// only specially names triggers
+	//local.useSlot = waitthread find_equip_slot self self.set
+	
+	local.useSlot = NULL
+	
+	if ($portable_useslot.size>0)
+	{
+		for (local.i=1; local.i<=$portable_useslot.size; local.i++)
+			if ($portable_useslot[local.i].set == self.set)
+			{
+				local.useSlot = $portable_useslot[local.i]
+				break
+			}
+	}
+	
+	if (local.useSlot == NIL || local.useSlot == NULL)
+	{
+		local.useSlot = spawn Trigger_Use targetname "portable_useslot"
+		local.useSlot.set = self.set
+		local.useSlot setsize ( -35 -35 -25 ) ( 35 35 125 )
+	}
+
+	self.target.equipSlot = local.useSlot
+	local.forward = angles_toforward self.angles
+	local.origin = self.origin - ( 30 * local.forward )
+
+	// Calculate where to place the use slot. Note that sometimes
+	//   the terrain can be above us (like in the Corregador tunnel)
+	local.terrainHeight = terrain_height 0 local.origin[0] local.origin[1]
+	local.gunHeight = self.origin[2]
+	if (local.terrainHeight < local.gunHeight)
+		local.lowestPoint = local.terrainHeight
+	else
+		local.lowestPoint = ( local.gunHeight - 100 )
+	local.origin = trace ( local.origin[0] local.origin[1] local.gunHeight ) ( local.origin[0] local.origin[1] local.lowestPoint )
+
+	local.useSlot.origin = local.origin
+
+	local.supplyname = "mg-supply" + self.entnum
+	local.supplybox = $(local.supplyname)
+
+	if (local.supplybox == NIL || local.supplybox == NULL)
+	{
+		local.supplybox = spawn Item model models/weapons/MG_ammostack/MG_ammostack.hag origin ( self.origin + ( 0 0 50 ) ) angle self.angle
+		local.supplybox.gunammo = 1
+		local.supplybox.targetname = local.supplyname
+	}
+
+	local.supplybox target self
+	local.supplybox.origin = local.reloadSlot.origin
+	//local.supplybox glue self
+
+	wait 0.1
+
+	// Set up the guns so that they can be killed, can be reloaded, 
+	// and can overheat.
+
+	if (local.previousUser == NIL || local.previousUser == NULL)
+	{
+		self internalammo level.dm_mgInternalAmmo level.dm_mgSupplySize level.dm_mgSupplyMaxCount 0
+		self.supplyammocount = level.dm_mgSupplyCount
+		self.health = level.dm_mgMaxHealth
+	}
+	else
+	{
+		self internalammoreplace level.dm_mgInternalAmmo level.dm_mgSupplySize level.dm_mgSupplyMaxCount level.dm_mgMaxHealth
+	}
+	self.target.gun = self
+	self.target.ammoTime = level.dm_mgAmmoTime
+	self.target setthread global/mp_guns.scr::reload_trigger
+	self overheat level.dm_mgHeatRate level.dm_mgCoolRate level.dm_mgJamTime 
+	self.usesAimAssist = 1
+	self thread basic_gun_init
+	self immune bullet melee bash
+	self solid
+end
+
+
+//-----------------------------------------------------------------------------
+finish_uslewis:
+//------------------
+	local.supplyname = "mg-supply" + self.entnum
+	local.supplybox = $(local.supplyname)
+	if (local.supplybox != NIL && local.supplybox != NULL)
+	{
+		local.supplybox remove
+	}
+	if (self.target.equipSlot != NIL && self.target.equipSlot != NULL)
+	{
+		self.target.equipSlot nottriggerable
+		self.target.equipSlot remove
+	}
+	if (self.target != NIL && self.target != NULL)
+	{
+		self.target nottriggerable
+		self.target remove
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+init_mg:
+//------------------
+
+	// Set up the guns so that they can be killed, can be reloaded, 
+	// can overheat, and have tutorials. Call this function if you
+	// have a handle on the turret of the MG... if you only have a handle
+	// on the base, call init_mg_base instead.
+
+	// self here is the turret (not the base of the gun)
+	// self.target is the reload slot
+	 
+	self settutorial use_mg 600
+
+	self internalammo level.dm_mgInternalAmmo level.dm_mgSupplySize level.dm_mgSupplyMaxCount level.dm_mgSupplyCount
+	self.supplyammocount = level.dm_mgSupplyCount
+	self solid
+	self.target.gun = self
+	self.target.ammoTime = level.dm_mgAmmoTime
+	self.target setthread global/mp_guns.scr::reload_trigger
+	self overheat level.dm_mgHeatRate level.dm_mgCoolRate level.dm_mgJamTime 
+	self.health = level.dm_mgMaxHealth
+	self.usesAimAssist = 1
+
+	self thread basic_gun_init
+end
+
+
+//-----------------------------------------------------------------------------
+init_mg_base:
+//------------------
+
+	// Set up the guns so that they can be killed, can be reloaded, 
+	// can overheat, and have tutorials.
+	// Call this function if you have a handle on the base of an MG
+	// (if you have a handle on the turret, call init_mg instead).
+
+	// self is the gun base (not the turret)
+	// self.target is the reload slot
+
+	local.turretname = self.targetname + "_turret0"
+	$(local.turretname).set = self.set
+	self.set = NULL
+	$(local.turretname) thread init_mg
+end
+
+
+//-----------------------------------------------------------------------------
+init_artillery:
+//------------------
+
+	// Set up the artillery so that they can be killed,
+	// reloaded and blown up.
+
+	self settutorial use_artillery 600
+
+	self internalammo level.dm_artInternalAmmo lvel.dm_artSupplySize level.dm_artSupplyMaxCount level.dm_artSupplyCount
+	self.supplyammocount = level.dm_artSupplyCount
+	local.theGun = self queryturretslotentity 0
+	self.target.gun = local.theGun
+	self.target.vehicle = self
+	self.target.ammoTime = level.dm_artAmmoTime
+	self.target setthread global/mp_guns.scr::reload_trigger
+	self.health = level.dm_artMaxHealth
+	local.theGun setUsableScriptOnly 1
+	self thread basic_gun_init
+end
+
+
+//-----------------------------------------------------------------------------
+init_usboys55:
+//------------------
+
+	// These are often just dropped in place mid way through a game.
+	// ... so we have to set up the triggers for using and reloading
+
+	if (self.targetname == NIL || self.targetname == NULL || self.targetname == "")
+		self.targetname = "mg-usboys55" + self.entnum
+
+	local.slotname = "mg-slot" + self.entnum
+	local.reloadSlot = $(local.slotname)
+
+	if (local.reloadSlot == NIL || local.reloadSlot == NULL)
+	{
+		local.reloadSlot = spawn Trigger_Multiple
+		local.reloadSlot.targetname = local.slotname
+		local.reloadSlot setsize ( -5 -5 -25 ) ( 5 5 125 )
+		local.reloadSlot.touchSlot = 1
+	}
+
+	self.target = local.slotname
+	local.left = angles_toleft self.angles
+	local.forward = angles_toforward self.angles
+	local.origin = self.origin + ( 50 * local.left ) + ( 30 * local.forward )
+
+	// Calculate where to place the reload slot. Note that sometimes
+	//   the terrain can be above us (like in the Corregador tunnel)
+	local.terrainHeight = terrain_height 0 local.origin[0] local.origin[1]
+	local.gunHeight = self.origin[2]
+	if (local.terrainHeight < local.gunHeight)
+		local.lowestPoint = local.terrainHeight
+	else
+		local.lowestPoint = ( local.gunHeight - 100 )
+	local.origin = trace ( local.origin[0] local.origin[1] local.gunHeight ) ( local.origin[0] local.origin[1] local.lowestPoint )
+	local.reloadSlot.origin = local.origin
+
+
+	if (self.set == NIL || self.set == NULL || self.set == "")
+		self.set = "mg-set" + self.entnum
+	local.useSlot = waitthread find_equip_slot self self.set
+	if (local.useSlot == NIL || local.useSlot == NULL)
+	{
+		local.useSlot = spawn Trigger_Use
+		local.useSlot.set = self.set
+		local.useSlot setsize ( -35 -35 -25 ) ( 35 35 125 )
+	}
+
+	self.target.equipSlot = local.useSlot
+	local.forward = angles_toforward self.angles
+	local.origin = self.origin - ( 50 * local.forward )
+
+	// Calculate where to place the use slot. Note that sometimes
+	//   the terrain can be above us (like in the Corregador tunnel)
+	local.terrainHeight = terrain_height 0 local.origin[0] local.origin[1]
+	local.gunHeight = self.origin[2]
+	if (local.terrainHeight < local.gunHeight)
+		local.lowestPoint = local.terrainHeight
+	else
+		local.lowestPoint = ( local.gunHeight - 100 )
+	local.origin = trace ( local.origin[0] local.origin[1] local.gunHeight ) ( local.origin[0] local.origin[1] local.lowestPoint )
+	local.useSlot.origin = local.origin
+
+	local.supplyname = "mg-supply" + self.entnum
+	local.supplybox = $(local.supplyname)
+
+	if (local.supplybox == NIL || local.supplybox == NULL)
+	{
+		local.supplybox = spawn Item model models/weapons/MG_ammostack/MG_ammostack.hag origin ( self.origin + ( 0 0 50 ) ) angle self.angle
+		local.supplybox.gunammo = 1
+		local.supplybox.targetname = local.supplyname
+	}
+
+	local.supplybox target self
+	local.supplybox.origin = local.reloadSlot.origin
+	local.supplybox glue self
+
+	wait 0.1
+
+	// Set up the guns so that they can be killed, can be reloaded, 
+	// and can overheat.
+
+	self internalammo level.dm_mgInternalAmmo level.dm_mgSupplySize level.dm_mgSupplyMaxCount 0
+	self.supplyammocount = 0
+	self.target.gun = self
+	self.target.ammoTime = level.dm_mgAmmoTime
+	self.target setthread global/mp_guns.scr::reload_trigger
+	self overheat level.dm_mgHeatRate level.dm_mgCoolRate level.dm_mgJamTime 
+	self.health = level.dm_mgMaxHealth
+	self.usesAimAssist = 1
+	self thread basic_gun_init
+end
+
+
+//------------------
+find_equip_slot local.ignore local.set:
+//------------------
+	
+	for (local.i = 0; local.i <= level.getmaxentnum; local.i++)
+	{
+		local.thing = getentbyentnum local.i
+		if (local.thing == NIL || local.thing == NULL)
+			continue
+		if (local.ignore == local.thing)
+			continue
+		if (local.thing.set == local.set)
+			end local.thing
+	}
+	local.thing = NULL
+end local.thing
+
+
+//------------------
+basic_gun_init:
+//------------------
+
+	// self here is the turret of the weapon, not the base
+	// self.target is the reload trigger
+	// self.supplyammo is the supply object
+
+	self takedamage
+	
+	// make immune to everything but grenades and satchel charges
+	self immune bullet fast_bullet bash impale 
+	self immune flashbang thrownobject
+	self immune shotgun aagun bulletlarge	
+	
+	self setUsableScriptOnly 1
+	
+	// Used for Localization Error printing
+	local.originText = "~" + self.origin
+	local.entnumText = "~" + self.entnum
+	
+	// Taken out because the event system tracks the MG health when it
+	// is lower than the surrounding trigger's health. I'm leaving this
+	// comment in in-case we run into an unforseen problem -scosgrave
+
+	//self thread track_mg_health    
+	
+
+	if (self.set == NIL || self.set == NULL)
+	{
+                //waitthread global/mp_message.scr::general "MP:ErrorGunNoSet" local.originText
+		println ( "ERROR: Gun at " + self.origin + " has no set number")
+		end
+	}
+
+	for (local.i = 0; local.i <= level.getmaxentnum ; local.i++)
+	{
+		local.thing = getentbyentnum local.i
+		if (local.thing == NIL || local.thing == NULL)
+			continue
+		if (local.thing == self)
+			continue
+		if (local.thing.set == self.set)
+		{
+			local.thing.gun = self
+			local.thing.reloadSlot = self.target
+			self.target.equipSlot = local.thing
+			local.thing setthread global/mp_guns.scr::use_weapon
+		}
+		else if (local.thing.gunammo != NIL && local.thing.gunammo != NULL)
+		{
+			if (local.thing.target != NIL && local.thing.target != NULL && local.thing.target != "")
+			{
+				if ($(local.thing.target + "_turret0") == self)
+					self.supplyammo = local.thing
+				else if (local.thing.target.entnum == self.entnum)
+					self.supplyammo = local.thing
+			}
+		}
+	}
+
+	if (self.supplyammo == NIL || self.supplyammo == NULL)
+	{		
+		self.supplyammo = self waitthread supply_ammo_box
+		dprintln ( "ERROR: Gun #" + self.entnum + " at " + self.origin + " has no ammo supply -- making one");
+		//waitthread global/mp_message.scr::general "MP:ErrorGunNoAmmo" local.entnumText local.originText
+	}
+
+	self.supplyammo notsolid
+
+	if (self.target.equipSlot == NIL || self.target.equipSlot == NULL)
+	{
+		//waitthread global/mp_message.scr::general "MP:ErrorGunNoEquip" local.originText
+		println ( "ERROR: Gun at " + self.origin + " has no equip slot");
+		end
+	}
+
+	if (self.target == NIL || self.target == NULL || self.target == "")
+	{
+		println ( "ERROR: Gun at " + self.origin + " has no reload slot")
+	}
+
+	self thread track_gun_ammo
+end
+
+
+//------------------
+supply_ammo_box:
+//------------------
+	local.spawned = spawn Item model models/weapons/MG_ammostack/MG_ammostack.hag origin ( self.origin + ( 0 0 50 ) ) angle self.angle
+	local.spawned.gunammo = 1
+	local.spawned target self
+
+	// Calculate where to place the ammo box. Note that sometimes
+	//   the terrain can be above us (like in the Corregador tunnel)
+	local.terrainHeight = terrain_height 0 self.origin[0] self.origin[1]
+	local.gunHeight = self.origin[2]
+	if (local.terrainHeight < local.gunHeight)
+		local.lowestPoint = local.terrainHeight
+	else
+		local.lowestPoint = ( local.gunHeight - 100 )
+	local.spawned.origin = trace ( self.origin[0] self.origin[1] local.gunHeight ) ( self.origin[0] self.origin[1] local.lowestPoint )
+	local.spawned.targetname = "mg-supply" + self.entnum
+end local.spawned
+
+
+//------------------
+init_model92 local.number:
+//------------------
+	
+	// called on the base of the gun (the base spawns the gun itself).
+	// this function initializes a single model92, where the appended
+	// number is local.number.  all the guns must be named "model92_#" 
+	// where # is a unique number, which is part of a contiguous 
+	// sequence starting at 1.
+	//
+	// the model you put in the map MUST be 
+	// models/statweapons/model92mp_base_standing.hag
+	// create model92 guns the same way as mg42s from BT.
+	
+	// create the indexed gun targetname
+	local.tempGun = ("model92_" + local.number)
+	// created the indexed turret targetname
+	local.tempTurret = (local.tempGun + "_turret0")
+
+	if ($(local.tempGun) == NULL)
+	{
+		//waitthread global/mp_message.scr::general "MP:ErrorGunDoesntExist" local.number
+		println ( "ERROR: Gun #" + local.number + " does not exist!" )
+		end
+	}
+	if ($(local.tempTurret) == NULL)
+	{
+		//waitthread global/mp_message.scr::general "MP:ErrorGunNoTurret" local.number
+		println ( "ERROR: Gun #" + local.number + " has no turret!" )
+		end
+	}
+
+	// copy the set number to the turret
+	$(local.tempTurret).set = $(local.tempGun).set
+	// remove the set number from the base (otherwise weird stuff
+	// happens in mp_guns.scr)
+	$(local.tempGun).set = NULL
+	// copy the target to the turret
+	$(local.tempTurret) target $(local.tempGun).target
+	// set userdistance (?)
+	$(local.tempTurret) userdistance level.dm_mgUserDistance
+	// init the machinegun (turret)
+	$(local.tempTurret) thread init_mg
+	// make gun invincible (so it can be make non-invincible later)
+	$(local.tempTurret) nodamage
+	
+end
+
+
+//------------------
+init_model92_sequence local.startNumber local.stopNumber:
+//------------------
+
+	// initializes a contiguous sequence of model92s
+	
+	for (local.i = local.startNumber; local.i <= local.stopNumber; local.i++)
+		waitthread init_model92 local.i
+end
+
+
+//------------------
+init_model92_all:
+//------------------
+
+	// initializes all the model92s in the map
+	
+	local.i = 1
+	while (1) 
+	{
+		local.tempGunName = ("model92_" + local.i)
+		if ($(local.tempGunName) == NIL || $(local.tempGunName) == NULL)
+			break
+		waitthread init_model92 local.i
+		local.i++
+	}
+end
+
+
+//------------------
+activate_model92 local.number:
+//------------------
+
+	// this function activates a model 92 which was initialized earlier
+	// by init_model92, basically just allowing it to take damage	
+	
+	// create the indexed gun targetname
+	local.tempGun = ("model92_" + local.number)
+	// created the indexed turret targetname
+	local.tempTurret = (local.tempGun + "_turret0")
+
+	if ($(local.tempGun) == NULL)
+	{
+		//waitthread global/mp_message.scr::general "MP:ErrorGunDoesntExist" local.number
+		println ( "ERROR: Gun #" + local.number + " does not exist!" )
+		end
+	}
+	if ($(local.tempTurret) == NULL)
+	{
+		//waitthread global/mp_message.scr::general "MP:ErrorGunNoTurret" local.number
+		println ( "ERROR: Gun #" + local.number + " has no turret!" )
+		end
+	}
+
+	// make gun non-invincible
+	$(local.tempTurret) takedamage
+	
+end
+
+
+//------------------
+activate_model92_sequence local.startNumber local.stopNumber:
+//------------------
+
+	// activates a contiguous sequence of model92s
+	
+	for (local.i = local.startNumber; local.i <= local.stopNumber; local.i++)
+		waitthread activate_model92 local.i
+end
+
+
+//------------------
+activate_model92_all:
+//------------------
+
+	// activates all the model92s in the map
+	
+	local.i = 1
+	while (1) 
+	{
+		local.tempGunName = ("model92_" + local.i)
+		if ($(local.tempGunName) == NIL || $(local.tempGunName) == NULL)
+			break
+		waitthread activate_model92 local.i
+		local.i++
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+find_mg42 local.setnum:
+//------------------
+
+	if (!local.setnum)
+		end
+
+	for (local.i=1; local.i <= $mg42.size; local.i++)
+	{
+		if ($mg42[local.i].set == local.setnum)
+			end $mg42[local.i]
+	}
+	dprintln ("could not find gun " + local.setnum)
+end
+
+
+//-----------------------------------------------------------------------------
+find_artillery local.setnum:
+//------------------
+
+	if (!local.setnum)
+		end
+
+	for (local.i=1; local.i <= $artillery.size; local.i++)
+	{
+		if ($artillery[local.i].set == local.setnum)
+			end $artillery[local.i]
+	}
+	dprintln ("could not find artillery " + local.setnum)
+
+end
+
+
+
+//-----------------------------------------------------------------------------
+track_gun_ammo:
+//------------------
+	local.supplyAmmo = self.supplyammocount
+	while (self != NULL && (self.supplyammo == NIL || self.supplyammo == NULL))
+		wait 1
+	if (self == NULL)
+		end
+	if (self.supplyammocount < 5)
+		self.supplyammo altmodel_id (4 - self.supplyammocount)
+	while (self)
+	{
+		if (local.supplyAmmo != self.supplyammocount)
+		{
+			if (self.supplyammocount < 5)
+				self.supplyammo altmodel_id (4 - self.supplyammocount)
+                        local.supplyAmmo = self.supplyammocount
+		}
+		wait 0.4
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+track_mg_health:
+//------------------
+
+	while (self != NULL && self.health > 0)
+	{
+		self waittill damage
+	}
+	
+	if (self.wielder != NIL && self.wielder != NULL)
+	{
+		//self.gun detachturretslot 0
+		self.wielder hurt 999 ""
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+use_weapon local.player:
+//------------------
+
+	// This is called when a player presses the use key infront
+	// of a weapon. We need to make sure we negotiate with the reload
+	// slot to make sure we don't usurp reloading if they need to do it.
+
+	if (!(Isalive local.player))
+		end
+
+	if (self.gun == NULL)
+		end
+
+	if (local.player isinside self.reloadSlot)
+	{
+		if (self.gun.ammofullpercent == 0)
+			end
+	}	
+
+	if (self.gun.wielder != NULL)
+		end
+
+	if (self.vehicle != NIL && self.vehicle != NULL)
+	{
+		self.vehicle playerUse local.player 
+	}
+	else
+	{
+		self.gun playerUse local.player 
+	}
+	
+	// some player's post effects were not being cleared after
+	// using the .50 cal MG so we watch the player here and make
+	// sure their blur postfx are cleared
+	while( self.gun.wielder == local.player && (Isalive local.player))
+		waitframe
+	
+	// if the player is dead, do not continue and clear the postfx
+	if (!(Isalive local.player))
+		end
+	
+	// make sure the player is actually off the gun before we clear
+	// the postfx
+	wait 0.5	
+	
+	// blend the blur back to default over .2 seconds			
+	local.player postfx_blend_to_default 0 0.2
+	
+end
+
+//-----------------------------------------------------------------------------
+reload_trigger local.player:
+//------------------
+
+	// This is called whenever a player enters into the trigger
+	// multiple that is next to all fixed guns.
+	
+	// self is the trigger_multiple
+
+	if (self.user != NIL && self.user != NULL)
+		end
+
+	if (!(Isalive local.player))
+		end
+
+	if (self.gun == NULL)
+		end
+
+	if (local.player isinside self.equipSlot)
+		end
+
+	if (self.gun.wielder != NIL && self.gun.wielder != NULL)
+	{
+		// In FFA don't let someone do things to the gun while
+		// it has a wielder.
+		if (level.gametype < 2)
+			end
+
+		// In all other modes, don't let enemies do things to 
+		// the gun while it has a wielder.
+		if (self.gun.wielder.dmteam != local.player.dmteam)
+			end
+	}
+
+	self.user = local.player
+
+	if (self.gun.usesAimAssist == 1)
+	{
+		self.gun assistaim 1
+
+                // CCARON - invoke aim assited zoom
+		self.gun playerzoom 
+	}
+	waitthread player_occupies_reload_slot local.player
+	if (self.gun.usesAimAssist == 1)
+	{
+		self.gun assistaim 0
+
+                // CCARON - undo zoom operation
+		self.gun playerzoom 
+	}
+
+	if (local.player != NULL)
+	{
+		local.player removeuseslot ammo
+		local.player removeuseslot reloading
+		local.player stopwatch 0 3 progress_reload
+
+		if (self.user != local.player)
+		{
+			if (self.user == NIL || self.user == NULL)
+				local.player waitthread global/mp_message.scr::player_message "MP:YouLostReloadJob"
+			else
+			{
+				local.noLocName = "~" + self.user.netname
+				local.player waitthread global/mp_message.scr::player_message "MP:UsurpedReloadJob" local.noLocName
+			}
+		}
+	}
+
+	self.user = NULL
+
+	if (self.gun == NULL)
+	{
+		local.supplyname = "mg-supply" + self.entnum
+		local.supplybox = $(local.supplyname)
+		if (local.supplybox != NIL && local.supplybox != NULL)
+			local.supplybox remove
+
+		self.equipSlot nottriggerable
+		self nottriggerable
+		self.equipSlot remove
+		self remove
+	}
+
+end
+
+
+//------------------
+player_occupies_reload_slot local.player:
+//------------------
+
+	// This function initially puts various use-icons on the players
+	// screen, indicating they can reload the weapon when appropriate,
+	// and will remove that icon when they move away. When the player
+	// presses their use key, they reload the fixed gun that this trigger
+	// is associated with (which is held in the self.gun attribute).
+
+	// This function also maintains the aim assist icon for the gun
+	// wielder
+
+	// self.useslotstate:
+	//  1 - Gun can't be reloaded
+	//  2 - Gun is ready to recieve ammo, player not yet holding use key
+	//  3 - Player actively reloading the gun
+	//
+
+	self.useabletime = -1
+	local.player stopwatch 0 3 progress_reload
+	local.useslotstate = 1
+	local.wielder = self.gun.wielder
+	self.ammoTime = int(self.ammoTime + 0.5)  // DScott, stopwatch time must be integral to be in sync w/HUD
+
+	while (local.player != NULL && self.user != NULL && self.gun != NULL && !(local.player isinside self.equipSlot))
+	{
+		if (self.user != local.player)
+			end
+
+		if (!(IsAlive local.player))
+			end
+
+		// Player has started using the weapon
+		if (self.gun.wielder == local.player)
+			end
+
+		if (local.wielder != self.gun.wielder)
+			local.wielder = self.gun.wielder
+
+		if (self.touchSlot == 1)
+		{
+			if (!(local.player istouching self))
+				end
+		}
+		else
+		{
+			if (!(local.player isinside self))
+				end
+		}
+
+		if (local.useslotstate == 1)
+		{
+			if (self.gun.canbereloaded && (local.player compareuseslot ammo) == 1)
+			{
+				local.player useslot ammo
+				local.useslotstate = 2
+			}
+		}
+		else if (local.useslotstate == 2)
+		{
+			if (!(self.gun.canbereloaded))
+			{
+				local.useslotstate = 1
+			}
+			else if (local.player.useheld)
+			{
+				local.player safeholster 1
+				self.useabletime = level.time + self.ammoTime
+				local.player useslot reloading
+				local.useslotstate = 3
+				local.player stopwatch self.ammoTime 3 progress_reload
+			}
+		}
+		else if (local.useslotstate == 3)
+		{
+			if (!(self.gun.canbereloaded))
+			{
+				local.player safeholster 0
+				local.useslotstate = 1
+				self.useabletime = -1
+				local.player stopwatch 0 3 progress_reload
+			}
+			else if (!(local.player.useheld))
+			{
+				local.player removeuseslot reloading
+				local.useslotstate = 1
+
+				if ((local.player compareuseslot ammo) >= 0)
+				{
+					local.player useslot ammo
+					local.useslotstate = 2
+				}
+				self.useabletime = -1
+				local.player stopwatch 0 3 progress_reload
+				local.player safeholster 0
+			}
+		}
+
+		if (self.useabletime != -1 && level.time > self.useabletime && self.gun.canbereloaded) 
+		{
+			local.success = self.gun reloadinternalammo
+			if (local.success == 0)
+			{
+				self.useabletime = level.time + 0.1
+			}
+			else
+			{
+				local.successText = "~"+local.success
+
+				if (self.gun.wielder != NULL)
+					self.gun.wielder waitthread global/mp_message.scr::player_message "MP:SomeoneLoadsMG" local.player.netname_noloc local.successText				
+
+				local.player waitthread global/mp_message.scr::player_message "MP:YouLoadMG" local.successText									
+
+				local.useslotstate = 1
+				self.useabletime = -1
+				local.player safeholster 0
+				local.player stopwatch 0 3 progress_reload
+				
+				//we're done reloading, turn off the reload icon
+				local.player removeuseslot ammo
+				local.player removeuseslot reloading
+
+				//award player a reload assist if there's a teammate currently on the gun
+				if (self.gun.wielder && (self.gun.wielder.dmteam == local.player.dmteam))
+					local.player incrementstat numReloadAssists
+			}
+		}
+
+		wait 0.1
+	}
+end
+

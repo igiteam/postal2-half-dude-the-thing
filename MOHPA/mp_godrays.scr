@@ -1,0 +1,54 @@
+//
+// mp_godrays.scr
+//
+// This script is used to automatically spawn god rays for every
+// instance of a script_origin with the targetname of "mp_godray"
+//
+// 03.18.04 VDODS - original version
+//
+
+//-----------------
+main:
+//-----------------
+
+	// make a list of all the different god ray effects, so that
+	// a random one can be chosen while spawning
+	level.godRayList[1] = "models/fx/moonray.tik"
+	level.godRayList[2] = "models/fx/moonray2.tik"
+
+	level.godRayWaitTime = 5
+
+	thread godray_monitor
+end
+
+
+//-----------------
+godray_monitor:
+//-----------------
+	// self is undefined
+
+	// because the godrays eventually fade away, we must loop and keep deleting
+	// and respawning them
+	while (1) {
+		// go through all entities and check if they're a script_origin
+		// with the targetname "mp_godray".  if so, spawn a godray there
+		for (local.i = 1; local.i <= $mp_godray.size; local.i++) {
+			// just do a sanity check to make sure the mapper didn't
+			// try to make a godray out of something else like a vehicle
+			if ($mp_godray[local.i].classname == "ScriptOrigin") {
+				local.origin = $mp_godray[local.i].origin
+				if ($mp_godray[local.i].ray != NIL && $mp_godray[local.i].ray != NULL)
+					$mp_godray[local.i].ray remove
+				local.rand = (randomint level.godRayList.size) + 1
+				$mp_godray[local.i].ray = spawn level.godRayList[local.rand]
+				$mp_godray[local.i].ray.origin = local.origin
+			} else {
+				dprintln " *** mp_spawn_godrays.scr: mp_godray targetname applied to a non-script_origin entity"
+			}
+		}
+		
+		// wait to respawn them
+		wait level.godRayWaitTime
+	}
+end
+

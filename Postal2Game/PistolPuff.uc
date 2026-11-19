@@ -1,0 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+// PistolPuff
+// smoke that the pistol makes--for the moment.
+///////////////////////////////////////////////////////////////////////////////
+class PistolPuff extends P2Emitter;
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    Emitters[0]=SpriteEmitter'SpriteEmitter282'
+    AutoDestroy=true
+}

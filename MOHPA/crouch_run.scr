@@ -1,0 +1,31 @@
+//	---------------------------------------------------------------------------------
+// Crouch_run.scr
+//
+//		Run while crouched.  Used to be called run_hunch.scr.  Makes sure that the character 
+//	is crouching first, and then makes him run.
+//	---------------------------------------------------------------------------------
+
+start:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	//make sure we are crouching...
+	// If you're crouching, just start crouch-running.  If you're walking or running, don't 
+	// bother stopping in order to crouch down, just crouch while you continue to move.
+	waitexec anim/crouch.scr::transition
+
+	self.position = crouchrun
+//	self.position = run
+
+	while (1)
+	{
+		waitexec anim/motionblend.scr::PlayAnim run
+	}
+
+end
+
+
+
+
+

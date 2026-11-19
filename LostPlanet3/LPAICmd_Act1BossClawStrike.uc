@@ -1,0 +1,1 @@
+class LPAICmd_Act1BossClawStrike extends LPAICmd_Act1BossStrikeBase within LPAIControllerAct1Boss;

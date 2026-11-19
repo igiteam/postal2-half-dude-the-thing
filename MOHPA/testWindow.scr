@@ -1,0 +1,12 @@
+go:
+
+    //hide the stick
+    self hidejoint joint_stick
+
+    //tell window to take damage
+    self takedamage
+
+    //Wake up the hinge
+    self havok_physics_driven
+
+end

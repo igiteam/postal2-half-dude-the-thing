@@ -1,0 +1,549 @@
+//
+// global ambience script
+// used for easy placement of ambient sounds
+
+
+//================================================================================
+// Level Specific ambience
+
+ambience:
+
+	local.script = tolower level.script
+	println "Loading ambience.scr using script: " local.script 
+	
+	if(local.script == "maps/shell_start.scr")
+	{
+		thread sound ( 2316 -1119 471.4 ) shell_waves
+	}
+	else if (local.script == "maps/shell_pearl.scr")
+	{
+		thread sound ( 2226 -1108 496 ) shell_waves
+	}
+	else if (local.script == "maps/shell_makin.scr")
+	{
+		thread sound ( 2546 -1159 550 ) shell_tent_rain
+		thread sound ( 2377 -1073 471 ) shell_metal_rain
+		thread sound ( 2375 -1096 471 ) shell_dirt_rain
+		thread sound ( 2375 -1096 471 ) shell_storm_wind
+		thread sound ( 2516 -1231 471 ) shell_drips
+	}
+	else if (local.script == "maps/shell_guadalcanal.scr")
+	{
+		thread sound ( 2293 -1105 471.5 ) shell_waves
+	}
+	else if (local.script == "maps/shell_tarawa.scr")
+	{
+		thread sound ( 2286 -1098 472 ) shell_waves
+	}
+	else if(local.script == "maps/vb_level_256.scr")
+	{	
+		thread sound ( -1671 1294 1009 ) stream_lp01
+		thread sound ( -1557 1096 1016 ) stream_lp01
+		thread sound ( -1471 995 1013 ) stream_lp01
+		thread sound ( -1248 831 1008 ) stream_lp01
+		thread sound ( -1007 828 1005 ) stream_lp01
+		thread sound ( -925 837 1005 ) stream_lp01
+		thread sound ( -681 827 1007 ) stream_lp01
+		thread sound ( -396 767 1008 ) stream_lp01
+		thread sound ( -126 552 1008) stream_lp01
+		thread sound ( 32 312 1005 ) stream_lp01
+		thread sound ( 189 175 1003 ) stream_lp01
+		thread sound ( 380 31 1004 ) stream_lp01
+		thread sound ( 600 -140 1004 ) stream_lp01
+		thread sound ( 790 -309 1004 ) stream_lp01
+		thread sound ( 214.43 -746.41 1190.50 ) water_drip_leaves1
+		thread sound ( -773.95 78.84 1198.97 ) water_drip_leaves1
+		thread sound ( 213.05 309.13 1013.99 ) water_drip_leaves2
+		thread sound ( -550.31 -21.23 1267.61 ) water_drip_leaves2
+		thread sound ( 707.16 -247.10 1002.50 ) water_drip_water1
+		thread sound ( -13.88 380.66 1006.69 ) water_drip_water2
+		thread sound ( 214.43 -746.41 1190.50 ) water_drip_leaves2
+		thread sound ( -773.95 78.84 1198.97 ) water_drip_leaves2
+		thread sound ( 213.05 309.13 1013.99 ) water_drip_leaves1
+		thread sound ( -550.31 -21.23 1267.61 ) water_drip_leaves1
+		thread sound ( 707.16 -247.10 1002.50 ) water_drip_water2
+		thread sound ( -13.88 380.66 1006.69 ) water_drip_water1
+		thread sound ( -12.56 914.37 1019.10 ) water_drip_leaves1
+		thread sound ( -12.56 914.37 1019.10 ) water_drip_leaves2
+		//thread sound ( 1012.98 -498.79 1023.07 ) stream_lp01
+		//thread sound ( -158 -1141 1233 ) Wind_loop01
+		//thread sound ( 148 -480 1186 ) Wind_loop01
+		//thread sound ( -1108 834 1005 ) Wind_loop01
+		//thread sound ( -1198 186 1163 ) Wind_loop01
+		//thread sound ( -412 -482 1519 ) Wind_loop01
+		//thread sound ( 977 -451 1015 ) waterfall_lp01
+		//PLEASE DON'T CHANGE THE NUMBERS FOR THE WATERFALL!!!!!!!!
+		thread sound ( 1242.93 -653.14 1187.65 ) waterfall_lp01
+		thread randomsound ( -576 1013 1030 ) BranchSnap 10 15
+		thread randomsound ( 620 157 1017 ) BranchSnap 13 22
+		thread randomsound ( 30 -34 1234 ) BranchSnap 12 28
+		thread randomsound ( -1558 982 1016 ) FoliageRustle 15 20
+		thread randomsound ( -32 1534 1029 ) FoliageRustle 15 20
+		thread randomsound ( -134 -1579 1206) FoliageRustle 15 20
+		thread randomsound ( -32 1534 1029 ) AnimalMove 10 15
+		thread randomsound ( 269 409 1024 ) AnimalMove 8 21
+		thread randomsound ( -252 114 1263 ) AnimalMove 8 21
+		thread randomsound ( -1558 982 1016 ) AnimalVox 18 30
+		thread randomsound ( -30 1534 1029 ) AnimalVox 20 30
+		thread randomsound ( 620 157 1017 ) AnimalVox 15 30
+		thread randomsound ( 1123 -327 1019 ) AnimalVox 14 29
+		thread randomsound ( -1378 -280 1380 ) AnimalVox 14 29
+		thread randomsound ( 274 1388 1046 ) GunCock 20 35
+		thread randomsound ( 219 884 1059 ) GunCock 15 40
+		thread randomsound ( 583 -791 1069 ) GunCock 11 22
+		thread randomsound ( -1114 -447 1591 ) GunCock 11 22
+		thread randomsound ( -1247 319 1130 ) GunCock 12 26
+		thread randomsound ( 937 -144 1026 ) Fs_onBranches 10 40
+		thread randomsound ( 378 -324 1124 ) Fs_onBranches 5 45
+		thread randomsound ( 65 -803 1201 ) Fs_onBranches 13 20
+		thread randomsound ( -900 959 1018 ) Branch_thru_canopy 10 40
+		thread randomsound ( 274 1388 1046 ) Branch_thru_canopy 14 28
+		thread randomsound ( -223 1023 1015 ) Branch_thru_canopy 11 30
+		thread randomsound ( 1531 -256 1017 ) Branch_thru_canopy 11 30
+		thread randomsound ( -223 1023 1015 ) Monkey 12 40
+		thread randomsound ( 937 -144 1026 ) Monkey 13 35
+		thread randomsound ( -266 219 1219 ) Monkey 11 35
+		thread randomsound ( -1114 -447 1591 ) Monkey 11 35
+		thread randomsound ( -687 701 1016 ) CreakingTree 10 25
+		thread randomsound ( -215 337 1219 ) CreakingTree 15 27
+		thread randomsound ( -466 984 1020 ) CreakingTree 15 40
+		thread randomsound ( -698 935 1017 ) CreakingTree 15 27
+		thread randomsound ( -159 484 1020 ) CreakingTree 15 28
+		thread randomsound ( 130 365 1019 ) CreakingTree 20 27
+		thread randomsound ( 711 186 1004 ) CreakingTree 22 28
+		thread randomsound ( 806 -684 1028 ) CreakingTree 20 27
+		thread randomsound ( 1375 -368 1026 ) CreakingTree 22 28
+		thread randomsound ( 1375 -368 1026 ) JP_WHSPR_AI_01 14 29
+		thread randomsound ( -31 1534 1029 ) JP_WHSPR_AI_01 18 25
+		thread randomsound ( -134 -1579 1206 ) JP_WHSPR_AI_01 17 27
+		thread randomsound ( 583 -791 1069 ) JP_WHSPR_AI_01 15 24
+		thread randomsound ( -687 701 1016 ) JP_WHSPR_AI_02 18 25
+		thread randomsound ( -251 114 1263 ) JP_WHSPR_AI_02 18 25
+		thread randomsound ( 1123 -327 1019 ) JP_WHSPR_AI_02 16 28
+		thread randomsound ( 148 -480 1186 ) JP_WHSPR_AI_02 12 20
+		thread randomsound ( -412 -482 1519 ) JP_WHSPR_AI_03 18 25
+		thread randomsound ( 977 -451 1015 ) JP_WHSPR_AI_03 16 23
+		thread randomsound ( 937 -143 1026 ) JP_WHSPR_AI_04 18 25
+		thread randomsound ( -158 -1141 1233 ) JP_WHSPR_AI_04 17 28	
+	}
+
+
+	else if(local.script == "maps/1_1_bootcamp_chunk1.scr" )  
+	{
+		thread sound ( -1120 -3856 0.82 ) flag	
+
+	}
+
+	else if(local.script == "maps/2_1_pearl_a_chunk1.scr" )  
+	{
+		thread sound ( 6134 -2355 1151 ) boogie_woogie_mus	
+		thread sound ( 8582 -4987 1484 ) lester_leaps_mus
+		thread randomsound ( 7637 -7885 1729 ) Tarawa_Birds 2 7	
+		thread randomsound ( 5540 -4152 1289 ) Tarawa_Birds2 2 8				
+		
+	}
+
+	else if(local.script == "maps/2_1_pearl_b_chunk2.scr" )  
+	{
+		//sounds for the whole chunk
+		
+		//deck 1 sounds here (please add handles to them)
+		level.deck1sound01 = thread sound ( 1350 -27 -21 ) Int_Ship_Water_Wave
+		level.deck1sound02 = thread sound ( 1350 -27 -21 ) Boiler_Room_LP
+		level.deck1sound03 = thread sound ( 2050 0 -11 ) Boiler_Room_LP2
+		level.deck1sound04 = thread sound ( 1375 -33 -22 ) Int_Ship_Water_Move_Fast
+		level.deck1sound05 = thread sound ( 2030 -915 107 ) Interior_To_Exterior2 
+		level.deck1sound06 = thread sound ( 557 51 82 ) Int_Ship_Drip_Small
+		level.deck1sound07 = thread sound ( 1375 -33 -22 ) Int_Ship_Drip_Med
+		level.deck1sound08 = thread sound ( 1868 -692 .48 ) Fire_Med
+		level.deck1sound09 = thread sound ( 1596 -385 23 ) Fire_Med
+		level.deck1sound10 = thread sound ( 1937 -552 12 ) Pound_On_Door 
+		level.deck1sound11 = thread sound ( 724 6 226 ) Boiler_Room_LP2
+		level.deck1sound12 = thread sound ( 724 6 226 ) Int_Ship_Drip_Med
+		level.deck1sound13 = thread sound ( 724 6 226 ) Int_Ship_Water_Wave
+		level.deck1sound14 = thread sound ( 1606 -766 37 ) Int_Ship_Drip_Med
+					 
+		
+		//this trigger is hit when player enters second deck
+		assert($tr_hatchguy != NIL && "$triggerfloodsailor_04 has not been initialized")
+		$tr_hatchguy waittill trigger
+		
+		//deck 2 sounds here
+		
+		wait 5
+		//delete deck 1 sound handles
+		level.deck1sound01 delete 
+		level.deck1sound02 delete
+		level.deck1sound03 delete
+		level.deck1sound04 delete
+		level.deck1sound05 delete
+		level.deck1sound06 delete
+		level.deck1sound07 delete
+		level.deck1sound08 delete
+		level.deck1sound09 delete
+		level.deck1sound10 delete
+		level.deck1sound11 delete
+		level.deck1sound12 delete
+		level.deck1sound13 delete
+		level.deck1sound14 delete
+		
+		
+		//this trigger is hit when player enters third deck
+		assert($trigger3rdladder_01 != NIL && "$trigger3rdladder_01 has not been initialized")
+		$trigger3rdladder_01 waittill trigger
+		
+		//deck 3 sounds here
+		thread sound ( 4721 472 648 ) Interior_To_Exterior
+		
+		//delete deck 2 sounds
+	
+
+	}
+
+	else if(local.script == "maps/2_1_pearl_b_chunk3.scr" )  
+	{
+			
+
+	}
+
+
+
+
+	else if(local.script == "maps/4_1_nightmoves_chunk1.scr" )  
+	{
+		thread sound ( 2391 679 211 ) Ocean_Waves_4_1
+		thread sound ( 2292 336 186 ) Ocean_Waves_4_1
+		thread sound ( 2210 4 191 ) Ocean_Waves_4_1
+		thread sound ( 1914 -263 185 ) Ocean_Waves_4_1
+		thread sound ( 1745 -681 208 ) Ocean_Waves_4_1
+		thread sound ( 1627 -1169 198 ) Ocean_Waves_4_1
+		thread sound ( 1401 -1379 197 ) Ocean_Waves_4_1
+		thread sound ( 1144 -1615 193 ) Ocean_Waves_4_1
+		thread sound ( 896 -1823 190 ) Ocean_Waves_4_1
+		thread sound ( 506 -1877 183 ) Ocean_Waves_4_1
+		thread sound ( 171 -2054 179 ) Ocean_Waves_4_1
+		thread sound ( -210 -2212 186 ) Ocean_Waves_4_1
+		thread sound ( -140 -3111 333 ) fire_large
+	
+	}
+
+
+	else if(local.script == "maps/4_1_nightmoves_chunk2.scr" )  
+	{
+		thread sound ( -504 2012 1636 ) fire_large		
+	}
+
+	else if(local.script == "maps/4_1_nightmoves_chunk3.scr" )  
+	{
+		thread sound ( -2655 -410 1468 ) Lagoon_Ambience_LP
+		thread sound ( -4138 -1546 1473 ) Lagoon_Ambience_LP
+		thread sound ( -320 -5063 -1509 ) Amb_Ocean
+		thread sound ( -975 -5828 1462 ) Ocean_Waves_4_1
+		thread sound ( -583 -5503 1481 ) Ocean_Waves_4_1
+		thread sound ( -406 -5202 1493 ) Ocean_Waves_4_1
+		thread sound ( -310 -5027 1511 ) Ocean_Waves_4_1
+		thread sound ( -804 5635 1481 ) Ocean_Waves_4_1
+		thread sound ( -212 -4687 1511 ) Ocean_Waves_4_1
+		thread sound ( -263 -4510 1580 ) Ocean_Waves_4_1	
+
+	}
+
+	else if(local.script == "maps/4_2_mandown_chunk1.scr" )  
+	{
+		//thread randomsound ( 6719 10092 2562 ) Branch_thru_canopy 10 45
+		//thread randomsound ( 6571 9739 2543 ) FoliageRustle 25 55
+		//thread randomsound ( 6483 9292 2507 ) BirdVox 14 39
+		//thread randomsound ( 4969 9199 2584 ) BranchSnap 19 57
+		//thread randomsound ( 4761 10134 2574 ) CreakingTree 17 52
+		//thread randomsound ( 4459 10601 2567 ) GunCock 29 59
+		//thread randomsound ( 3876 10962 2567 ) Monkey 47 103
+		//thread randomsound ( 4526 10803 2572 ) FoliageRustle 27 87 	
+
+	}
+
+	else if(local.script == "maps/4_2_mandown_chunk2.scr" )  
+	{
+		thread sound ( 1488 -9979 2562 ) Docked_Boat_4_2
+		thread sound ( 842 -10483 2555 ) Docked_Boat_4_2
+		thread sound ( 1797 -9678 2567 ) Ocean_Waves_4_2
+		thread sound ( 1516 -9871 2568 ) Ocean_Waves_4_2
+		thread sound ( 1192 -10108 2563 ) Ocean_Waves_4_2
+		thread sound ( 882 -10389 2560 ) Ocean_Waves_4_2
+		thread sound ( 593 -10700 2561 ) Ocean_Waves_4_2
+		thread sound ( 340 -11133 2549 ) Ocean_Waves_4_2
+		thread sound ( 392 -11517 2585 ) Ocean_Waves_4_2
+		thread sound ( 146 -9086 2571 ) Amb_4_2_Pier
+		thread sound ( 4371 -5564 2570 ) Ocean_Waves_4_2
+		thread sound ( 3980 -5834 2570 ) Ocean_Waves_4_2
+		thread sound ( 3508 -5960 2570 ) Ocean_Waves_4_2
+		thread sound ( 3851 -5081 2570 ) Amb_4_2_Pier		
+
+	}
+
+	else if(local.script == "maps/4_2_mandown_chunk3.scr" )  
+	{
+		thread sound ( -6229 656 3005 ) Vista_Wind_LP
+		thread sound ( -5130 10964 2723 ) Large_Fire01
+		thread sound ( -5731 11200 2613 ) Medium_Fire01
+		thread sound ( -6023 11049 2720 ) Medium_Fire01
+		thread sound ( -4930 11149 2583 ) Small_Fire01
+		thread sound ( -4995 10834 2585 ) Small_Fire01
+		thread sound ( -4657 10800 2586 ) small_Fire01
+		thread sound ( -4547 11113 2577 ) Small_Fire01
+		thread sound ( -4338 10880 2578 ) Small_Fire01
+		thread sound ( -4117 11026 2581 ) Small_Fire01
+		thread sound ( -3847 10955 2563 ) Small_Fire01
+		thread sound ( -3705 10759 2590 ) Small_Fire01
+		
+	}
+
+	else if(local.script == "maps/4_4_sittingducks.scr" )  
+	{
+		// Sophos: change this alias to the legit heavy rain sound
+		//level.HeavyRainSound = thread sound ( ) Amb_Rain_Foliage_Heavy
+		//thread sound ( 2496 -2359 254 ) Amb_Rain_Foliage_Light
+		thread sound ( 2496 -2359 254 ) Amb_Rain_Foliage_Heavy
+		thread sound ( -5877 4795 304 ) Amb_Submarine_Engine
+		thread sound ( -13 -2226 1186 ) Big_Ocean_Waves_Break
+		thread sound ( 171 -2076 189 ) Big_Ocean_Waves_Break
+		thread sound ( 513 -1803 215 ) Big_Ocean_Waves_Break
+		thread sound ( 997 -1657 194 ) Big_Ocean_Waves_Break
+		thread sound ( 1296 -1403 221 ) Big_Ocean_Waves_Break
+		thread sound ( 1612 -1122 196 ) Big_Ocean_Waves_Break
+		thread sound ( 1712 -565 196 ) Big_Ocean_Waves_Break
+		thread sound ( 1903 -158 140 ) Big_Ocean_Waves_Break
+		thread sound ( 2287 255 189 ) Big_Ocean_Waves_Break
+		thread sound ( 2429 872 212 ) Big_Ocean_Waves_Break
+		thread sound ( 2335 -2214 294 ) Rain_On_Wood
+
+	}
+
+	else if(local.script == "maps/5_1_henderson_chunk1.scr")
+	{
+		thread sound ( 5017 -8085 -75 ) stream_lp_5_1_1
+		thread sound ( 5119 -8306 -75 ) stream_lp_5_1_1
+		thread sound ( 5199 -8784 -75 ) stream_lp_5_1_1
+		thread sound ( 5306 -9264 -75 ) stream_lp_5_1_1
+		thread sound ( 5506 -9882 -75 ) stream_lp_5_1_1
+		thread sound ( 5688 -10283 -75 ) stream_lp_5_1_1
+		thread sound ( 5801 -10601 -75 ) stream_lp_5_1_1
+		thread sound ( 5877 -10956 -75 ) stream_lp_5_1_1
+		thread sound ( 9703 -9908 -111 ) ocean_shell
+		thread sound ( 9981 -9609 -121 ) ocean_shell
+		thread sound ( 10060 -9230 -112 ) ocean_shell
+		thread sound ( 10034 -8792 -120 ) ocean_shell
+		thread sound ( 10027 -8317 -105 ) ocean_shell
+		thread sound ( 10033 -7991 -102 ) ocean_shell
+		//thread randomsound ( -3986 2395 1078 ) BirdVox 5 15
+		//thread randomsound ( -4842 1187 1078 ) BirdMove 10 30
+		//thread randomsound ( -4459 2473 1078 ) AnimalVox 5 15
+		//thread randomsound ( -6687 3091 894 ) BirdMove 15 35
+		//thread randomsound ( -5510 4425 825 ) AnimalMove 5 35
+		//thread randomsound ( -7109 5086 769 ) AnimalVox 5 30
+		//thread randomsound ( -7391 4200 883 ) BirdVox 5 15
+		//thread randomsound ( -5713 5233 558 ) AnimalMove 5 30
+		//thread randomsound ( -7537 6282 1028 ) BirdVox 5 20
+		//thread randomsound ( -7096 7028 1053 ) AnimalVox 5 30
+		//thread randomsound ( -5348 7515 1078 ) Branch_thru_canopy 5 30
+		//thread randomsound ( -5407 8219 976 ) BirdMove 5 30
+		//thread randomsound ( -4657 7831 978 ) BirdMove 5 30
+		//thread randomsound ( -3657 8025 834 ) BirdVox 5 30
+	}
+
+
+
+	else if(local.script == "maps/5_1_henderson_chunk3.scr")
+	{
+		thread sound ( -1332 10773 -151 ) stream_lp_5_1_3
+		thread sound ( -1643 10567 -151 ) stream_lp_5_1_3
+		thread sound ( -1998 10473 -150 ) stream_lp_5_1_3
+		thread sound ( -2383 10465 -146 ) stream_lp_5_1_3
+		thread sound ( -2742 10397 -132 ) stream_lp_5_1_3
+		thread sound ( -3225 10473 -145 ) stream_lp_5_1_3
+		thread sound ( -3592 10571 -144 ) stream_lp_5_1_3
+		thread sound ( -3927 10727 -145 ) stream_lp_5_1_3
+		thread sound ( -4253 10932 -145 ) stream_lp_5_1_3
+		thread sound ( -4489 11224 -145 ) stream_lp_5_1_3
+		thread sound ( -4826 11415 -145 ) stream_lp_5_1_3
+		thread sound ( -5185 11461 -144 ) stream_lp_5_1_3
+		thread sound ( -5565 11461 -144 ) stream_lp_5_1_3
+		thread sound ( -6008 11423 -137 ) stream_lp_5_1_3
+		thread sound ( -6495 11385 -138 ) stream_lp_5_1_3
+		thread sound ( -6942 11212 -140 ) stream_lp_5_1_3
+		thread sound ( -7420 11163 -123 ) stream_lp_5_1_3
+		thread sound ( -7806 11088 -93 ) stream_lp_5_1_3
+		
+	}
+	
+
+	// dwc 5/4/04 seems really strange we have _no_ sounds for our E3 demo
+	else if(local.script == "maps/5_1_henderson_chunk4.scr")
+	{
+
+		// this is the distant fighting on the airfield
+		thread sound ( 2107.75 -1325.60 140.51 ) amb_hndrsn_distant_fight
+	}
+
+	else if(local.script == "maps/mohpa_demo.scr")
+	{
+
+		// this is the distant fighting on the airfield
+		thread sound ( 2107.75 -1325.60 140.51 ) amb_hndrsn_distant_fight
+	}
+
+	//5_2 positional ambients
+
+	else if(local.script == "maps/5_2_bloodyridge_chunk2.scr" )
+	{
+		thread sound ( 960 1744 268.36 ) cricket1
+		thread sound ( 141 3334 225 ) mosquito_lp
+		thread sound ( 1107 2369 224 ) AnimalMove01 60 85
+		thread sound ( -483 4379 154 ) LeavesMvmt
+		thread randomsound ( 73 7396 157 ) AnimalMove01 60 85
+		thread randomsound ( -416 4888 201 ) BirdMove 60 80
+		thread sound ( -1305 5281 183 ) LeavesMvmt
+		thread randomsound ( -2333 4596 234 ) AnimalMove01 65 85
+	}
+
+
+	else if(local.script == "maps/5_2_bloodyridge_chunk3.scr" )
+	{
+		thread sound ( -3964.31 3031.86 612.40 ) radio_loop02
+	}
+
+	//5_3 positional ambients
+
+	else if(local.script == "maps/5_3_riverwalk_chunk1.scr" )
+	{
+		thread sound ( -7356 3116 1039 ) waterfall
+		thread sound ( -3633 7084 811 ) WtrOvrRoc_lrg
+		thread sound ( -567 -1691 836 ) WtrOvrRoc_lrg
+		thread sound ( -5365 5240 825 ) LeavesMvmt
+		thread sound ( -5387 3945 825 ) LeavesMvmt
+		thread sound ( -4888 3436 825 ) LeavesMvmt
+		thread sound ( -6284 2005 1104 ) LeavesMvmt
+		thread sound ( -5672 1455 1230 ) LeavesMvmt
+		thread sound ( -3704 1460 1339 ) LeavesMvmt
+	}
+
+	else if(local.script == "maps/5_3_riverwalk_chunk2.scr" )
+	{
+		thread sound ( -258 -1625 583 ) WtrOvrRoc_med
+		thread sound ( 5119 -776 609) WtrOvrRoc_med
+		thread sound ( 2833 1095 633 ) LeavesMvmt
+		thread sound ( 3708 -1980 440 ) LeavesMvmt
+		thread sound ( 2693 -3674 440 ) LeavesMvmt
+		thread sound ( 4995 -6514 440 ) LeavesMvmt
+		
+	}
+
+	
+	else if(local.script == "maps/5_5_village_chunk1.scr" )
+	{
+		thread randomsound ( 3511.05 5556.74 1843.29 ) AnimalVox 2 90
+		thread randomsound ( 269.70 2778.52 1404.66 ) AnimalMove 1 90
+		thread randomsound ( -256.90 -432.31 1623.07 ) AnimalVox 3 90
+		thread randomsound ( -2278.69 1622.16 1104.37 ) Branch_thru_canopy 1 60
+		thread randomsound ( -2482.45 2321.52 1038.28 ) AnimalMove 1 100
+		thread randomsound ( 2338 4941 1410 ) AnimalMove 1 90
+		thread randomsound ( 1860 5822 1707 ) AnimalVox 2 90
+		thread randomsound ( 1346 1543 1430 ) Branch_thru_canopy 2 120
+		thread randomsound ( -3303 1026 836 ) BirdVox 1 120
+		thread randomsound ( -3986 2395 1078 ) BirdVox 1 70
+		//thread randomsound ( -4842 1187 1078 ) BirdMove 2 120
+		//thread randomsound ( -4459 2473 1078 ) AnimalVox 1 120
+		//thread randomsound ( -6687 3091 894 ) BirdMove 2 200
+		//thread randomsound ( -5510 4425 825 ) AnimalMove 1 300
+		//thread randomsound ( -7109 5086 769 ) AnimalVox 1 130
+		//thread randomsound ( -7391 4200 883 ) BirdVox 2 90
+		//thread randomsound ( -5713 5233 558 ) AnimalMove 1 60
+		//thread randomsound ( -7537 6282 1028 ) BirdVox 1 100
+		//thread randomsound ( -7096 7028 1053 ) AnimalVox 1 90
+		//thread randomsound ( -5348 7515 1078 ) Branch_thru_canopy 2 200
+		//thread randomsound ( -5407 8219 976 ) BirdMove 1 300
+		//thread randomsound ( -4657 7831 978 ) BirdMove 1 300
+		//thread randomsound ( -3657 8025 834 ) BirdVox 1 50
+	}
+
+	else if(local.script == "maps/5_5_village_chunk3.scr" )
+	{
+		thread sound ( -2100 11495 554 ) smallwaves01
+		thread sound ( -3037 11341 521 ) smallwaves01
+		thread sound ( -5336 7816 946 ) LeavesMvmt
+		thread sound ( -5345 9757 601 ) LeavesMvmt
+		thread sound ( -5842 10193 506 ) LeavesMvmt
+		thread sound ( -6632 9805 508 ) LeavesMvmt
+		thread sound ( -10284 10738 515 ) LeavesMvmt
+
+
+	}
+	else if(local.script == "maps/5_6_flyboys.scr" )
+	{
+	}
+	else if(local.script == "maps/7_1_tarawa_a_chunk1.scr" )  
+	{
+		thread sound ( 3506 1824 27 ) tarawa_fire
+		thread sound ( 3263 4261 18 ) tarawa_fire
+		thread randomsound ( 3700 1389 17.76 ) barricade_multi_metal 3 8
+		thread randomsound ( 3902 1203 33.31 ) barricade_multi_metal 3 10
+		thread randomsound ( 3770 879 61.87 ) barricade_multi_metal 4 12	
+		thread randomsound ( 3734 398 32.84 ) barricade_multi_metal 4 11
+		thread randomsound ( 3509 759 29.43 ) barricade_multi_metal 3 12
+		thread randomsound ( 3249 731 26.67 ) barricade_multi_metal 3 8
+		thread randomsound ( 2840 1308 25.79 ) barricade_multi_metal 5 15
+		thread randomsound ( 2909 560 25.16 ) barricade_multi_metal 4 12
+		thread randomsound ( 2965 216 28.85 ) barricade_multi_metal 3 8
+		thread randomsound ( 3096 -378 13.47) barricade_multi_metal 4 11
+		thread randomsound ( 2993 -629 37.40 ) barricade_multi_metal 3 9
+	}
+	else if(local.script == "maps/7_1_tarawa_b_chunk2.scr" )  
+	{
+		thread sound ( 6122.28 -4722.57 116.23 ) tarawa_fire
+		thread sound ( 8601.92 -6930.83 116.38 ) tarawa_fire
+	}
+	else if(local.script == "maps/7_1_tarawa_b_chunk1.scr" ) 
+ 	{
+
+		thread sound ( -4095.88 2401.47 227.92 ) tank_hiss_ping
+	}
+	else
+	{
+		println "ambience.scr ERROR: level.script not processed (make sure this script name is all lower case): " local.script
+	}
+
+end
+
+
+
+//================================================================================
+// Local function to Play the Sound
+sound local.origin local.sound:
+
+	local.soundorigin = spawn script_model model "fx/dummy.tik"
+	local.soundorigin svflags "+broadcast"
+
+	local.soundorigin.origin = local.origin	
+	local.soundorigin loopsound local.sound
+	local.soundorigin notsolid
+
+end local.soundorigin
+
+
+
+//================================================================================
+// Local function to play random sounds
+randomsound local.sndPos local.sndalias local.sndMinWait local.sndMaxWait:
+	
+	local.sndEntity = spawn Entity
+	local.sndEntity.origin = local.sndPos
+	local.sndEntity notsolid
+
+	while( 1 )
+	{
+		local.wait = randomfloat( local.sndMaxWait - local.sndMinWait ) + local.sndMinWait
+		wait local.wait		
+		local.sndEntity playsound local.sndalias
+	}
+end
+
+

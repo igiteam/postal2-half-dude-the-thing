@@ -1,0 +1,657 @@
+//-------------------------------------------------------------
+//	medic.scr
+//
+//-------------------------------------------------------------
+
+
+//-------------------------------------------------------------
+Cover:
+//
+//	Used by medic while he is waiting at covernodes on his
+//	way to heal somebody.
+//
+//-------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	self waitexec anim/crouch.scr
+	waitframe
+
+end
+
+
+// ---------------------------------------------------------------------------
+Heal:
+//	Plays the healing animations for the medic...
+//
+// ---------------------------------------------------------------------------
+
+	// cache patient (it can change or be reset prematurely)
+	local.patient = self.patient
+
+	if ( local.patient == NULL )
+	{
+		println "**MEDIC ERROR** No patient in medic_heal.scr"
+		waitframe
+		end
+	}
+
+	self.painhandler		= anim/medic.scr::MedicPain
+
+	self addwaittill heal_begin
+	self addwaittill heal_done
+
+	local.undead		= 0
+	local.alive			= 0
+	self.playerpatient	= 0
+
+	if ( local.patient == $player )
+	{
+		if ( $player.invod )
+		{
+			local.startposition	= "prone"
+		}
+		else
+		{
+    		local.startposition	= $player.getposition
+
+			self thread brieflytakenodamage 1.6
+
+			local.current_pitch_up = ($player queryviewconstraint pitch_up)
+			thread adjust_pitch_up_constraint local.current_pitch_up 80.0 1.5
+
+			local.current_pitch_down = ($player queryviewconstraint pitch_down)
+			thread adjust_pitch_down_constraint local.current_pitch_down 0.0 1.5
+		}
+		local.alive			= 1
+		self.playerpatient	= 1
+	}
+	else
+	{
+		local.position = local.patient.position
+
+		if ( isalive( local.patient ) )
+		{
+			local.alive	= 1
+		}
+		else
+		{
+			local.position = "prone"	// he's on the ground
+		}
+	}
+
+	// E3DEMO HACK - save threatbias of Medic and patient
+	local.mythreatbias = self.threatbias
+	local.histhreatbias = local.patient.threatbias
+
+	self threatbias -1
+	local.patient threatbias -1
+
+	if ( isundead( local.patient ) )
+	{
+		local.undead	= 1
+		local.position	= "prone"
+		local.alive		= 1
+	}
+
+//	dprintln "invoking heal_begin"
+	self invokewaittill heal_begin
+
+	self.localpatient = local.patient
+	if ( local.alive )
+	{
+		switch ( local.position )
+		{
+		case	"prone":
+			self waitthread DoProneAlive
+//			dprintln "~~~~~~~~~ DoProneAlive is done"
+			break
+		default:
+			self waitthread DoCrouchedAlive
+//			dprintln "~~~~~~~~~ DoCrouchedAlive is done"
+			break
+		}
+	}
+	else
+	{
+		self waitthread DoProneDead
+	}
+
+	self invokewaittill heal_done
+
+	// E3DEMO HACK - restore threatbias of Medic and patient
+	self threatbias local.mythreatbias
+	local.patient threatbias local.histhreatbias
+
+//	if ( local.player )
+//	{
+//		$player setviewconstraint pitch_up default
+//		$player setviewconstraint pitch_down default
+//	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoCrouchedAlive:
+// ---------------------------------------------------------------------------
+
+	self thread DoCrouchedAliveAnim
+	self.waitanimthread = parm.previousthread
+
+	self thread WaitTimeout 20.0
+	self.waittimeoutthread = parm.previousthread
+
+	while (1)
+	{
+//		dprintln "~~~~~~~~~~~~~ self.waitanimthread is " self.waitanimthread ", self.waittimeoutthread is " self.waittimeoutthread ", self.waittillundeadthread is " self.waittillundeadthread ", self.waittilldeaththread is " self.waittilldeaththread
+		if ( (self.waitanimthread == NULL) || (self.waittimeoutthread == NULL) )
+		{
+			if ( self.waitanimthread != NULL )
+				self.waitanimthread delete
+			if ( self.waittimeoutthread != NULL )
+				self.waittimeoutthread delete
+			end
+		}
+		waitframe
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoCrouchedAliveAnim:
+//
+//	Heal a crouched guy.
+// ---------------------------------------------------------------------------
+
+//	dprintln "~~~~~~~~~~~~ Medic experience is " self.experience
+
+	waitthread DoStandToHealingAnim
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+	{
+		self setmotionanim xucxx_nurse_gauze
+	}
+	else
+	{
+		if ( self.experience == 0 )
+		{
+			if ( self.playerpatient == 1 )
+			{
+				local.fast = 0
+				if ( self.localpatient.normal_health >= 50 )	// may be more reasons to do fast anim...
+					local.fast = 1
+
+				if ( local.fast == 1 )
+				{
+					local.anim = waitthread GetNextHealAnim 0 0 0
+					self setmotionanim local.anim	//xpcxx_medic_healcrouched_ROOK_FAST
+				}
+				else
+				{
+					local.anim = waitthread GetNextHealAnim 0 0 1
+					self setmotionanim local.anim	//xpcxx_medic_healcrouched_ROOK
+				}
+
+				self waitthread DoLowHealDialog
+			}
+			else
+			{
+				self setmotionanim xpcxx_medic_healcrouched_ROOK
+			}
+		}
+		else
+		{
+			if ( self.playerpatient == 1 )
+			{
+				local.fast = 0
+				if ( self.localpatient.normal_health >= 50 )	// may be more reasons to do fast anim...
+					local.fast = 1
+
+				if ( local.fast == 1 )
+				{
+					local.anim = waitthread GetNextHealAnim 0 1 0
+					self setmotionanim local.anim	//xpcxx_medic_healcrouched_FAST
+				}
+				else
+				{
+					local.anim = waitthread GetNextHealAnim 0 1 1
+					self setmotionanim local.anim	//xpcxx_medic_healcrouched
+				}
+
+				self waitthread DoLowHealDialog
+			}
+			else
+			{
+				self setmotionanim xpcxx_medic_healcrouched
+			}
+		}
+	}
+
+	self waittill flaggedanimdone
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+		self setmotionanim xucxx_nurse_healtostand
+	else
+		self setmotionanim xpcxx_medic_healtocrouch
+	self waittill flaggedanimdone
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoCrouchedDead:
+//
+//	Heal a crouched guy who's dead.
+// ---------------------------------------------------------------------------
+
+//	dprintln "~~~~~~~~~~~~ MEDIC: DoCrouchedDead"
+	waitthread DoStandToHealingAnim
+
+	self setmotionanim xmxxx_medic_youaredoomed
+	self waittill flaggedanimdone
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+		self setmotionanim xucxx_nurse_healtostand
+	else
+		self setmotionanim xpcxx_medic_healtocrouch
+	self waittill flaggedanimdone
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoProneAlive:
+// ---------------------------------------------------------------------------
+
+	self thread DoProneAliveAnim
+	self.waitanimthread = parm.previousthread
+
+	self thread WaitTimeout 20.0
+	self.waittimeoutthread = parm.previousthread
+
+	while (1)
+	{
+//		dprintln "~~~~~~~~~~~~~ self.waitanimthread is " self.waitanimthread ", self.waittimeoutthread is " self.waittimeoutthread ", self.waittillundeadthread is " self.waittillundeadthread ", self.waittilldeaththread is " self.waittilldeaththread
+		if ( (self.waitanimthread == NULL) || (self.waittimeoutthread == NULL) )
+		{
+			if ( self.waitanimthread != NULL )
+				self.waitanimthread delete
+			if ( self.waittimeoutthread != NULL )
+				self.waittimeoutthread delete
+			end
+		}
+		waitframe
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoProneAliveAnim:
+//
+//	Heal a proned guy.
+// ---------------------------------------------------------------------------
+
+//	dprintln "~~~~~~~~~~~~ Medic experience is " self.experience
+
+	waitthread DoStandToHealingAnim
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+	{
+		self setmotionanim xucxx_nurse_gauze
+	}
+	else
+	{
+		if ( self.experience == 0 )
+		{
+			if ( self.playerpatient == 1 )
+			{
+				local.fast = 0
+				if ( self.localpatient.normal_health >= 50 )	// may be more reasons to do fast anim...
+					local.fast = 1
+
+				if ( local.fast == 1 )
+				{
+					local.anim = waitthread GetNextHealAnim 1 0 0
+					self setmotionanim local.anim	//xppxx_medic_healprone_ROOK_FAST
+				}
+				else
+				{
+					local.anim = waitthread GetNextHealAnim 1 0 1
+					self setmotionanim local.anim	//xppxx_medic_healprone_ROOK
+				}
+
+				self waitthread DoLowHealDialog
+			}
+			else
+			{
+				self setmotionanim xppxx_medic_healprone_ROOK
+			}
+		}
+		else
+		{
+			if ( self.playerpatient == 1 )
+			{
+				local.fast = 0
+				if ( self.localpatient.normal_health >= 50 )	// may be more reasons to do fast anim...
+					local.fast = 1
+
+				if ( local.fast == 1 )
+				{
+					local.anim = waitthread GetNextHealAnim 1 1 0
+					self setmotionanim local.anim	//xppxx_medic_healprone_FAST
+				}
+				else
+				{
+					local.anim = waitthread GetNextHealAnim 1 1 1
+					self setmotionanim local.anim	//xppxx_medic_healprone
+				}
+
+				self waitthread DoLowHealDialog
+			}
+			else
+			{
+				self setmotionanim xppxx_medic_healprone
+			}
+		}
+	}
+
+	self waittill flaggedanimdone
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+		self setmotionanim xucxx_nurse_healtostand
+	else
+		self setmotionanim xppxx_medic_healtostand
+	self waittill flaggedanimdone
+
+	self.position = stand
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoLowHealDialog:
+// ---------------------------------------------------------------------------
+
+	local.aid = getcvar "g_AIDDisable"
+	if ( int( local.aid ) != 0 )
+		end
+
+	wait 1.5	// to try to space things out from the automatic medic aid
+
+	if ( self.patient == NULL )
+		end
+
+	switch ( self.max_player_heals )
+	{
+	case 1:
+		self say DFRUS_MED0LEFTBAND_JSX
+		break
+	case 2:
+		self say DFRUS_MED1LEFTBAND_JSX
+		break
+	case 3:
+		self say DFRUS_MED2LEFTBAND_JSX
+		break
+	case 4:
+		self say DFRUS_MED3LEFTBAND_JSX
+		break
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoProneDead:
+//
+//	Heal a prone guy who's dead.
+// ---------------------------------------------------------------------------
+
+//	dprintln "~~~~~~~~~~~~ Medic experience is " self.experience
+
+	waitthread DoStandToHealingAnim
+
+	self setmotionanim xmxxx_medic_youaredoomed
+	self waittill flaggedanimdone
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+		self setmotionanim xucxx_nurse_healtostand
+	else
+		self setmotionanim xppxx_medic_healtostand
+	self waittill flaggedanimdone
+
+	self.position = stand
+
+end
+
+
+// ---------------------------------------------------------------------------
+DoStandToHealingAnim:
+//
+// Do the stand to healing position animation
+// ---------------------------------------------------------------------------
+
+	if ( (self.nurse != NIL) && (self.nurse != 0) )
+	{
+		self setmotionanim xucxx_nurse_standtoheal
+	}
+	else
+	{
+		if ( self.experience == 0 )
+		{
+			self setmotionanim xppxx_medic_standtoheal_ROOK
+		}
+		else
+		{
+			self setmotionanim xppxx_medic_standtoheal
+		}
+	}
+	self waittill flaggedanimdone
+
+	self.position = crouch
+
+end
+
+
+// ---------------------------------------------------------------------------
+WaitTimeout local.time:
+// ---------------------------------------------------------------------------
+
+	wait local.time
+
+end
+
+
+// ---------------------------------------------------------------------------
+WaittillUndead:
+// ---------------------------------------------------------------------------
+
+	self waittill undead
+//	dprintln "~~~~~~~~~~~~~ got undead"
+
+end
+
+
+// ---------------------------------------------------------------------------
+WaittillDeath:
+// ---------------------------------------------------------------------------
+
+	self waittill death
+//	dprintln "~~~~~~~~~~~~~ got death"
+
+end
+
+
+// ---------------------------------------------------------------------------
+GetNextHealAnim local.prone local.vet local.slow:
+// ---------------------------------------------------------------------------
+
+	if ( self.healcount == NIL )
+	{
+		self waitthread InitHealArray
+	}
+
+	local.anim = "medicheal_"
+
+	local.index = 1
+	if ( local.prone > 0 )
+	{
+		local.anim += "P"
+		local.index += 4
+	}
+	else
+	{
+		local.anim += "C"
+	}
+
+	if ( local.vet > 0 )
+	{
+		local.anim += "V"
+		local.index += 2
+	}
+	else
+	{
+		local.anim += "R"
+	}
+
+	if ( local.slow > 0 )
+	{
+		local.anim += "S"
+		local.index += 1
+	}
+	else
+	{
+		local.anim += "F"
+	}
+
+	local.anim += "_"
+	local.anim += self.healindex[local.index]
+
+	self.healindex[local.index] -= 1
+	if ( self.healindex[local.index] <= 0 )
+		self.healindex[local.index] = self.healcount[local.index]
+
+//	dprintln "~~~~~~~~~~~~~ built anim name is " local.anim
+
+end local.anim
+
+
+// ---------------------------------------------------------------------------
+InitHealArray:
+// ---------------------------------------------------------------------------
+
+	self.healcount[1] = 3	// CRF
+	self.healcount[2] = 6	// CRS
+	self.healcount[3] = 3	// CVF
+	self.healcount[4] = 7	// CVS
+	self.healcount[5] = 3	// PRF
+	self.healcount[6] = 6	// PRS
+	self.healcount[7] = 3	// PVF
+	self.healcount[8] = 6	// PVS
+
+	self.healindex[1] = self.healcount[1]	// CRF
+	self.healindex[2] = randomint (self.healcount[2]) + 1 	// CRS	// special random
+	self.healindex[3] = self.healcount[3]	// CVF
+	self.healindex[4] = randomint (self.healcount[4]) + 1	// CVS	// special random
+	self.healindex[5] = self.healcount[5]	// PRF
+	self.healindex[6] = randomint (self.healcount[6]) + 1	// PRS	// special random
+	self.healindex[7] = self.healcount[7]	// PVF
+	self.healindex[8] = randomint (self.healcount[8]) + 1	// PVS	// special random
+
+end
+
+
+// --------------------------------------------------------------------------------
+adjust_pitch_up_constraint local.start local.end local.time:
+// --------------------------------------------------------------------------------
+
+	if ( local.start == local.end )
+		end
+
+	local.iterations = local.time * 20
+	if ( local.iterations == 0 )
+		local.iterations = 1
+
+	local.thresh = 1.0
+
+	if ( local.start < local.end )
+	{
+		local.sign = 1.0
+		local.thresh = (local.end - local.start) / local.iterations
+	}
+	else
+	{
+		local.sign = -1.0
+		local.thresh = (local.start - local.end) / local.iterations
+	}
+
+	while ( ((local.end - local.start) * local.sign) > local.thresh )
+	{
+		local.start = local.start + (local.thresh * local.sign)
+		$player setviewconstraint pitch_up local.start
+		waitframe
+	}
+
+	$player setviewconstraint pitch_up local.end
+
+end
+
+
+// --------------------------------------------------------------------------------
+adjust_pitch_down_constraint local.start local.end local.time:
+// --------------------------------------------------------------------------------
+
+	if ( local.start == local.end )
+		end
+
+	local.iterations = local.time * 20
+	if ( local.iterations == 0 )
+		local.iterations = 1
+
+	local.thresh = 1.0
+
+	if ( local.start < local.end )
+	{
+		local.sign = 1.0
+		local.thresh = (local.end - local.start) / local.iterations
+	}
+	else
+	{
+		local.sign = -1.0
+		local.thresh = (local.start - local.end) / local.iterations
+	}
+
+	while ( ((local.end - local.start) * local.sign) > local.thresh )
+	{
+		local.start = local.start + (local.thresh * local.sign)
+		$player setviewconstraint pitch_down local.start
+		waitframe
+	}
+
+	$player setviewconstraint pitch_down local.end
+
+end
+
+
+// ---------------------------------------------------------------------------
+brieflytakenodamage local.delay:
+// ---------------------------------------------------------------------------
+
+	self nodamage
+	wait local.delay
+	self takedamage
+
+end
+
+
+// ---------------------------------------------------------------------------
+MedicPain:
+// ---------------------------------------------------------------------------
+//	self setmotionanim xpcxx_hit_head
+	self setmotionanim xpcxx_hit_uppertorso
+	self waittill flaggedanimdone
+
+	end

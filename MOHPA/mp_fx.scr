@@ -1,0 +1,1404 @@
+//
+// mp_fx.scr
+//
+// provides ambient effects for mohpa
+
+// most fx are simply labled script origins
+
+// only skeeters are triggers
+
+level.aveObjPos[1] = (0 0 0)
+level.aveObjPos[2] = (0 0 0)
+level.aveObjPos[3] = (0 0 0)
+level.aveObjPos[4] = (0 0 0)
+
+level.gameType  = int( getcvar( g_gametype ) )
+
+if ( int(getcvar (dm_noeffects))== 1 )
+	end
+
+if (level.gameType == 6)
+{
+	//dprintln "doing preprocess"
+
+	// Pre-Proccessing step
+	// determine the 'origin' of each objective as the average position of the spawn points for that objective
+	// This is used to turn on fx only for the current objective and disable fx for completed objectives
+	
+	for (local.i=1; local.i<=4; local.i++)
+	{
+		local.total = 0
+
+		// count up normal spawn points
+		local.axis_spawn   = $("axis_spawn_" + local.i)
+		local.allies_spawn = $("allies_spawn_" + local.i)
+		
+		for (local.j=1; local.j <= local.axis_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.axis_spawn[local.j].origin
+			
+		for (local.j=1; local.j <= local.allies_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.allies_spawn[local.j].origin
+			
+		local.total += local.axis_spawn.size
+		local.total += local.allies_spawn.size
+			
+		// count big
+		local.axis_spawn   = $("axis_spawn_" + local.i + "_big")
+		local.allies_spawn = $("allies_spawn_" + local.i + "_big")
+		
+		for (local.j=1; local.j <= local.axis_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.axis_spawn[local.j].origin
+			
+		for (local.j=1; local.j <= local.allies_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.allies_spawn[local.j].origin
+
+		local.total += local.axis_spawn.size
+		local.total += local.allies_spawn.size
+
+		// count small
+		local.axis_spawn   = $("axis_spawn_" + local.i + "_small")
+		local.allies_spawn = $("allies_spawn_" + local.i + "_small")
+		
+		for (local.j=1; local.j <= local.axis_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.axis_spawn[local.j].origin
+			
+		for (local.j=1; local.j <= local.allies_spawn.size; local.j++)
+			level.aveObjPos[local.i] += local.allies_spawn[local.j].origin
+
+		local.total += local.axis_spawn.size
+		local.total += local.allies_spawn.size
+			
+		//dprintln "found a total of " local.total " obj " local.i " spawn points"
+			
+		level.aveObjPos[local.i] = vector_scale level.aveObjPos[local.i] (1.0 / (local.total))
+	}
+}
+else
+{
+	//dprintln "skipping preproccess"
+	level.currentObjective = 1
+}
+
+//dprintln "ave obj 1 = " level.aveObjPos[1]
+//dprintln "ave obj 2 = " level.aveObjPos[2]
+//dprintln "ave obj 3 = " level.aveObjPos[3]
+//dprintln "ave obj 4 = " level.aveObjPos[4]
+
+// spawn a trigger to signal the start of each objective
+level.startObjTrigger[1] = spawn trigger_relay
+level.startObjTrigger[2] = spawn trigger_relay
+level.startObjTrigger[3] = spawn trigger_relay
+level.startObjTrigger[4] = spawn trigger_relay
+
+// Start monitor to kill FX
+thread wait_to_kill_all_fx
+
+// God Rays /////////////////////////////////////////////////////////////
+if ($godray_north)
+	$godray_north thread do_godray "models/fx/godray_north.tik" 15 25
+if ($godray_south)
+	$godray_south thread do_godray "models/fx/godray_south.tik" 15 25
+if ($godray_east)
+	$godray_east  thread do_godray "models/fx/godray_east.tik" 15 25
+if ($godray_west)
+	$godray_west  thread do_godray "models/fx/godray_west.tik" 15 25
+if ($godray_northwest)
+	$godray_northwest  thread do_godray "models/fx/godray_northwest.tik" 15 25
+
+if ($godray_north_wide)
+	$godray_north_wide thread do_godray "models/fx/godray_north_wide.tik" 15 25
+if ($godray_south_wide)
+	$godray_south_wide thread do_godray "models/fx/godray_south_wide.tik" 15 25
+if ($godray_east_wide)
+	$godray_east_wide  thread do_godray "models/fx/godray_east_wide.tik" 15 25
+if ($godray_west_wide)
+	$godray_west_wide  thread do_godray "models/fx/godray_west_wide.tik" 15 25
+
+if ($godray_downward1)
+	$godray_downward1  thread do_godray "models/fx/godray_Downward1_tko.tik" 15 25
+
+if ($gifu_bunker_light1)
+	$gifu_bunker_light1  thread oneshotfx_nodelete "models/fx/gifu_bunker_light1.tik" 1
+if ($gifu_bunker_light2)
+	$gifu_bunker_light2  thread oneshotfx_nodelete "models/fx/gifu_bunker_light2.tik" 1
+if ($gifu_bunker_light3)
+	$gifu_bunker_light3  thread oneshotfx_nodelete "models/fx/gifu_bunker_light3.tik" 1
+	
+if ($battle_smoke_light_west) 
+        $battle_smoke_light_west thread do_godray "models/fx/battlesmoke1_light_West.tik" 10 20
+
+
+// Water splashes (identified by script origin) ////////////////////////
+if ($river_splash_big)
+	$river_splash_big   thread oneshotfx_nodelete "models/fx/waterspray_heavy.tik"
+if ($river_splash_med)
+	$river_splash_med   thread oneshotfx_nodelete "models/fx/waterspray_med.tik"
+if ($river_splash_small)
+	$river_splash_small thread oneshotfx_nodelete "models/fx/waterspray_light.tik"
+if ($river_splash_tiny)
+	$river_splash_tiny  thread oneshotfx_nodelete "models/fx/waterspray_sprinkle.tik"
+if ($water_bubbles)
+	$water_bubbles      thread oneshotfx_nodelete "models/fx/water_bubbles.tik"
+
+// birds and skeeters (identified by trigger :. ~include in optimization) //////////////////////////
+if ($skeeters) 
+{
+	for (local.i=1; local.i<=$skeeters.size; local.i++)
+		$skeeters[local.i] setthread skeeters
+}
+
+if ($fireflies) 
+{
+	for (local.i=1; local.i<=$fireflies.size; local.i++)
+	{
+		$fireflies[local.i].tiki = "models/fx/fireflies.tik"
+		$fireflies[local.i] setthread swarm
+	}
+}
+
+if ($skeeters2)
+{
+	for (local.i=1; local.i<=$skeeters2.size; local.i++)
+	{
+		$skeeters2[local.i].tiki = "models/fx/mosquito.tik"
+		$skeeters2[local.i] setthread swarm
+	}
+}
+
+// Explosions marked by script_origin //////////////////////////////////
+if ($overhead_explosion_1)
+	$overhead_explosion_1 thread do_multi_explosions "models/fx/air_explosion.tik" 0 1 mp_explo_dirt1 
+if ($overhead_explosion_2)
+	$overhead_explosion_2 thread do_multi_explosions "models/fx/air_explosion2.tik" 0 1 mp_explo_stone1
+if ($overhead_explosion_mixed)
+	$overhead_explosion_mixed thread do_mixed_explosions "models/fx/air_explosion.tik" "models/fx/air_explosion2.tik" 0 1 mp_explo_stone1
+
+// water mortar explosions (identified by script origin with target to disable trigger)
+if ($large_water_explosion)
+	$large_water_explosion thread do_explosions "models/fx/water_hit_large.tik" 0 1 grenade_exp_water01
+if ($med_water_explosion)
+	$med_water_explosion   thread do_explosions "models/fx/water_hit_med.tik" 0 1 grenade_exp_water01
+
+// Flashes (TODO : Add sounds for these fx)
+
+// CCARON - this one seems to be broken
+//if ($distant_flash_1)
+//	$distant_flash_1 thread do_explosions "models/fx/long_range_flash.tik" 0 1
+
+
+if ($distant_flash_2)
+	$distant_flash_2 thread do_explosions "models/fx/sharp_flash.tik" 0 1
+
+
+if ($battleship_shot)
+	$battleship_shot thread do_explosions "models/fx/battleship_shot.tik" 0 0
+
+
+if ($wide_flash)
+	$wide_flash thread do_explosions "models/fx/wide_flash.tik" 0 0
+
+// Mortar 
+if ($mortar_beach)
+	$mortar_beach   thread do_explosions "models/fx/water_hit_large.tik.tik" 1 1 
+if ($mortar_earth_1)
+	$mortar_earth_1 thread do_explosions "models/fx/bomb_explosion_earth1.tik" 1 1 mp_explo_dirt1
+if ($mortar_earth_2)
+	$mortar_earth_2 thread do_explosions "models/fx/bomb_explosion_earth2.tik" 1 1 mp_explo_dirt1
+	
+// AA Gun tracer fire from a distance
+if ($aa_guns_tko1)
+{
+	$aa_guns_tko1  thread do_tracer_fire "models/fx/aa_guns_tko1.tik"
+}
+	
+// Jungle Steam
+if ($jungle_steam)
+	$jungle_steam thread do_godray "models/fx/jungle_steam1.tik" 15 25
+if ($jungle_steam2)
+	$jungle_steam2 thread oneshotfx_nodelete "models/fx/jungle_steam2.tik" 0
+	
+if ($smoke_fire)
+{
+	$smoke_fire thread oneshotfx_nodelete "models/fx/fire_gmc_tko.tik" 1
+
+}
+// Added by John Hughes to replace old fire FX on airfield with this newer one
+if ($small_oil_fire)
+{
+	$small_oil_fire thread oneshotfx_nodelete "models/fx/small_oil_fire.tik" 1
+
+}
+
+if ($smokepillar_grey)
+{
+	$smokepillar_grey thread oneshotfx_nodelete "models/fx/smoke_pillar1_grey.tik" 1
+
+}
+if ($camp_fire1)
+{
+	$camp_fire1 thread oneshotfx_nodelete "models/fx/camp_fire1.tik" 
+}
+if ($railcart_smoke1)
+{
+	$railcart_smoke1 thread oneshotfx_nodelete "models/fx/railcart_smoke1_tko.tik" 
+}
+if ($light1)
+	$light1 thread oneshotfx_nodelete "models/fx/light1.tik" 0 // CCARON - Josh has added the +broadcast flag to the tiki, so we dont need too
+if ($light2)
+	$light2 thread oneshotfx_nodelete "models/fx/light2.tik" 0
+if ($light1_cone)
+	$light1_cone thread oneshotfx_nodelete "models/fx/light1_cone.tik" 0
+if ($light2)
+	$light2_cone thread oneshotfx_nodelete "models/fx/light2_cone.tik" 0
+if ($light1_flicker)
+	$light1_flicker thread oneshotfx_nodelete "models/fx/light1_flicker_tko.tik" 0
+if ($light_green)
+	$light_green thread oneshotfx_nodelete "models/fx/light_green1_tko.tik" 0
+if ($light_latern)
+	$light_latern thread oneshotfx_nodelete "models/fx/light_latern1_tko.tik" 0
+if ($light_red)
+	$light_red thread oneshotfx_nodelete "models/fx/light_red_tko.tik" 0
+
+
+if ($runway)
+	$runway thread do_runway_lights "models/fx/light2.tik"
+	
+if ($sparks_small)
+	$sparks_small thread oneshotfx_nodelete "models/fx/sparks_small1.tik"
+if ($sparks_big)
+	$sparks_big thread oneshotfx_nodelete "models/fx/sparks_big1.tik"
+if ($sparks_emit)
+	$sparks_emit thread do_godray "models/fx/sparks_emit_tko.tik" 5 10
+
+if ($battle_smoke)
+	$battle_smoke thread do_godray "models/fx/battlesmoke1.tik" 10 20	
+if ($battle_smoke_north)
+	$battle_smoke_north thread do_godray "models/fx/battlesmoke1_North.tik" 10 20
+if ($battle_smoke_south)
+	$battle_smoke_south thread do_godray "models/fx/battlesmoke1_South.tik" 10 20
+if ($battle_smoke_east)
+	$battle_smoke_east thread do_godray "models/fx/battlesmoke1_East.tik" 10 20
+if ($battle_smoke_west)
+	$battle_smoke_west thread do_godray "models/fx/battlesmoke1_West.tik" 10 20
+if ($dustdrop1)
+	$dustdrop1 thread oneshotfx_nodelete  "models/fx/dustdrop1_tko.tik"
+	
+if ($water_trickle_thin)
+	$water_trickle_thin thread oneshotfx_nodelete  "models/fx/water_trickle2_thin.tik"
+if ($water_trickle_thin_north)
+	$water_trickle_thin_north thread oneshotfx_nodelete  "models/fx/water_trickle2_thin_NORTH.tik" 
+if ($water_trickle_thin_south)
+	$water_trickle_thin_south thread oneshotfx_nodelete  "models/fx/water_trickle2_thin_SOUTH.tik" 
+if ($water_trickle_thin_east)
+	$water_trickle_thin_east thread oneshotfx_nodelete  "models/fx/water_trickle2_thin_EAST.tik" 
+if ($water_trickle_thin_west)
+	$water_trickle_thin_west thread oneshotfx_nodelete  "models/fx/water_trickle2_thin_WEST.tik"
+	
+if ($water_trickle_N)
+	$water_trickle_N thread oneshotfx_nodelete  "models/fx/water_trickle_N.tik"
+if ($water_trickle_S)
+	$water_trickle_S thread oneshotfx_nodelete  "models/fx/water_trickle_S.tik"
+if ($water_trickle_W)
+	$water_trickle_W thread oneshotfx_nodelete  "models/fx/water_trickle_W.tik"
+if ($water_trickle_E)
+	$water_trickle_E thread oneshotfx_nodelete  "models/fx/water_trickle_E.tik"
+if ($water_trickle_NW)
+	$water_trickle_NW thread oneshotfx_nodelete  "models/fx/water_trickle_NW.tik"
+if ($water_trickle_NE)
+	$water_trickle_NE thread oneshotfx_nodelete  "models/fx/water_trickle_NE.tik"
+if ($water_trickle_SE)
+	$water_trickle_SE thread oneshotfx_nodelete  "models/fx/water_trickle_SE.tik"
+if ($water_trickle_SW)
+	$water_trickle_SW thread oneshotfx_nodelete  "models/fx/water_trickle_SW.tik"
+if ($water_trickle_AF1)
+	$water_trickle_AF1 thread oneshotfx_nodelete  "models/fx/water_trickle_AF1.tik"
+	
+if ($low_fog)
+	$low_fog thread do_godray "models/fx/low_fog1.tik" 3 5
+if ($water_mist)
+	$water_mist thread do_godray "models/fx/water_mist_tko.tik" 3 5
+if ($water_trickle)
+	$water_trickle thread do_godray "models/fx/water_trickle2.tik" 3 5
+if ($water_bubblestream)
+	$water_bubblestream thread do_godray "models/fx/water_bubblestream1.tik" 3 5
+if ($water_drip)
+	$water_drip thread do_godray "models/fx/waterdrip.tik" 3 5
+	
+if ($light_cone)
+	$light_cone thread oneshotfx_nodelete "models/fx/light_cone1.tik" 
+
+if ($cloudflash4_far)
+	$cloudflash4_far thread do_explosions "models/fx/cloudflash4_far.tik" 0 1
+if ($cloudflash3_far)
+	$cloudflash3_far thread do_explosions "models/fx/cloudflash3_far.tik" 0 1
+if ($cloudflash2)
+	$cloudflash2 thread do_explosions "models/fx/cloudflash2.tik" 0 1
+if ($cloudflash1)
+	$cloudflash1 thread do_explosions "models/fx/cloudflash1.tik" 0 1
+if ($cloudflash1_wake)
+	$cloudflash1_wake thread do_cloud_explosions "models/fx/cloudflash1_wake.tik" 0 1
+if ($cloudflash2_wake)
+	$cloudflash2_wake thread do_cloud_explosions "models/fx/cloudflash2_wake.tik" 0 1
+if ($cloudflash3_wake)
+	$cloudflash3_wake thread do_cloud_explosions "models/fx/cloudflash3_wake .tik" 0 1
+if ($cloudflash4_wake)
+	$cloudflash4_wake thread do_cloud_explosions "models/fx/cloudflash4_wake .tik" 0 1
+if ($cloudflash5_wake)
+	$cloudflash5_wake thread do_cloud_explosions "models/fx/cloudflash5_wake .tik" 0 1
+//if ($lightning_strike)
+	$lightning_strike thread do_cloud_explosions "models/fx/lightningflash_tko .tik" 0 1
+	
+if ($birds_trigger)
+	$birds_trigger thread do_birds
+
+if ($beach_mortar_dark)
+	$beach_mortar_dark thread do_explosions "models/fx/beach_mortar1_dark.tik" 0 1 mp_explo_dirt1
+if ($beach_mortar_sand)
+	$beach_mortar_sand thread do_explosions "models/fx/beach_mortar1_sand.tik" 0 1 mp_explo_dirt1
+if ($water_splash_heavy)
+	$water_splash_heavy thread oneshotfx_nodelete "models/fx/watersplash1_heavy.tik" 1 //(use this for the base of a waterfall. Includes mist)
+if ($water_splash_light)
+	$water_splash_light thread oneshotfx_nodelete "models/fx/watersplash1_light.tik" 1
+
+if ($matan_waterfall1)
+	$matan_waterfall1 thread oneshotfx_nodelete "models/fx/matan_waterfall1.tik" 1
+if ($matan_waterfall2)
+	$matan_waterfall2 thread oneshotfx_nodelete "models/fx/matan_waterfall2.tik" 1
+if ($bridge_waterfall1)
+	$bridge_waterfall1 thread oneshotfx_nodelete "models/fx/bridge_waterfall1.tik" 1
+
+if ($fuel_tank_expl)
+	$fuel_tank_expl thread do_explosions "models/fx/Fueltank_explode1.tik" 1 1 mp_explo_dirt1
+if ($smoke_pillar_black)
+	$smoke_pillar_black thread do_explosions "models/fx/smoke_pillar1_black.tik" 1 1 mp_explo_dirt1
+
+if($smolder_artillery)
+	$smolder_artillery thread do_loopfx "models/fx/MP_LS_Smolder_Artillery.tik" 2
+if($smolder)	
+	$smolder thread do_loopfx "models/fx/smoulder_2.tik" 1
+
+if ($debris)
+	$debris thread oneshotfx_nodelete "models/fx/tehao_FX/debris.tik" 
+if ($flash_dust)
+	$flash_dust thread do_explosions "models/fx/tehao_FX/flash_dust.tik" 1 1 NULL
+if ($explosion_bridge)
+	$explosion_bridge thread do_explosions "models/fx/tehao_FX/explosion_bridge.tik" 1 1 NULL
+if ($smokeFire_bridge)
+	$smokeFire_bridge thread do_explosions "models/fx/tehao_FX/smokeFire_bridge.tik" 1 1 NULL
+if ($red_light)
+	$red_light thread oneshotfx_nodelete "models/fx/redlight1.tik" 1
+if ($dustdrop2)
+	$dustdrop2 thread setup_group_explosions "models/fx/corregidor_dustdrop1.tik" 0 1 muffled_explo 1
+if ($lantern_flame1)
+	$lantern_flame1 thread oneshotfx_nodelete "models/emitters/lantern_flame.tik" 1	
+
+end
+
+// PUBLIC ////////////////////////////////////////////////////////////////////////////
+
+//----------------------------------------------------------------------------------
+always_on_fx local.fx local.minWait local.maxWait:
+//----------------------------------------------------------------------------------
+	thread loopfx local.fx self.origin local.minWait local.maxWait self.scale
+end
+
+//----------------------------------------------------------------------------------
+loopfx local.fxModel local.fxPos local.fxMinWait local.fxMaxWait local.scale:
+//----------------------------------------------------------------------------------
+	
+	while(1) 
+	{
+		local.fx = spawn Animate model local.fxModel 
+		local.fx svflags "+broadcast"	
+		if (local.scale != NIL && local.scale != NULL)
+			local.fx scale local.scale
+		local.fx.origin = local.fxPos
+		local.fx waittill animdone
+		local.fx remove
+		local.wait = randomfloat( local.fxMaxWait - local.fxMinWait ) + local.fxMinWait
+		wait local.wait
+	}
+
+end
+
+//-----------------------------------------------------------------------------
+spawn_fx local.origin local.fx local.scale:
+//-----------------------------------------------------------------------------
+
+	local.temp = spawn Animate model local.fx 
+	local.temp notsolid
+	if (local.scale != NIL && local.scale != NULL)
+		local.temp scale local.scale
+	local.temp.origin = local.origin
+	local.temp anim idle // CCARON - choose 'idle' cause this is almost always available
+	local.temp waittill animdone // for some reason this fixes the respawning anim bug
+	local.temp remove
+
+end
+
+//----------------------------------------------------------------------------------
+blink_light local.tiki local.on_time:
+//----------------------------------------------------------------------------------
+
+	local.fx = spawn Animate model local.tiki
+	local.fx.origin = self.origin
+	local.fx anim idle
+	wait local.on_time
+	local.fx remove
+
+end
+
+// PRIVATE //////////////////////////////////////////////////////////////////////////
+
+//-----------------------------------------------------------------------------
+do_godray local.fx local.min local.max:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+
+	thread loopfx local.fx self.origin local.min local.max
+	local.thread = parm.previousthread
+	remove self
+
+	if (level.gameType == 6 && local.my_obj != 4 && local.my_obj != 0)
+	{
+		level.startObjTrigger[local.my_obj+1] waittill trigger
+		local.thread delete
+		
+		//dprintln "ending godray"
+	}	
+
+end
+
+
+//-----------------------------------------------------------------------------
+birds:
+//-----------------------------------------------------------------------------
+
+
+	// do ambient birds - activated by trigger and keeps
+	// animtaing for 10 seconds.  If mapper tagets the trigger
+	// to something, then the orject will be the origin of
+	// the swarm, otherwise the origin is at the trigger center
+
+	// self refers to the trigger multiple that calls has this as
+	// a setthread
+
+	if (self.swarm == NIL || self.swarm == NULL)
+	{
+		//dprintln "doing birds"
+	
+		self nottriggerable
+		
+		self.swarm = spawn Animate model "models/test/bird_scene.tik" targetname swarm
+		self.swarm.origin = self.origin
+
+		local.ent = $(self.target)
+
+		if (local.ent != NIL && local.ent != NULL)
+		{
+			self.swarm.origin = local.ent.origin
+			self.swarm2.origin = local.ent.origin
+		}
+		
+		self.swarm anim swarm_on
+		
+		wait 10
+		self.swarm remove
+		self.swarm2 remove
+		self.swarm = NULL
+		
+		self triggerable
+	}
+
+end
+
+
+//-----------------------------------------------------------------------------
+skeeters:
+//-----------------------------------------------------------------------------
+
+
+	// do ambient mosquitoes - activated by trigger and keeps
+	// animtaing for 10 seconds.  If mapper tagets the trigger
+	// to something, then the orbject will be the origin of
+	// the swarm, otherwise the origin is at the trigger center
+
+	// self refers to the trigger multiple that calls has this as
+	// a setthread
+
+	if (self.swarm == NIL || self.swarm == NULL)
+	{
+		//dprintln "doing skeeters"
+	
+		self nottriggerable
+		
+		self.swarm2 = spawn Animate model "models/fx/skeeters.tik" 
+		self.swarm2.origin = self.origin
+		self.swarm = spawn Animate model "models/fx/swarm_heavy.tik" targetname swarm
+		self.swarm.origin = self.origin
+
+		local.ent = $(self.target)
+
+		if (local.ent != NIL && local.ent != NULL)
+		{
+			self.swarm.origin = local.ent.origin
+			self.swarm2.origin = local.ent.origin
+		}
+		
+		self.swarm anim swarm_on
+		
+		wait 10
+		self.swarm remove
+		self.swarm2 remove
+		self.swarm = NULL
+		
+		self triggerable
+	}
+
+end
+
+
+//-----------------------------------------------------------------------------
+swarm:
+//-----------------------------------------------------------------------------
+
+
+	// do ambient fireflies - activated by trigger and keeps
+	// animtaing for 10 seconds.  If mapper tagets the trigger
+	// to something, then the orbject will be the origin of
+	// the swarm, otherwise the origin is at the trigger center
+
+	// self refers to the trigger multiple that calls has this as
+	// a setthread
+
+	if (self.swarm == NIL || self.swarm == NULL)
+	{
+		//dprintln "doing flies"
+	
+		self nottriggerable
+		
+		self.swarm = spawn Animate model self.tiki
+		self.swarm.origin = self.origin
+		
+		local.ent = $(self.target)
+
+		if (local.ent != NIL && local.ent != NULL)
+		{
+			self.swarm.origin = local.ent.origin
+		}
+			
+		//dprintln "flies origin = " self.swarm.origin
+		
+		self.swarm anim start
+		
+		wait 10
+		self.swarm remove
+		self.swarm = NULL
+		
+		self triggerable
+	}
+
+end
+
+
+//-----------------------------------------------------------------------------
+do_oneshot local.tiki:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+	
+	//dprintln "starting " local.tiki
+	
+	// self is a script_origin where the effect takes place
+	thread global/vfx.scr::oneshotfx_nodelete local.tiki self.origin
+	local.thread = parm.previousthread
+	self remove
+	
+	if (level.gameType == 6 && local.my_obj != 4 && local.my_obj != 0)
+	{
+		level.startObjTrigger[local.my_obj+1] waittill trigger
+		local.thread delete
+		
+		//dprintln "ending oneshot"
+	}
+
+end
+
+//-----------------------------------------------------------------------------
+do_loopfx local.tiki local.wait:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+	local.origin = self.origin
+	local.scale = self.scale
+	self remove	
+	
+	// self is a script_origin where the effect takes place
+
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj==0)
+	{
+		thread spawn_fx local.origin local.tiki local.scale
+		local.dt = local.wait - (local.wait/2)
+		local.delay = randomfloat local.dt
+		local.delay += (local.wait/2)
+		wait local.delay
+	}
+
+end
+
+
+//-----------------------------------------------------------------------------
+do_tracer_fire local.tiki:
+//-----------------------------------------------------------------------------
+
+	local.my_obj = self waitthread wait_for_my_objective
+	// self is the origin that defines to position of the tracer fire
+
+	local.minBurst = 1.0
+	local.maxBurst = 2.0
+	local.xyAng    = 0
+	local.zAng     = 0
+
+	local.origin = self.origin
+	self remove
+
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.firetime = local.minBurst + (randomfloat (local.maxBurst - local.minBurst))
+		local.t = level.time
+		local.endt = level.time + local.firetime
+		
+		local.fx = spawn Animate model local.tiki
+		local.fx.origin = local.origin
+		local.fx anim idle
+		local.fx svflags "+nofarplane"
+		
+		local.angles = (0 0 0)
+		local.angles[1] = randomfloat 0
+		local.angles[0] = 0 + randomfloat 0
+		local.dax = (randomfloat (local.xyAng * 2)) - local.xyAng
+		local.daz = (randomfloat (local.zAng * 2)) - local.zAng
+
+		while (level.time < local.endt)
+		{
+			local.dt = level.time - local.t
+			
+			local.angles[0] += (local.dax * local.dt)
+			local.angles[1] += (local.daz * local.dt)
+			local.fx.angles = local.angles
+		
+			waitframe
+		}	
+		
+		local.fx remove
+		local.delay = 2 + (randomfloat 0)
+		wait local.delay
+		
+	}
+	
+	//dprintln "ending tracer fire"
+
+end
+
+
+//-----------------------------------------------------------------------------
+setup_group_explosions local.tiki local.onGround local.randRadius local.sound local.explode:
+//-----------------------------------------------------------------------------
+
+	// this happens for every script origin named the targetname of self	
+
+	// If explosions have been run on this set then my setup number will be set to 1.
+	// If setup is not set to 1, then start up explosions on this particular script origin and mark every other script
+	// origin with the same set number as being setup so that do_explosions is not run on them as well.
+	if( self.setup != 1 )
+	{
+		self thread do_explosions local.tiki local.onGround local.randRadius local.sound local.explode 1
+		self.setup = 1 		
+		
+		// now go through every script origin with the same set number and mark those as being setup
+		for( local.i = 1; local.i <= $(self.targetname).size; local.i++ )				
+		{
+			if( $(self.targetname)[local.i].set == self.set )			
+				$(self.targetname)[local.i].setup = 1				
+			
+		}				
+	}
+	
+	// if you are already setup, then just sit tight and wait for the first script origin to use your origin
+	// to fire off a special effect
+
+end
+
+
+//-----------------------------------------------------------------------------
+do_explosions local.tiki local.onGround local.randRadius local.sound local.explode local.grouped:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+	
+	if(local.explode == NIL || local.explode == NULL)
+		local.explode = 0
+	
+	if(local.grouped == NIL || local.grouped == NULL)
+		local.grouped = 0
+	
+	// self is the script origin to spawn from
+	// if the origin is targeting a trigger, then the trigger
+	// will disable the fx (permanently) when hit
+	
+	if (self.radius != NIL && self.radius != NULL){
+		self.minRange = 0
+		self.maxRange = self.radius/2
+	}
+	if (self.minRange == NIL || self.minRange == NULL)
+		self.minRange = 0
+	if (self.maxRange == NIL || self.maxRange == NULL || self.maxRange < self.minRange)
+		self.maxRange = self.minRange + 250
+
+	if (self.delay != NIL && self.delay != NULL)
+	{
+		self.minTime = self.delay
+		self.maxTime = self.delay*2
+	}
+	if (self.minTime == NULL || self.minTime == NIL)
+		self.minTime = 10	
+	if (self.maxTime == NULL || self.maxTime == NIL || self.minTime > self.maxTime)
+		self.maxTime = self.minTime + 10
+	if (self.scale == NIL || self.scale == NULL)
+		self.scale = 5
+			
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.o = self.origin
+		if (local.randRadius == 1)
+		{		
+			local.quadrant = randomint (4) + 1
+		
+			local.x = randomint(self.maxRange - self.minRange) + self.minRange
+			local.y = randomint(self.maxRange - self.minRange) + self.minRange
+		
+			switch (local.quadrant)
+			{
+				case 1: 
+					local.o[0] += local.x
+					local.o[1] += local.y
+					break	
+				case 2: 
+					local.o[0] -= local.x
+					local.o[1] += local.y
+					break
+				case 3:
+					local.o[0] -= local.x
+					local.o[1] -= local.y
+					break
+				case 4: 
+					local.o[0] += local.x
+					local.o[1] -= local.y
+					break	
+			}
+		}
+		if (local.onGround)
+		{
+			local.o[2] = terrain_height 0 local.o[0] local.o[1]
+		}		
+		
+		if(local.explode)			
+			level earthquake 0.090 0.090 0 0 local.o 1024
+						
+		if(local.grouped)
+		{			
+			// have every effect with this set number go off			
+			local.set = self.set						
+			for( local.i = 1; local.i <= $(self.targetname).size; local.i++ )				
+			{				
+				if( $(self.targetname)[local.i].set == local.set )				
+					thread spawn_fx $(self.targetname)[local.i].origin local.tiki $(self.targetname)[local.i].scale						
+				
+			}										
+		}
+		else
+			thread spawn_fx local.o local.tiki self.scale
+				
+		waitframe
+		if (local.sound != NIL && local.sound != NULL)
+			self playsound local.sound
+
+		local.t = self.minTime + (randomint (self.maxTime-self.minTime))
+
+		wait local.t
+	}
+	
+	self remove	
+ 
+end
+
+//-----------------------------------------------------------------------------
+do_cloud_explosions local.tiki local.onGround local.randRadius local.sound:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+	
+	// self is the script origin to spawn from
+	// if the origin is targeting a trigger, then the trigger
+	// will disable the fx (permanently) when hit
+	
+	if (self.radius != NIL && self.radius != NULL){
+		self.minRange = 0
+		self.maxRange = self.radius/2
+	}
+	if (self.minRange == NIL || self.minRange == NULL)
+		self.minRange = 0
+	if (self.maxRange == NIL || self.maxRange == NULL || self.maxRange < self.minRange)
+		self.maxRange = self.minRange + 10
+
+	if (self.delay != NIL && self.delay != NULL)
+	{
+		self.minTime = self.delay
+		self.maxTime = self.delay*2
+	}
+	if (self.minTime == NULL || self.minTime == NIL)
+		self.minTime = 5	
+	if (self.maxTime == NULL || self.maxTime == NIL || self.minTime > self.maxTime)
+		self.maxTime = self.minTime + 5
+	if (self.scale == NIL || self.scale == NULL)
+		self.scale = 0
+			
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.o = self.origin
+		if (local.randRadius == 1)
+		{		
+			local.quadrant = randomint (4) + 1
+		
+			local.x = randomint(self.maxRange - self.minRange) + self.minRange
+			local.y = randomint(self.maxRange - self.minRange) + self.minRange
+		
+			switch (local.quadrant)
+			{
+				case 1: 
+					local.o[0] += local.x
+					local.o[1] += local.y
+					break	
+				case 2: 
+					local.o[0] -= local.x
+					local.o[1] += local.y
+					break
+				case 3:
+					local.o[0] -= local.x
+					local.o[1] -= local.y
+					break
+				case 4: 
+					local.o[0] += local.x
+					local.o[1] -= local.y
+					break	
+			}
+		}
+		if (local.onGround)
+		{
+			local.o[2] = terrain_height 0 local.o[0] local.o[1]
+		}		
+		
+		thread spawn_fx local.o local.tiki self.scale
+			
+		waitframe
+		if (local.sound != NIL && local.sound != NULL)
+			self playsound local.sound
+
+		local.t = self.minTime + (randomint (self.maxTime-self.minTime))
+
+		wait local.t
+	}
+	
+	self remove	
+ 
+end
+
+//-----------------------------------------------------------------------------
+spawn_explosion local.origin local.tiki local.scale local.sound:
+//-----------------------------------------------------------------------------
+	self playsound mp_arty_leadin
+	wait 2
+	thread spawn_fx local.origin local.tiki self.scale
+	waitframe
+	if (local.sound != NIL && local.sound != NULL)
+		self playsound local.sound
+end
+
+//-----------------------------------------------------------------------------
+do_mixed_explosions local.tiki local.tiki2 local.onGround local.randRadius local.sound:
+//-----------------------------------------------------------------------------
+	local.my_obj = self waitthread wait_for_my_objective
+	
+	// self is the script origin to spawn from
+	// if the origin is targeting a trigger, then the trigger
+	// will disable the fx (permanently) when hit
+	
+	if (self.radius != NIL && self.radius != NULL)
+	{
+		self.minRange = 0
+		self.maxRange = self.radius/2
+	}
+	if (self.minRange == NIL || self.minRange == NULL)
+		self.minRange = 0
+	if (self.maxRange == NIL || self.maxRange == NULL || self.maxRange < self.minRange)
+		self.maxRange = self.minRange + 250
+		
+	if (self.delay != NIL && self.delay != NULL)
+	{
+		self.minTime = self.delay
+		self.maxTime = self.delay*2
+	}
+	if (self.minTime == NULL || self.minTime == NIL)
+		self.minTime = 10	
+	if (self.maxTime == NULL || self.maxTime == NIL || self.minTime > self.maxTime)
+		self.maxTime = self.minTime + 10
+	
+	if (self.minVolley == NIL || self.minVolley == NULL)
+		self.minVolley = 3
+	if (self.maxVolley == NIL || self.maxVolley == NULL || self.maxVolley < self.minVolley)
+		self.maxVolley = self.minVolley + 7
+		
+	if (self.spacing != NIL && self.spacing != NULL)
+	{
+		self.minSpacing = self.spacing
+		self.maxSpacing = self.spacing + 0.5
+	}
+	if (self.minSpacing == NIL || self.minSpacing == NULL)
+		self.minSpacing = 0.1	
+	if (self.maxSpacing == NIL || self.maxSpacing == NULL || self.maxSpacing < self.minSpacing)
+		self.maxSpacing = self.minSpacing + 0.5
+		
+	if (self.scale == NIL || self.scale == NULL)
+		self.scale = 5
+	
+	
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.num = self.minVolley + (randomint (self.maxVolley-self.minVolley))
+			
+		//local.r = randomint 7
+		//if (local.r == 0)
+		
+		// do first expl
+		local.o = self.origin
+		if (local.randRadius == 1)
+		{		
+			local.quadrant = randomint (4) + 1
+		
+			local.x = randomint(self.maxRange - self.minRange) + self.minRange
+			local.y = randomint(self.maxRange - self.minRange) + self.minRange
+		
+			switch (local.quadrant)
+			{
+				case 1: 
+					local.o[0] += local.x
+					local.o[1] += local.y
+					break	
+				case 2: 
+					local.o[0] -= local.x
+					local.o[1] += local.y
+					break
+				case 3:
+					local.o[0] -= local.x
+					local.o[1] -= local.y
+					break
+				case 4: 
+					local.o[0] += local.x
+					local.o[1] -= local.y
+					break	
+			}
+		}
+		if (local.onGround)
+		{
+			local.o[2] = terrain_height 0 local.o[0] local.o[1]
+		}
+		
+		local.exp_chooser = randomint 2
+		if (local.exp_chooser==1)	
+			self thread spawn_explosion local.o local.tiki self.scale local.sound
+		else
+			self thread spawn_explosion local.o local.tiki2 self.scale local.sound
+		
+		
+//		waitframe
+//		if (local.sound != NIL && local.sound != NULL)
+//			self playsound local.sound
+				
+		wait (self.minSpacing + (randomfloat (self.maxSpacing-self.minSpacing)))
+		
+		local.v = local.o - self.origin
+		local.v = vector_normalize local.v
+	
+		for (local.i=1; local.i<local.num; local.i++)
+		{
+			local.l = self.minRange + (randomfloat (self.maxRange-self.minRange))
+			
+			local.o += (local.v * local.l)
+			
+			if (local.onGround)
+			{
+				local.o[2] = terrain_height 0 local.o[0] local.o[1]
+			}
+			
+			local.exp_chooser = randomint 2
+			if (local.exp_chooser==1)	
+				self thread spawn_explosion local.o local.tiki self.scale local.sound
+			else
+				self thread spawn_explosion local.o local.tiki2 self.scale local.sound
+				
+			wait (self.minSpacing + (randomfloat (self.maxSpacing-self.minSpacing)))
+		}
+		local.t = self.minTime + (randomint (self.maxTime-self.minTime))
+
+		wait local.t
+	}
+	
+	//dprintln "multi explosion thread done"
+end
+
+//-----------------------------------------------------------------------------
+do_multi_explosions local.tiki local.onGround local.randRadius local.sound:
+//-----------------------------------------------------------------------------
+
+
+	local.my_obj = self waitthread wait_for_my_objective
+	
+	// self is the script origin to spawn from
+	// if the origin is targeting a trigger, then the trigger
+	// will disable the fx (permanently) when hit
+	
+	if (self.radius != NIL && self.radius != NULL){
+		self.minRange = 0
+		self.maxRange = self.radius/2
+	}
+	if (self.minRange == NIL || self.minRange == NULL)
+		self.minRange = 0
+	if (self.maxRange == NIL || self.maxRange == NULL || self.maxRange < self.minRange)
+		self.maxRange = self.minRange + 250
+	
+	if (self.delay != NIL && self.delay != NULL)
+	{
+		self.minTime = self.delay
+		self.maxTime = self.delay*2
+	}
+	if (self.minTime == NULL || self.minTime == NIL)
+		self.minTime = 10	
+	if (self.maxTime == NULL || self.maxTime == NIL || self.minTime > self.maxTime)
+		self.maxTime = self.minTime + 10
+	
+	if (self.minVolley == NIL || self.minVolley == NULL)
+		self.minVolley = 3
+	if (self.maxVolley == NIL || self.maxVolley == NULL || self.maxVolley < self.minVolley)
+		self.maxVolley = self.minVolley + 7
+	
+	if (self.spacing != NIL && self.spacing != NULL)
+	{
+		self.minSpacing = self.spacing
+		self.maxSpacing = self.spacing + 0.5
+	}
+	if (self.minSpacing == NIL || self.minSpacing == NULL)
+		self.minSpacing = 0.1	
+	if (self.maxSpacing == NIL || self.maxSpacing == NULL || self.maxSpacing < self.minSpacing)
+		self.maxSpacing = self.minSpacing + 0.5
+		
+	if (self.scale == NIL || self.scale == NULL)
+		self.scale = 5
+	
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.num = self.minVolley + (randomint (self.maxVolley-self.minVolley))
+			
+		//local.r = randomint 7
+		//if (local.r == 0)
+		
+		// do first expl
+		local.o = self.origin
+		if (local.randRadius == 1)
+		{		
+			local.quadrant = randomint (4) + 1
+		
+			local.x = randomint(self.maxRange - self.minRange) + self.minRange
+			local.y = randomint(self.maxRange - self.minRange) + self.minRange
+		
+			switch (local.quadrant)
+			{
+				case 1: 
+					local.o[0] += local.x
+					local.o[1] += local.y
+					break	
+				case 2: 
+					local.o[0] -= local.x
+					local.o[1] += local.y
+					break
+				case 3:
+					local.o[0] -= local.x
+					local.o[1] -= local.y
+					break
+				case 4: 
+					local.o[0] += local.x
+					local.o[1] -= local.y
+					break	
+			}
+		}
+		if (local.onGround)
+		{
+			local.o[2] = terrain_height 0 local.o[0] local.o[1]
+		}
+			
+		self thread spawn_explosion local.o local.tiki self.scale local.sound
+//		waitframe
+////		if (local.sound != NIL && local.sound != NULL)
+//			self playsound local.sound
+				
+		wait (self.minSpacing + (randomfloat (self.maxSpacing-self.minSpacing)))
+		
+		local.v = local.o - self.origin
+		local.v = vector_normalize local.v
+	
+		for (local.i=1; local.i<local.num; local.i++)
+		{
+			local.l = self.minRange + (randomfloat (self.maxRange-self.minRange))
+			
+			local.o += (local.v * local.l)
+			
+			if (local.onGround)
+			{
+				local.o[2] = terrain_height 0 local.o[0] local.o[1]
+			}
+			
+			self thread spawn_explosion local.o local.tiki self.scale local.sound
+//			waitframe
+//			if (local.sound != NIL && local.sound != NULL)
+//				self playsound local.sound
+				
+			wait (self.minSpacing + (randomfloat (self.maxSpacing-self.minSpacing)))
+		}
+		local.t = self.minTime + (randomint (self.maxTime-self.minTime))
+
+		wait local.t
+	}
+	
+	self remove
+	//dprintln "multi explosion thread done"
+ 
+end
+
+
+//----------------------------------------------------------------------------
+oneshotfx_nodelete local.fxModel local.broadcast:
+//----------------------------------------------------------------------------
+
+	local.my_obj = self waitthread wait_for_my_objective		
+
+	if(local.broadcast == NIL || local.broadcast == NULL)
+		local.broadcast = 0
+		
+	local.fx = spawn Animate model local.fxModel
+	local.fx.origin = self.origin	
+	if (self.scale != NIL && self.scale != NULL)
+		local.fx scale self.scale
+	
+	if(local.broadcast)
+		local.fx svflags "+broadcast"
+		
+	self remove
+
+	if (level.gameType == 6 && local.my_obj != 4 && local.my_obj != 0)
+	{
+		level.startObjTrigger[local.my_obj+1] waittill trigger
+		local.fx remove
+	}
+	
+	//dprintln "onshotfx_nodelete done"
+	
+end
+
+//----------------------------------------------------------------------------------
+do_runway_lights local.tiki:
+//----------------------------------------------------------------------------------
+
+	local.my_obj = self waitthread wait_for_my_objective
+	//dprintln "doing runway"
+
+	while ((level.currentObjective == local.my_obj && level.dmNoeffects != 1) || local.my_obj == 0)
+	{
+		local.ent = self
+		
+		while (local.ent != NIL && local.ent != NULL)
+		{
+			local.ent thread blink_light local.tiki 1			
+			local.ent = $(local.ent.target)
+			wait 0.2
+		}
+		
+		wait 3
+	}
+
+end
+
+//----------------------------------------------------------------------------------
+do_birds:
+//----------------------------------------------------------------------------------
+end
+	wait 5 
+	dprintln "doing birds"
+
+	local.array = $(self.target)
+	
+	if (local.array.size < 1)
+	{
+		dprintln "invalid bird array in group # " self.group	
+		end
+	}
+
+	self setthread start_flocking
+	
+	$(self.target) thread randomize_orient
+
+/* Known events for fauna_bird	
+Event EV_Bird_GroupLead		("group_lead"			, EV_DEFAULT, "i", "groupnbr"	,"Sets the bird as the leader of the flock.");
+Event EV_Bird_GroupJoin		("group_join"			, EV_DEFAULT, "i", "groupnbr"	,"Joins a flock.");
+Event EV_Bird_GroupLeave	("group_leave"			, EV_DEFAULT, "i", "groupnbr"	,"Leaves the flock.");
+Event EV_Bird_GroupDisband	("group_disband"		, EV_DEFAULT, "I" ,"groupnbr"	,"Tell the group to disband.");
+Event EV_Bird_GroupSpeed	("group_speed"			, EV_DEFAULT, "f"  ,"speed_mps"	,"Sets the speed of the flock in meters per second.");
+Event EV_Bird_GroupHeight	("group_height"			, EV_DEFAULT, "f"  ,"height_m"	,"Sets the height of the flock in meters.");
+Event EV_Bird_TurnInitSpeed	("turn_init_speed"		, EV_DEFAULT, "f"  ,"turninitf"	,"How fast the lead bird turns in degrees initially.");
+Event EV_Bird_TurnFinalSpeed("turn_final_speed"		, EV_DEFAULT, "f"  ,"turnfinalf","How fast the lead bird turns in degrees initially.");
+Event EV_Bird_TurnSpeed		("turn_speed"			, EV_DEFAULT, "f"  ,"turnspeedf","How fast the lead bird turns in degrees per second.");
+Event EV_Bird_FollowRatio	("follow_ratio"			, EV_DEFAULT, "f"  ,"ratio"		,"Sets speed ratio of follow birds based on the leader speed.");
+Event EV_Bird_GroupDest		("group_destination"	, EV_DEFAULT, "ie" ,"grpID,ent"	,"Tells the bats where to go during a disband operation.");
+*/
+	
+end
+
+//----------------------------------------------------------------------------------
+randomize_orient:
+//----------------------------------------------------------------------------------
+
+	local.a = self.angles
+	local.a[1] = randomint 360
+	self.angles = local.a
+
+end
+
+//----------------------------------------------------------------------------------
+start_flocking local.player:
+//----------------------------------------------------------------------------------
+
+	dprintln "starting to flock"
+
+	self nottriggerable
+	local.player playsound Birds_Flock_Large01
+	self ai_event misc 2000
+	
+	$(self.target) thread bird_flock self.group self.dest
+	
+end
+
+// Notes: This seems to cause a strange fatal assert in game. Contacted Chris about it
+// Notes: Leaving out for now.
+//----------------------------------------------------------------------------------
+bird_flock local.group local.dest:
+//----------------------------------------------------------------------------------
+	
+	wait (randomfloat 0.5)
+	
+	self show
+	self notsolid
+	self anim fly_flap
+	
+	self group_lead local.group	
+	self group_speed (3.0 + (randomfloat 4.0))
+	self group_height (5.0 + (randomfloat 5.0))
+	self turn_init_speed (300.0 + (randomfloat 300.0))
+	self turn_final_speed (15.0 + (randomfloat 10.0))
+	self follow_ratio (0.5 + (randomfloat 0.5))
+	if (local.dest != NIL && local.dest != NULL)
+		self group_destination local.group local.dest
+
+	wait (3.0 + (randomint 5.0))
+	
+	self group_disband
+	
+end
+
+//----------------------------------------------------------------------------------
+wait_for_my_objective:
+//----------------------------------------------------------------------------------
+
+	if (level.gameType != 6 && self.obj != 0)
+		end 1
+
+	// if the mapper has predetermined what objective this fx is active for
+	// then let that be the default
+	if (self.obj != NIL && self.obj != NULL)
+	{
+		if (self.obj == 0)
+			end 0
+		else{
+			level.startObjTrigger[self.obj] waittill trigger	
+			end self.obj
+		}
+	}
+
+	// determine 'my' objective as the average origin i am closest too
+	local.best_dist = 99999
+	local.my_obj  = 0
+	
+	for (local.i=1; local.i<=4; local.i++)
+	{
+		local.dv = self.origin - level.aveObjPos[local.i]		
+		local.dist = vector_length local.dv
+		
+		if (local.dist < local.best_dist)
+		{
+			local.best_dist = local.dist
+			local.my_obj = local.i
+		}
+	}
+	
+	//dprintln "my obj = " local.my_obj	
+	level.startObjTrigger[local.my_obj] waittill trigger	
+	//dprintln "my objective " local.my_obj " started"
+
+end local.my_obj
+
+//-----------------------------------------------------------------------------
+wait_to_kill_all_fx:
+//-----------------------------------------------------------------------------
+	
+	level.dmNoeffects = 0
+	wait 5
+	
+	//dprintln "waiting to kill all fx"
+	
+	while (1)
+	{
+		if (int (getcvar (dm_noeffects)) == 1)
+		{
+			//dprintln "killing all FX"
+			
+			level.dmNoeffects = 1
+			
+			trigger level.startObjTrigger[1]
+			wait 0.1
+			trigger level.startObjTrigger[2]
+			wait 0.1
+			trigger level.startObjTrigger[3]
+			wait 0.1
+			trigger level.startObjTrigger[4]
+			
+			setcvar "dm_noeffects" "0"
+		}
+		wait 1.0
+	}
+	
+	//dprintln "wait to delete done"
+
+end

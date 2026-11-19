@@ -1,0 +1,14 @@
+//	sprintto.scr
+// parameters:
+// local.node - node to sprint to
+
+start local.node:
+
+if(self.health <= 0)
+{
+	end
+}
+
+
+//self.position = "crouchwalk" // temporary to make it work
+self exec global/moveto.scr anim/sprint.scr local.node

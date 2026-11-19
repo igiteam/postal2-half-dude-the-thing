@@ -1,0 +1,96 @@
+//----------------------------------------------------------------------------
+//	sword.scr
+//
+//		Implements the sword-guy animations
+//	jsl-->work in progress -- not even close to being done!
+//
+//----------------------------------------------------------------------------
+
+main:
+
+	// when called directly, we assume that we are charging!
+
+	self waitthread Charge
+
+end
+
+//----------------------------------------------------------------------------
+Draw:
+//
+//	Draw weapon from holstered position
+//----------------------------------------------------------------------------
+
+	self waitexec anim/stand.scr::transition
+
+	// play the "pull out the sword anim here"
+	wait 1
+	
+
+	end
+
+//----------------------------------------------------------------------------
+Charge:
+//----------------------------------------------------------------------------
+
+	// make sure we're standing
+	self waitexec anim/stand.scr::transition
+
+	while ( 1 )
+	{
+		self waitexec anim/motionblend.scr::PlayAnim charge
+	}
+
+	end
+
+//----------------------------------------------------------------------------
+SwordRun:
+//----------------------------------------------------------------------------
+
+	// make sure we're standing
+	self waitexec anim/stand.scr::transition
+
+	while ( 1 )
+	{
+		self waitexec anim/motionblend.scr::PlayAnim run
+	}
+
+
+	end
+
+//----------------------------------------------------------------------------
+Attack:
+//
+//	while we're within our melee radius, keep sword attacking
+//----------------------------------------------------------------------------
+
+	// make sure we're standing
+	self waitexec anim/stand.scr::transition
+
+	self endactionanim
+	self setmotionanim jssax_attack_combo02
+	self waittill flaggedanimdone
+
+	end
+
+//----------------------------------------------------------------------------
+Sheathe:
+//
+//	put weapon away and draw our primary weapon.
+//
+//----------------------------------------------------------------------------
+
+
+
+
+	end
+
+//----------------------------------------------------------------------------
+Idle:
+//
+//	Play idle animations...
+//----------------------------------------------------------------------------
+
+
+
+	end
+

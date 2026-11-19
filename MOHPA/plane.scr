@@ -1,0 +1,58 @@
+// ---------------------------------------------------------------------
+//	plane.scr
+//
+//	Actor vs. plane AI anim script
+//
+// ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+Getup:
+// ---------------------------------------------------------------------
+
+	waitexec "anim/default_inithandler.scr"
+
+	switch (self.position)
+	{
+	case	prone:
+	case	pronewalk:
+		self waitthread anim/crouch.scr::transition
+		self interrupt_point	// time to do the turnto...
+		waitframe
+		break
+	}
+
+	self waitthread anim/stand.scr::transition 0
+	waitframe
+
+end
+
+// ---------------------------------------------------------------------
+Shoot:
+// ---------------------------------------------------------------------
+
+	waitexec "anim/default_inithandler.scr"
+
+
+	switch ( self.weapongroup )
+	{
+		case	"pistol":
+		case	"rifle":
+			local.rand = randomfloat (0.5)
+			local.rand += 0.4
+			break;
+		default:
+			local.rand = randomint 100
+
+			if ( local.rand < 50 )
+				local.rand = randomfloat (0.3)
+			else
+				local.rand = 0
+			break
+	}
+
+
+	wait local.rand
+
+	self waitthread anim/shoot.scr::Shoot
+
+	end

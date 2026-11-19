@@ -1,0 +1,1 @@
+class LPUIAction_CloseScene extends SPUIAction_CloseScene;

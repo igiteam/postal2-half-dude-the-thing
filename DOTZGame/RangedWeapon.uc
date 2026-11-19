@@ -1,0 +1,1 @@
+Class RangedWeapon extends AdvancedWeapon;

@@ -1,0 +1,575 @@
+// --------------------------------------------------------------------------------
+// wavemachine.scr
+//
+//	
+//	Provides a continuous spawning facility
+//	
+//
+//
+// --------------------------------------------------------------------------------
+
+
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+//										    //
+//			WAVE MACHINE INITIALIZATION			 	    //
+//										    //
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+
+// -----------------------------------------------------------------------------------
+Main:
+//
+//	IMPORTANT: call waitexec global/wavemachine.scr BEFORE auto.scr
+//
+//	How WaveMachines work:
+//
+//	A WaveMachine consists of a collection of aispawners grouped under a single
+//	waveset number, each targeting one or more info_waypoints (or any other valid locator).
+//	When activated, the WaveMachine will choose randomly from its set of spawners, 
+//	spawn that actor, then randomly select one of that actor's targeted locators and teleport him
+//	to that location, at which point, it'll prepare to spawn the next guy, and keep on 
+//	going until shut down.
+//	
+//	WaveMachines, on activation, can be given a min and max character count, a chance per 
+//	cycle to spawn, a min and max delay between cycles, and a delay before each spawnpoint is used again.
+//
+//	To use WaveMachines:
+//	Place actors in your level, with $targetname "wavespawner"
+//	Give each wavespawner in a given wavemachine the same #waveset number
+//	Give each actor a unique #set number
+//	Target the actor to a few info_waypoints, and place them at that actor's possible spawn locations.
+//	Each actor can target his own set of info_waypoints if you'd like the wavemachine to spawn different
+//	actors in different locations
+//	
+// -----------------------------------------------------------------------------------
+	
+	if ($wavespawner != NULL)
+	{
+		$wavespawner waitthread InitWaveSpawner
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+InitWaveSpawner:
+//	
+//	Runs automatically on each actor in the level with $targetname "wavespawner"
+//	Requires that each actor have a valid #waveset number and a valid #set number.
+//	
+//	Resets that actor's $targetname to "aispawner" once he's been catalogued, so
+//	the standard system can handle his spawning.
+//	
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::InitWaveSpawner, on " self ", at " self.origin
+	
+	//Assert that the wavespawner exists, has a #waveset number, and has a #set number
+				
+	assert (self.waveset != NIL && "Wavespanwer does not have a #waveset number or is invalid.")
+	assert (set.set != NIL && "Wavespanwer does not have a #set number or is invalid.")
+	
+	// if no WaveManager object already exists for this waveset, create one
+	if ( $("WaveManager" + self.waveset) == NULL )
+	{
+		local.wavemanager = spawn info_waypoint
+		local.wavemanager.targetname = "WaveManager" + self.waveset
+		local.wavemanager.waveset = self.waveset
+		local.wavemanager.isrunning = 0
+		local.wavemanager.spawnsets[1] = self.set
+	}
+	else
+	{
+		local.wavemanager = $("WaveManager" + self.waveset)
+		local.spawnsetindex = local.wavemanager.spawnsets.size + 1
+		local.wavemanager.spawnsets[local.spawnsetindex] = self.set
+	}
+	
+	// rename me once we're done
+	self.targetname = "aispawner"
+	
+end
+
+
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+//										    //
+//		     	WAVE MACHINE INTERFACE			    		    //
+//										    //
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+// -----------------------------------------------------------------------------------
+StartWaveMachine local.waveMachineSet local.minCharCount local.maxCharCount local.chanceToSpawn local.minSpawnDelay local.maxSpawnDelay local.locationDelayTime local.totalCharsToSpawn local.bCheckVisibility:
+//
+//	Activates a new WaveMachine
+//
+//	Accepts:
+//	local.waveMachineSet:	An integer which matches the waveset of one or more wavespawners	Required	No Default
+//	local.minCharCount:	As long as the number of entities alive in the world from this 
+//				wavemachine is below this count, it'll always choose to spawn		Required	No Default
+//	local.maxCharCount:	If the population spawned by this wavemachine reaches this count, 
+//				it'll hold off spawning any more until their population is reduced	Required	No Default
+//	local.chanceToSpawn:	A float between 0 and 1 representing the chance to spawn per cycle	Optional	1
+//	local.minSpawnDelay:	The minimum time between spawn check cycles				Optional	2
+//	local.maxSpawnDelay:	The maximum time between spawn check cycles				Optional	3
+//	local.locationDelayTime:The time to allow a given teleport point to remain dormant
+//				before using it again							Optional	1
+//	local.totalCharsToSpawn:Total number of actors to spawn before shutting self down		Optional	No Default
+//
+//	Returns:
+//	Nothing
+//
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::StartWaveMachine, with " local.waveMachineSet
+	
+	//Check required arguments
+	assert (local.waveMachineSet != NIL && "Did not receive a #waveset.")
+	assert (local.minCharCount != NIL && "Did not receive Min Character Count.")
+	assert (local.maxCharCount != NIL && "Did not receive Max Character Count.")
+	assert (local.minCharCount < local.maxCharCount && "Min Character Count is greater than Max Character Count.")
+	
+	//Apply defaults where applicable
+	if (local.chanceToSpawn == NIL)
+		local.chanceToSpawn = 1
+	assert (0 < local.chanceToSpawn && local.chanceToSpawn <= 1 && "Chance to Spawn is greater than 1, or less than or equal to 0.")
+	
+	if (local.minSpawnDelay == NIL)
+		local.minSpawnDelay = 2
+	if (local.maxSpawnDelay == NIL)
+		local.maxSpawnDelay = 3
+	assert (local.minSpawnDelay <= local.maxSpawnDelay)
+	assert (local.minSpawnDelay > 0 && local.maxSpawnDelay > 0)
+	if (local.locationDelayTime == NIL)
+		local.locationDelayTime = 1
+		
+	if (local.bCheckVisibility == NIL)
+		local.bCheckVisibility = 0
+	
+	// ensure that we've already created a valid wavemanager object, then populate it with the passed values
+	assert ( $("WaveManager" + local.waveMachineSet) != NULL )
+	local.wavemanager = $("WaveManager" + local.waveMachineSet)
+	println local.wavemanager " contains " local.wavemanager.spawnsets.size " spawnsets."
+	
+	local.wavemanager.minCharCount = local.minCharCount
+	local.wavemanager.maxCharCount = local.maxCharCount
+	local.wavemanager.chanceToSpawn = local.chanceToSpawn
+	local.wavemanager.minSpawnDelay = local.minSpawnDelay
+	local.wavemanager.maxSpawnDelay = local.maxSpawnDelay
+	local.wavemanager.locationDelayTime = local.locationDelayTime
+	local.wavemanager.offspringTargetname = "WaveGuy" + local.waveMachineSet
+	local.wavemanager.queuedTargetname = "Queuedguy" + local.waveMachineSet
+	if (local.totalCharsToSpawn != NIL)
+		local.wavemanager.totalCharsToSpawn = local.totalCharsToSpawn
+	else
+		local.wavemanager.totalCharsToSpawn = -1
+	local.wavemanager.bCheckVisibility = local.bCheckVisibility
+	
+	local.wavemanager thread RunSpawner
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+TogglePauseWaveMachine local.waveMachineSet:
+//
+//	Pauses a running wavemachine, or unpauses one that's in a paused state
+//
+//	Accepts:
+//	local.waveMachineSet:	An integer which matches the waveset of an active wavemachine	Required	No Default
+//
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::TogglePauseWaveMachine, on waveset " local.waveMachineSet
+	assert (local.waveMachineSet != NIL && "local.waveMachineSet hasn't been properly initialized.")
+		
+	assert ( $("WaveManager" + local.waveMachineSet) != NULL  && "TogglePauseWaveMachine called on a WaveMachine that doesn't exist.")
+	local.wavemachine = $("WaveManager" + local.waveMachineSet)
+	if (local.wavemachine.isrunning)
+	{
+		local.wavemachine.isrunning = 0
+	}
+	else
+	{
+		local.wavemachine.isrunning = 1
+		local.wavemachine thread RunSpawner
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+PauseWaveMachine local.waveMachineSet:
+//
+//	Pauses a running wavemachine
+//
+//	Accepts:
+//	local.waveMachineSet:	An integer which matches the waveset of an active wavemachine	Required	No Default
+//
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::PauseWaveMachine, on waveset " local.waveMachineSet
+	assert (local.waveMachineSet != NIL && "local.waveMachineSet hasn't been properly initialized.")
+		
+	assert ( $("WaveManager" + local.waveMachineSet) != NULL && "PauseWaveMachine called on a WaveMachine that doesn't exist.")
+	local.wavemachine = $("WaveManager" + local.waveMachineSet)
+	
+	local.wavemachine.isrunning = 0
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+UnpauseWaveMachine local.waveMachineSet:
+//
+//	Un-Pauses a running wavemachine
+//
+//	Accepts:
+//	local.waveMachineSet:	An integer which matches the waveset of an active wavemachine	Required	No Default
+//
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::UnpauseWaveMachine, on waveset " local.waveMachineSet
+	assert (local.waveMachineSet != NIL && "local.waveMachineSet hasn't been properly initialized.")
+		
+	assert ( $("WaveManager" + local.waveMachineSet) != NULL && "UnpauseWaveMachine called on a WaveMachine that doesn't exist.")
+	local.wavemachine = $("WaveManager" + local.waveMachineSet)
+	
+	local.wavemachine.isrunning = 1
+	local.wavemachine thread RunSpawner
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+ModifyWaveMachine local.waveMachineSet local.minCharCount local.maxCharCount local.chanceToSpawn local.minSpawnDelay local.maxSpawnDelay local.locationDelayTime local.totalCharsToSpawn:
+//
+//	Modifies the properties of a running wavemachine
+//
+//	Accepts:
+//	Everything StartWaveMachine accepts
+//	Unsupplied arguments default to those already on the wavemachine
+//	 
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::ModifyWaveMachine, on waveset " local.waveMachineSet
+	
+	//Assert Passed Variables
+	assert (local.waveMachineSet != NIL && "Did not receive a #waveset.")
+	assert ( $("WaveManager" + local.waveMachineSet) != NULL && "ModifyWaveMachine called on a WaveMachine that doesn't exist.")
+	local.wavemanager = $("WaveManager" + local.waveMachineSet)
+	
+	//If we're not given new values, just take the values from the object
+	if (local.minCharCount == NIL)
+		local.minCharCount = local.wavemanager.minCharCount
+	if (local.maxCharCount == NIL)
+		local.maxCharCount = local.wavemanager.maxCharCount
+	assert (local.minCharCount < local.maxCharCount && "Min Character Count is greater than Max Character Count.")
+	
+	if (local.chanceToSpawn == NIL)
+		local.chanceToSpawn = local.wavemanager.chanceToSpawn
+	assert (0 < local.chanceToSpawn && local.chanceToSpawn <= 1 && "Chance to Spawn is greater than 1, or less than or equal to 0.")
+	
+	if (local.minSpawnDelay == NIL)
+		local.minSpawnDelay = local.wavemanager.minSpawnDelay
+	if (local.maxSpawnDelay == NIL)
+		local.maxSpawnDelay = local.wavemanager.maxSpawnDelay
+	assert (local.minSpawnDelay <= local.maxSpawnDelay)
+	assert (local.minSpawnDelay > 0 && local.maxSpawnDelay > 0)
+	
+	if (local.locationDelayTime == NIL)
+		local.locationDelayTime = local.wavemanager.locationDelayTime
+		
+	if (local.totalCharsToSpawn == NIL)
+		local.totalCharsToSpawn = local.wavemanager.totalCharsToSpawn
+		
+	if (local.bCheckVisibility == NIL)
+		local.bCheckVisibility = local.wavemanager.bCheckVisibility
+	
+	local.wavemanager.minCharCount = local.minCharCount
+	local.wavemanager.maxCharCount = local.maxCharCount
+	local.wavemanager.chanceToSpawn = local.chanceToSpawn
+	local.wavemanager.minSpawnDelay = local.minSpawnDelay
+	local.wavemanager.maxSpawnDelay = local.maxSpawnDelay
+	local.wavemanager.locationDelayTime = local.locationDelayTime
+	local.wavemanager.totalCharsToSpawn = local.totalCharsToSpawn
+	local.wavemanager.bCheckVisibility = local.bCheckVisibility
+	
+end
+
+
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+//										    //
+//		     	WAVE MACHINE PRIVATE FUNCTIONS			    	    //
+//										    //
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX//
+// -----------------------------------------------------------------------------------
+RunSpawner:
+//
+//	
+// -----------------------------------------------------------------------------------
+
+	println "Thread Launched: global/wavemachine.scr::RunSpawner, on " self
+	
+	self.isrunning = 1
+	self.totalCharsSpawned = 0
+		
+	//Start the Wave Machine
+	while ( self.isrunning )
+	{
+		// Decide whether to spawn
+		//println "Deciding whether to spawn..."
+		local.shouldISpawn = 0
+		if ($(self.offspringTargetname) != NULL)
+		{
+			if ($(self.offspringTargetname).size < self.minCharCount)
+			{
+				local.shouldISpawn = 1
+			}
+			else
+			{
+				if ($(self.offspringTargetname).size < self.maxCharCount)
+				{
+					local.rndFloat1 = randomfloat (1)
+					if (local.rndFloat1 <= self.chanceToSpawn)
+					{
+						local.shouldISpawn = 1
+					}
+					else
+					{
+						local.shouldISpawn = 0
+					}
+				}
+				else
+				{
+					local.shouldISpawn = 0
+				}
+			}
+		}
+		else
+		{
+			local.shouldISpawn = 1
+		}
+		
+		// execute the spawn if directed to do so
+		//println "Spawn decision == " local.shouldISpawn
+		if (local.shouldISpawn)
+		{
+			self waitthread SpawnGuy
+			self.totalCharsSpawned++
+		}
+		local.cycledelay = randomfloat( self.maxSpawnDelay - self.minSpawnDelay ) + self.minSpawnDelay
+		wait local.cycledelay
+		
+		// if we've been given a max number of actors to spawn, cut off when we reach it
+		assert (self.totalCharsToSpawn != NIL && "self.totalCharsToSpawn hasn't been properly initialized.")
+		if (self.totalCharsToSpawn != -1)
+		{
+			if (self.totalCharsSpawned >= self.totalCharsToSpawn)
+			{
+				println "Wavemachine " self.waveset " spawned its max of " self.totalCharsToSpawn ".  Shutting down."
+				waitthread PauseWaveMachine self.waveset
+			}
+		}
+	}									
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+SpawnGuy:
+//
+//	Pick a guy and Spawn him
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::SpawnGuy, on " self
+		
+	// select a spawnset randomly from our attached list
+	assert (self.spawnsets != NIL && "self.spawnsets hasn't been properly initialized.")
+	local.rndindexnum = randomint (self.spawnsets.size - 1) + 1
+	assert ( local.rndindexnum != NIL && "Does not have a value.")
+	//println "local.rndindexnum = " local.rndindexnum
+	
+	local.rndguy = self.spawnsets[local.rndindexnum]
+	assert ( local.rndguy != NIL && "Does not have a value.")
+	//println "Spawnset of random guy = " local.rndguy
+	
+	//Spawn in Character
+	waitthread global/aispawn.scr::spawnset local.rndguy self.queuedTargetname 0 0 1	
+	
+	//Find a location for him
+	$(self.queuedTargetname) waitthread ShutDownQueuedGuy
+	local.openLocation = $(self.queuedTargetname) waitthread PickLocation self.offspringTargetname self.locationDelayTime self.bCheckVisibility
+	$(self.queuedTargetname).origin = local.openLocation.origin
+	
+	//Activate him
+	$(self.queuedTargetname) waitthread StartUpQueuedGuy self
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+ShutDownQueuedGuy:
+//
+//	Turn off AI and Hide queued guy
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::ShutDownQueuedGuy, on " self
+	
+	//Turn self's ai off and hide them
+	self ai_off									
+	self hide									
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+PickLocation local.offspringTargetname local.locationDelayTime local.bCheckVisibility:
+//
+//	Pick a random spot to spawn a guy
+//	Check it against spawned guys and the player
+//	Set local.OpenLocation to the open spot
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::PickLocation, on " self
+	
+	//Assert passed Variables
+	assert (local.offspringTargetname != NIL && "Expected argument wasn't supplied.")
+	assert (local.locationDelayTime != NIL && "Did not receive a Delay Time.")
+	
+	//Build array from Character's Targets
+	assert (self.target !=NIL && "Actor has no targets.")
+	assert (self.target !=NULL && "Actor's target could not be found.")
+	assert (self.target.size !=NIL && "Actor target size is nil.")
+	local.spawnOptions = $(self.target)
+	assert (local.spawnOptions !=NIL && "SpawnOptions has no value.")
+	
+	//Set variable to NIL
+	local.openLocation = NIL
+	
+	//Set variable to Zero
+	local.checkedSpots = 0
+	
+	//Keep looking for a spot until one is found
+	while (local.openLocation == NIL)
+	{
+		//Pick a random spot
+		local.rndSpot = randomint(local.spawnOptions.size - 1) + 1
+		local.testSpot = local.spawnOptions[local.rndSpot]
+		assert (local.testSpot != NULL && "local.testspot doesn't reference a valid object in the world.")
+		
+		// see if it's clear
+		local.guyOnSpot = NIL
+		if ($(local.offspringTargetname) != NULL)	// don't bother to do the test if the system doesn't have any children in the field
+		{
+			local.guyOnSpot = waitthread global/actor_utils.scr::CheckProximity $(local.offspringTargetname) local.testSpot.origin 64
+		}
+		
+		// if nobody's on it, run the next check
+		if (local.guyOnSpot == NIL)
+		{
+			local.playerOnSpot = waitthread global/actor_utils.scr::CheckProximity $player local.testSpot.origin 64
+			
+			// wait for player to get off spot
+			if (local.playerOnSpot == NIL)
+			{
+				//println "Location Clear"
+				if (local.testSpot.delay == NIL || local.testSpot.delay == 0)	//Test is not delayed
+				{
+					// if we've been asked to check location visibility, do so here
+					assert (local.bCheckVisibility != NIL && "local.bCheckVisibility hasn't been properly initialized.")
+					if(local.bCheckVisibility)
+					{
+						local.bvisclear = 0
+						local.v_playerToObject = vector_normalize(local.testSpot.origin - $player.origin)
+						local.v_playerForward = vector_normalize(angles_toforward $player.angles)
+						local.playerviewdot = vector_dot local.v_playerToObject local.v_playerForward
+						if (local.playerviewdot <= 0.5)	// if this object is 45 degrees or more from our facing vector, it's out of our view frustum
+							local.bvisclear = 1
+					}
+					else
+					{
+						local.bvisclear = 1	// otherwise, always return a clear value
+					}
+					
+					// if nobody's looking, select this location
+					assert (local.bvisclear != NIL && "local.bvisclear hasn't been properly initialized.")
+					if(local.bvisclear)
+					{
+						local.openLocation = local.testSpot
+						local.openLocation.delay = 1
+						local.openLocation thread LocationDelay local.locationDelayTime
+					}
+				}
+			}
+		}
+		wait 1.0
+	}
+	
+  
+end local.openLocation
+
+
+// -----------------------------------------------------------------------------------
+StartUpQueuedGuy local.mymanager:
+//
+//	 Reasign his targetname, turn on AI, and Show queued guy
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::StartUpQueuedGuy, on " self
+	
+	//Rename AI
+	assert (local.mymanager.offspringTargetname != NIL && "Did not receive a Wave Machine Name.")
+	self.targetname = local.mymanager.offspringTargetname									
+	
+	//Turn AI on, unhide them
+	self ai_on
+	self show
+	
+	// apply standing orders, if any, to this spawned actor
+	if(local.mymanager.standingOrder != NIL)
+	{
+		switch(local.mymanager.standingOrder)
+		{
+		case "order_charge":
+			self order_charge
+			break
+		default:
+			println "WARNING: WaveManager has been told to assign a standing order it doesn't recognize.  Ignoring the order."
+		}
+	}
+	
+	//Thread WatchDeathWaveGuy
+	self thread WatchDeathWaveGuy
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+WatchDeathWaveGuy:
+//
+//	 Rename him once he dies
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::WatchDeathWaveGuy, on " self
+	
+	//Rename self on death
+	self waittill death
+	self.targetname = "DeadGuys"
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+LocationDelay local.locationDelayTime:
+//
+//	Delay the use of this location after guy is spawned at this point
+// -----------------------------------------------------------------------------------
+
+	//println "Thread Launched: global/wavemachine.scr::LocationDelay, on " self
+	
+	assert (self !=NULL && "Actor could not be found.")
+	assert (local.locationDelayTime != NIL && "Did not receive a delay time.")
+	
+	//Wait amount of time and then set delay to NIL
+	wait local.locationDelayTime
+	self.delay = 0
+	
+end

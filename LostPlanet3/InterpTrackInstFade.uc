@@ -1,0 +1,1 @@
+class InterpTrackInstFade extends InterpTrackInst;

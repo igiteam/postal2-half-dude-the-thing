@@ -1,0 +1,362 @@
+//
+// mp_multi_occupation.scr
+// 
+// This script is used to monitor an occuption objective where there are
+// multiple areas that require occupation by the invaders. Once all of the
+// triggers are occupied a countdown starts, sirens sound off, and if the
+// invaders are able to hold their ground, the objective is taken. 
+// The setup is as follows:
+//
+// - Create trigger_multiple's around the areas the invaders are required
+//   to capture. 
+// - Give all these trigger_multiples the same targetname so that they become an array
+// - Give each trigger a setthread of 'global/mp_multi_occupation.scr::occupation' or
+//   of another function which calls global/mp_multi_occupation.scr::occupation
+//  (with the trigger being the self in the thread call).
+// - Before the objective is to be used, call the init method to
+//   initialize the zone.
+// 
+// Note that this objective assumes total control of the stopwatch
+// icon. If another thread tries to set and unset the stopwatch while
+// this one is running the results will be chaotic.
+//
+// 06-11-04 SCOSGRAVE - created this script for Airfield Objective 3
+//
+
+//-----------------------------------------------------------------------------
+init local.team local.timer local.zonename local.callback local.occupied_callback local.failed_callback local.dialog local.triggerArray local.showObjectiveStatus:
+//------------------
+
+	// initialize all the varaibles for the current multiple area occupation objective
+
+	// .team - the team that should be occupying the room
+	// .timer - how long the occupiers need to be in the room
+	// .zonename - the name of the room being occupied (ie: Axis HQ)
+	// .callback - the routine to be called when the room has been occupied for the entire duration
+	// .occupied_callback - the routine to be called when a room is initially occupied
+	// .failed_callback - the routine to be caleld when a room becomes un-occupied
+	// .dialog - the sound to play after the objetive is reached	
+	// .triggerArray - the targetname for the triggers that are to be occupied
+
+
+	//make the multiple occupation manager
+	local.retval = spawn script_origin
+	
+	//add the triggers to the manager and give them some values
+	local.retval.triggerArray = local.triggerArray
+	local.retval.triggerArray = waitthread init_trigger_array local.retval.triggerArray local.team local.zonename local.occupied_callback local.failed_callback local.timer local.showObjectiveStatus
+		
+	//set some manager values
+	local.retval.objectiveStatus = local.showObjectiveStatus
+	local.retval.areaCaptured = 0
+	local.retval.timer = local.timer * 10
+	local.retval.zonename = local.zonename
+	local.retval.callback = local.callback
+	local.retval.debug = local.debug
+	if (local.dialog == NIL)
+		local.retval.dialog = NULL
+	else
+		local.retval.dialog = local.dialog		
+	
+	//start watching the triggers
+	local.retval thread occupation_watcher 
+	
+end local.retval
+
+
+//------------------
+init_trigger_array local.array local.team local.zonename local.occupied_callback local.failed_callback local.timer local.objStatus:
+//------------------
+	
+	// make sure each trigger knows this basic info	
+	
+	for(local.i = 1; local.i <= local.array.size; local.i++)
+	{
+		local.array[local.i].occupied_callback = local.occupied_callback
+		local.array[local.i].failed_callback = local.failed_callback
+		local.array[local.i].isOccupied = 0
+		local.array[local.i].team = local.team
+		local.array[local.i].timer = local.timer * 10
+		local.array[local.i].zonename = local.zonename		
+		if( local.objStatus != NIL && local.objStatus != NULL && local.objStatus )
+			local.array[local.i].objectiveStatus = waitthread global/mp_objective_status.scr::occupation_initialize local.array[local.i]				
+	}
+		
+end local.array
+
+
+//-----------------------------------------------------------------------------
+occupation_watcher:
+//------------------
+
+	// watch the triggers to see if the specified triggers have been occupied
+
+	local.breakLoop = 0
+
+	while(1)
+	{
+		//reset our count of occupied triggers
+		local.numOccupied = 0
+		
+		//loop through occupied triggers to see how many are occupied
+		for(local.i = 1; local.i <= self.triggerArray.size; local.i++)
+		{
+			if( self.triggerArray[local.i].isOccupied == 1 )
+				local.numOccupied++	  
+		}
+	
+		//if all are occupied, start the countdown, but don't return until either the
+		//area is taken over, or this attempt failed
+		if( local.numOccupied == self.triggerArray.size )		
+			local.breakLoop = self waitthread all_ur_base_r_belong_to_us	
+		
+		//if the take-over succeeded kill this thread
+		if( local.breakLoop == 1 )
+			break
+		
+		waitframe
+	}
+end
+
+
+//-----------------------------------------------------------------------------
+all_ur_base_r_belong_to_us local.player :
+//------------------
+
+	// Once all of the triggers have been occupied this thread is started.
+	// It starts the stopwatches on everyone's screen, makes sure all the
+	// triggers are occupied, and progresses the stopwatch timer.
+
+	local.objCompleted = 0
+
+	// tell players the area is now occupied
+	self thread notify_of_occupation	
+
+	local.countdown = self.timer
+
+	// countdown while all spaces are occupied
+	while (local.countdown > 0)
+	{			
+		//reset our count of occupied triggers
+		local.numOccupied = 0
+		
+		//loop through occupied triggers to see how many are occupied
+		for(local.i = 1; local.i <= self.triggerArray.size; local.i++)
+		{
+			if( self.triggerArray[local.i].isOccupied == 1 )
+				local.numOccupied++	  
+			else
+			{   // if one trigger is un-occupied, we assume failure
+				
+				self.triggerArray[local.i] thread notify_failed_attempt
+				self thread mark_rest_as_threatened
+				end local.objCompleted
+			}
+		}
+		
+		local.countdown--
+
+		wait 0.1
+	}
+		
+	//the attempt succeeded, time for cleanup	
+	self thread notify_successful_attempt	
+	thread self.callback	
+	
+	self.triggerArray remove	
+	local.objCompleted = 1
+
+end local.objCompleted
+
+
+//-----------------------------------------------------------------------------
+occupation local.player:
+//------------------
+
+	// Determine if the correct player (invader) has entered the space.
+	// If so, let the manager know, and wait to hear if the objective 
+	// has been completed. If this area becomes unoccupied, let the manager
+	// know.
+
+
+	if (local.player.dmteam != self.team)
+		end
+	
+	// this gives the trigger a soundmaker
+	self thread global/mp_ambience.scr::sound occupy_alarm_sound 0
+	self.soundmaker stoploopsound
+
+	self nottriggerable
+
+	// tell players the area is now occupied
+	self thread notify_of_partial_occupation local.player		
+
+	self.soundmaker loopsound occupy_alarm_sound
+	
+	//let me into the loop
+	local.count = 1
+	
+	//while we still have a player in the trigger and the obj
+	//has not been completed
+	while (local.count == 1)
+	{
+		//end thread if trigger dies, or is not there
+		if (self == NIL || self == NULL)
+			end		
+
+		local.count = 0
+
+		//make sure a player is still in the trigger
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+			local.player = $player[local.i]
+			if (local.player.incapacitated == 0 && local.player.dmteam == self.team)
+			{
+				if (local.player isinside self)
+				{
+					if (Isalive local.player) 
+					{
+						local.count = 1
+						break
+					}
+				}
+			}
+		}				
+
+		//if there is no player in the trigger, end thread, etc
+		if (local.count == 0)
+		{
+			self triggerable
+			self.soundmaker stoploopsound			
+			self thread notify_failed_attempt			
+			self.soundmaker remove					
+			end
+		}
+
+		wait 0.1
+	}
+
+	//do the following when the objective is achieved
+
+	self.soundmaker stoploopsound	
+	wait 5
+	self.soundmaker remove
+	
+end
+
+
+//------------------
+update_compass:
+//------------------
+
+	//if there are any unoccupied areas, point to them, otherwise, keep pointing to the same area
+	for( local.i = 1; local.i <= self.size; local.i++ )
+	{
+		if( self[local.i].isOccupied != 1 )
+		{
+			waitthread global/mp_invader.scr::set_objective_position self[local.i].origin
+			end
+		}	
+	}
+end
+
+
+//------------------
+notify_of_partial_occupation local.player:
+//------------------
+
+	//flag this trigger as occupied
+	self.isOccupied = 1
+	thread self.occupied_callback
+	local.bigtextMsg = "INVADER:PartialOccupation" //local.player.netname_noloc + " has occupied a " + self.zonename
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg local.player.netname_noloc self.zonename
+	
+	self thread update_compass
+	
+	if( self.objectiveStatus != NIL && self.objectiveStatus != NULL )
+		self.objectiveStatus waitthread global/mp_objective_status.scr::occupation_partially_occupied		
+	
+end
+
+
+//------------------
+notify_of_occupation:
+//------------------
+
+	local.timeLeft = self.timer * .1
+	local.timeLeft = int(local.timeLeft)   //from float to int
+	local.timeLeft = "~" + local.timeLeft  //turn off localization 
+	
+	local.bigtextMsg = "INVADER:TotalOccupation" 
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.zonename
+	
+	local.bigtextMsg = "INVADER:TotalOccupationTimeLeft"	
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.zonename local.timeLeft
+	
+	if( self.triggerArray[1].objectiveStatus != NIL && self.triggerArray[1].objectiveStatus != NULL )
+	{	
+		for( local.i = 1; local.i <= self.triggerArray.size; local.i++ )		
+			self.triggerArray[local.i].objectiveStatus waitthread global/mp_objective_status.scr::occupation_occupied 
+	}
+	
+end
+
+
+//------------------
+notify_failed_attempt:
+//------------------
+
+	//flag this trigger as empty
+	self.isOccupied = 0
+	thread self.failed_callback
+	local.bigtextMsg = "INVADER:MultiOccupationAttackersFailure" 
+	if( self.team == "axis" )			
+		thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.zonename // tell allies
+	else
+		thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.zonename // tell axis
+	
+	local.bigtextMsg = "INVADER:MultiOccupationDefendersFailure"
+	if( self.team == "axis" )			
+		thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.zonename
+	else
+		thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.zonename
+	
+	if( self.objectiveStatus != NIL && self.objectiveStatus != NULL )
+		self.objectiveStatus waitthread global/mp_objective_status.scr::occupation_notify_failed_attempt
+end
+
+
+//------------------
+notify_successful_attempt:
+//------------------
+
+	local.bigtextMsg = "INVADER:MultiOccupationSuccess"
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.zonename
+
+
+	// mark all as success
+	if( self.triggerArray[1].objectiveStatus != NIL && self.triggerArray[1].objectiveStatus != NULL )
+	{
+		for( local.i = 1; local.i <= self.triggerArray.size; local.i++ )		
+				self.triggerArray[local.i].objectiveStatus waitthread global/mp_objective_status.scr::occupation_notify_successful_attempt
+	}
+		
+
+end
+
+
+
+// private
+
+//------------------
+mark_rest_as_threatened:
+//------------------
+
+	// leave the rest as occupied, just turn off their timers
+	for( local.i = 1; local.i <= self.triggerArray.size; local.i++ )
+	{
+		if( self.triggerArray[local.i].isOccupied == 1 )
+			self.triggerArray[local.i].objectiveStatus waitthread global/mp_objective_status.scr::occupation_partially_occupied
+	}
+
+end

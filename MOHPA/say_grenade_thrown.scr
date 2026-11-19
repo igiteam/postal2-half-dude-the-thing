@@ -1,0 +1,7 @@
+// Initialise say manager
+if (self.team == "american")
+{
+	self aid_grenrequest 9
+}
+
+end

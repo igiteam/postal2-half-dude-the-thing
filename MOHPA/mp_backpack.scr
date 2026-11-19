@@ -1,0 +1,347 @@
+//
+// MOHPA TKO, JABBOTT - April 16, 2004
+//
+// General code used when players pass over backpacks left by the corpses
+// of other player classes.
+//
+//----------------------------------------------------------------------
+
+//----------
+main:
+//----------
+	dprintln ( "ERROR: No need to exec global/mp_backpack.scr" )
+end
+
+
+//----------
+monitor_backpack_preroundstart:
+//----------
+	wait 1
+	if (level.backPackCount > 20 || level.roundstarted == 1)
+	{
+		level.backPackCount--
+		self remove
+	}
+	else
+	{
+		if (self != NULL)
+			self thread monitor_backpack_preroundstart
+	}
+end
+
+
+//----------
+monitor_backpack:
+//----------
+	if (level.roundstarted == 0)
+	{
+		self thread monitor_backpack_preroundstart
+		end
+	}
+
+	wait 20
+	if (self == NIL || self == NULL)
+		end
+	if (level.backPackCount > 20)
+	{
+		level.backPackCount--
+		self remove
+	}
+	else
+	{
+		self thread monitor_backpack
+	}
+end
+
+
+//----------------------------------------------------------------------
+ammotech_init:
+//----------
+
+	wait 1.0
+	self triggerable
+	if (level.backPackCount == NIL || level.backPackCount == NULL || int(level.backPackCount) < 1)
+		level.backPackCount = 1
+	else
+		level.backPackCount++
+	self thread monitor_backpack
+end
+
+
+//----------
+ammotech_trigger local.player:
+//----------
+
+
+	if (local.player.backpacktype == "ammotech")
+	{
+		local.deleteme = 0
+		local.maxSatchels = local.player maxgiveableammo satchel
+		local.maxAmmoBoxes = local.player maxgiveableammo ammobox
+		if (self.satchels > 0 && local.maxSatchels > 0 && local.player.combatclass == "ammotech")
+		{
+			if (local.maxSatchels < self.satchels)
+				self.satchels = local.maxSatchels
+			local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupSatchelCharges" ("~" + self.satchels)
+			//local.player iprint ( "You pick up " + self.satchels + " satchel charges" )
+			local.player ammo satchel self.satchels
+			local.deleteme = 1
+			self.satchels = 0
+		}
+		if (self.ammoboxes > 0 && local.maxAmmoBoxes > 0)
+		{
+			if (local.maxAmmoBoxes < self.ammoboxes)
+				self.ammoboxes = local.maxAmmoBoxes
+			local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupAmmoBoxes" ("~" + self.ammoboxes)
+			//local.player iprint ( "You pick up " + self.ammoboxes + " ammoboxes" )
+			local.player ammo ammobox self.ammoboxes
+			local.deleteme = 1
+			self.ammoboxes = 0
+		}
+		if (local.deleteme == 1)
+		{
+			self nottriggerable
+			level.backPackCount--
+			self hide
+			self remove
+		}
+	}
+	else if ((local.player compareuseslot "backpack_ammotech") >= 0)
+	{
+		self nottriggerable
+		local.player useslot "backpack_ammotech"
+		while (self && local.player && self && local.player istouching self)
+		{
+			if (local.player.useslot != "backpack_ammotech")
+				break
+			if (!(isalive local.player))
+				break
+			if (local.player.isspectator)
+				break
+			if (local.player.useheld)
+			{
+			
+				local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupAmmotechBackpack"
+				//local.player iprint ( "You pick up an Ammotech backpack" )
+				local.player dropBackpack
+				local.player.backpacktype = ammotech
+				if (self.ammoboxes > 0)
+					local.player ammo ammobox self.ammoboxes
+				if (local.player.combatclass == "ammotech")
+				{
+					if (self.satchels > 0)
+						local.player ammo satchel self.satchels
+				}
+				self.satchels = 0
+				self.ammoboxes = 0
+				level.backPackCount--
+				self hide
+				self remove
+				break
+			}
+			wait 0.2
+		}
+		if (self)
+			self triggerable
+		if (local.player)
+			local.player removeuseslot "backpack_ammotech"
+	}
+end
+
+
+//----------------------------------------------------------------------
+engineer_init:
+//----------
+
+	wait 1.0
+	self triggerable
+	if (level.backPackCount == NIL || level.backPackCount == NULL || int(level.backPackCount) < 1)
+		level.backPackCount = 1
+	else
+		level.backPackCount++
+	self thread monitor_backpack
+end
+
+
+//----------
+engineer_trigger local.player:
+//----------
+
+
+	// Number of explosives are stored in self.explosives
+	// Number of landmines are stored in self.landmines
+
+	if (local.player.backpacktype == "engineer")
+	{
+		local.deleteme = 0
+		local.maxLandmines = local.player maxgiveableammo landmine
+		if (self.landmines > 0 && local.maxLandmines > 0 && local.player.combatclass == "engineer")
+		{
+			if (self.landmines > local.maxLandmines)
+				self.landmines = local.maxLandmines
+			local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupLandmines" ("~" + self.landmines)
+			//local.player iprint ( "You pick up " + self.landmines + " landmines" )
+			local.player ammo landmine self.landmines
+			self.landmines = 0
+			local.deleteme = 1
+		}
+
+		local.explosives = self.explosives
+		if (local.player.explosivepackcount < level.dm_engineerMaxExplosives)
+		{
+			local.diff = level.dm_engineerMaxExplosives - local.player.explosivepackcount
+			if (local.explosives > local.diff)
+				local.explosives = local.diff
+			local.player.explosivepackcount += local.explosives
+			local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupExplosives" ("~" + self.explosives)
+			//local.player iprint ( "You picked up " + local.explosives + " explosives." )
+			local.deleteme = 1
+		}
+		if (local.deleteme == 1)
+		{
+			self nottriggerable
+			level.backPackCount--
+			self hide
+			self remove
+		}
+	}
+	else if ((local.player compareuseslot "backpack_engineer") >= 0)
+	{
+		self nottriggerable
+		local.player useslot backpack_engineer
+		while (local.player && self && local.player istouching self)
+		{
+			if (local.player.useslot != "backpack_engineer")
+				break
+			if (!(isalive local.player))
+				break
+			if (local.player.isspectator)
+				break
+			if (local.player.useheld)
+			{
+				local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupEngineerBackpack"
+				//local.player iprint ( "You pick up an Engineer backpack" )
+				local.player dropBackpack
+				local.player.backpacktype = engineer
+				local.player.explosivepackcount = self.explosives
+				if (self.landmines > 0 && local.player.combatclass == "engineer")
+					local.player ammo landmine self.landmines
+				self.landmines = 0
+				self.explosives = 0
+				self hide
+				self remove
+				level.backPackCount--
+				break
+			}
+			wait 0.2
+		}
+		if (self)
+			self triggerable
+		if (local.player)
+			local.player removeuseslot "backpack_engineer"
+	}
+end
+
+
+//----------------------------------------------------------------------
+corpsman_init:
+//----------
+
+	wait 1
+	self triggerable
+	if (level.backPackCount == NIL || level.backPackCount == NULL || int(level.backPackCount) < 1)
+		level.backPackCount = 1
+	else
+		level.backPackCount++
+	self thread monitor_backpack
+end
+
+
+//----------
+corpsman_pick_up_pack local.player:
+//----------
+
+	local.remove = 0
+
+	if (local.player.sulfacount < level.dm_corpsmanMaxSulfa)
+	{
+		local.diff = level.dm_corpsmanMaxSulfa - local.player.sulfacount
+		if (self.sulfa > local.diff)
+			self.sulfa = local.diff
+		local.player.sulfacount = local.player.sulfacount + self.sulfa
+		local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupSulfa" ("~" + self.sulfa)
+		//local.player iprint ( "You picked up " + self.sulfa + " sulfa powder." )
+		local.remove = 1
+	}
+
+	if (local.player.combatclass == "corpsman" && local.player.morphinecount < level.dm_corpsmanMaxMorphine)
+	{
+		local.diff = level.dm_corpsmanMaxMorphine - local.player.morphinecount
+		if (self.morphine > local.diff)
+			self.morphine = local.diff
+		local.player.morphinecount = local.player.morphinecount + self.morphine
+		local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupMorphine" ("~" + self.morphine)
+		//local.player iprint ( "You picked up " + self.morphine + " morphine syrettes." )
+		local.remove = 1
+	}
+end local.remove
+
+
+//----------
+corpsman_trigger local.player:
+//----------
+
+	// Number of morphine syrettes are stored in self.morphine
+	// Number of sulfa powders are stored in self.sulfa
+
+	if (local.player.backpacktype == "corpsman")
+	{
+		local.sulfa = self.sulfa
+		local.morphine = self.morphine
+		local.remove = waitthread corpsman_pick_up_pack local.player
+
+		if (local.remove == 1)
+		{
+			self nottriggerable
+			level.backPackCount--
+			self hide
+			self remove
+		}
+	}
+	else if ((local.player compareuseslot "backpack_corpsman") >= 0)
+	{
+		self nottriggerable
+		local.player useslot "backpack_corpsman"
+		while (local.player && self && local.player istouching self)
+		{
+			if (local.player.useslot != "backpack_corpsman")
+				break
+			if (!(isalive local.player))
+				break
+			if (local.player.isspectator)
+				break
+			if (local.player.useheld)
+			{
+				local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:PickupCorpsmanBackpack"
+				//local.player iprint ( "You pick up an Corpsman backpack" )
+				local.player dropBackpack
+				local.player.backpacktype = corpsman
+				local.player.sulfacount = self.sulfa
+				if (local.player.combatclass == "corpsman")
+					local.player.morphinecount = self.morphine
+				self.sulfa = 0
+				self.morphine = 0
+				self hide
+				level.backPackCount--
+				self remove
+				break
+			}
+			wait 0.2
+		}
+		if (self)
+			self triggerable
+		if (local.player)
+			local.player removeuseslot "backpack_corpsman"
+	}
+
+end

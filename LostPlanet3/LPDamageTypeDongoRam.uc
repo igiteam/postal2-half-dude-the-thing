@@ -1,0 +1,1 @@
+class LPDamageTypeDongoRam extends LPDamageTypeCrabChargeStrike;

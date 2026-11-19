@@ -1,0 +1,127 @@
+//
+// TKO JABBOTT, May 20, 2004
+//
+// Setup script for playing multiplayer free for all. Scripters
+// should just have to exec this script to get the functionality.
+//
+
+
+//-----------------------------------------------------------------------------
+main:
+//------------------
+
+	level waittill prespawn
+
+	waitthread shutdown_all_spawns
+
+	//if (level.reuseInvaderSpawns > 0)
+	//	waitthread enable_an_invader_spawnset
+	//else
+	//	waitthread enable_all_ffa_spawnset
+
+	waitthread enable_all_spawnset_as_ffa
+		
+	// CCARON - turn off objectives
+	setcvar "g_num_objectives" 0
+
+end
+
+
+//------------------
+shutdown_all_spawns:
+//------------------
+
+	local.spawns = level playerspawncount mp enabled
+
+	dprintln ( "INFO: shutting down " + local.spawns + " spawnpoints" )
+
+	for (local.i = local.spawns; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i mp enabled
+		local.sp disablespawn
+	}
+end
+
+//------------------
+enable_all_spawnset_as_ffa:
+//------------------
+	local.count = level playerspawncount disabled
+	for (local.i = local.count; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i disabled
+		local.sp starttype 1
+		local.sp enablespawn
+	}
+	local.count = level playerspawncount mp deathmatch enabled
+	dprintln ( "INFO: found " + local.count + " spawn points" )
+end
+
+//------------------
+enable_all_ffa_spawnset:
+//------------------
+	local.count = level playerspawncount mp deathmatch disabled
+	for (local.i = local.count; local.i > 0; local.i--)
+	{
+		local.sp = level playerspawn local.i mp deathmatch disabled
+		local.sp enablespawn
+	}
+	local.count = level playerspawncount mp deathmatch enabled
+	dprintln ( "INFO: found " + local.count + " spawn points" )
+end
+
+//------------------
+enable_an_invader_spawnset:
+//------------------
+
+	// Find all the disabled multiplayer spawns that have a team
+	// associated with them, and that have no targetname, and enable
+	// them...
+
+	local.spawnset = ( randomint level.spawnSetCount ) + 1
+
+	dprintln ( "INFO: using spawnset " + local.spawnset + " for DM map" )
+
+	local.spawnName = "axis_spawn_" + local.spawnset
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+	local.spawnName = "allies_spawn_" + local.spawnset
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+	local.spawnName = "axis_spawn_" + local.spawnset + "_big"
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+	local.spawnName = "allies_spawn_" + local.spawnset + "_big"
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+	local.spawnName = "axis_spawn_" + local.spawnset + "_small"
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+	local.spawnName = "allies_spawn_" + local.spawnset + "_small"
+	if ($(local.spawnName) != NULL)
+	{
+		$(local.spawnName) starttype 1
+		$(local.spawnName) enablespawn
+	}
+
+	local.count = level playerspawncount mp enabled
+	dprintln ( "INFO: enabled " + local.count + " spawn points" )
+	wait 10
+
+	dprintln ( "INFO: now enabling more spawn spots..." )
+	waitthread enable_all_spawnset_as_ffa
+end

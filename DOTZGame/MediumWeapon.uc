@@ -1,0 +1,1 @@
+class MediumWeapon extends RangedWeapon;

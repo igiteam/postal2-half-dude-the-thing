@@ -1,0 +1,1 @@
+class LPDamageTypeVSMeleeEndCombo extends LPDamageTypeVSMelee;

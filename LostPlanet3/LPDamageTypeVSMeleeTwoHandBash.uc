@@ -1,0 +1,1 @@
+class LPDamageTypeVSMeleeTwoHandBash extends LPDamageTypeVSMelee;

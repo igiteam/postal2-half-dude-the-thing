@@ -1,0 +1,1251 @@
+// ------------------------------------------------------------------------------------------
+//	cover.scr
+//
+//	Looks at current covernodetype and uses appropriate animation sets.
+//
+//
+//	Possible cover states are:
+//			
+//		idle			- not in combat, perform idle cover animations
+//		hide			- if we're exposed, hide.  If hiding, keep hiding
+//		reload			- do reload animation
+//		blindfire		- does blindfire animations
+//		aim				- loops the aiming animation
+//		peek			- Takes a "peek" at the otherside of the cover
+//		throwgrenade	- Throws a grenade from the cover
+//		pain			- in pain
+//		shootpain		- took pain while shooting
+//		Expose			- Transitions to exposed (ie: shoot-ready)
+//		Mount			- Plays animation to "mount" the cover.
+//
+// ------------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------------
+Main:
+// ------------------------------------------------------------------------------------------
+	
+	end
+
+
+
+// ------------------------------------------------------------------------------------------
+Init local.mounting:
+//
+// ------------------------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+	//waitexec anim/smoking.scr::SmokeRemoveCigarette
+	//waitexec anim/SayManager.scr::Init
+
+	if ( local.mounting==NIL )
+		local.mounting = 0
+	
+	self.nextsayattack		= 0
+	self.snipershoot		= 0
+
+	if ( self.mounted_cover_set==NIL )
+		self.mounted_cover_set		= "none"
+
+	if ( self.mounted_cover_dir==NIL )
+		self.mounted_cover_dir		= "none"
+
+
+	waitexec anim/cover.scr::GetCoverSet
+
+	if ( self.cover_set!=prone )
+	{
+		// get off the ground you!
+		switch (self.position)
+		{
+		case	prone:
+		case	pronewalk:
+			self waitthread anim/crouch.scr::transition
+			break
+		}
+	}
+
+	if ( local.mounting==0 )
+	{
+		if ( self.cover_set=="wall" && self.mounted_cover_set=="wall" && self.mounted_cover_dir!=self.cover_dir )
+		{
+//			dprintln "Transitioning:" self.entnum
+
+			self waitthread SyncCoverOrigin
+			// need to transition
+			if ( self.covernode.lowwall )
+			{
+				if ( self.cover_dir=="right" )
+					self waitthread PlayFullBody trans_crouchleft_2_crouchright
+				else
+					self waitthread PlayFullBody trans_crouchright_2_crouchleft
+			}
+			else
+			{
+				if ( self.cover_dir=="right" )
+					self waitthread PlayFullBody trans_standleft_2_standright
+				else
+					self waitthread PlayFullBody trans_standright_2_standleft
+			}
+			self waittill flaggedanimdone
+			self.mounted_cover_dir	= self.cover_dir
+		}
+	}
+
+	/*
+	if ( self.cover_set==wall )
+	{
+		if (self.covernode)
+		{
+			if ( self.covernode.lowwall )
+				self waitthread WallCrouch
+			else
+				self waitthread WallStand
+		}
+	}
+	*/
+	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+GetCoverSet:
+// ------------------------------------------------------------------------------------------
+
+	/*
+		jsl-->I don't think this optimization really did much and it was causing the pain handler to not be set correctly.
+
+
+	// jsl-->Small optimization so we don't do the switch statement if we don't need to.
+	if ( self.lastcovernode && ( self.covernode==self.lastcovernode ) )
+	{
+		end
+	}
+	*/
+
+	self.lastcovernode = self.covernode
+
+	switch ( self.covertype )
+	{
+	case	wallleftright:
+	case	wallleft:
+		self.cover_dir			= left
+		self.cover_set			= wall
+		self.painhandler		= anim/cover.scr::HandlePain
+		self.deathhandler		= anim/cover.scr::WallDeath
+		self waitthread WallStand
+		break
+	case	wallright:
+		self.cover_dir			= right
+		self.cover_set			= wall
+		self.painhandler		= anim/cover.scr::HandlePain
+		self.deathhandler		= anim/cover.scr::WallDeath
+		self waitthread WallStand
+		break
+	case	lowwallleft:
+		self.cover_dir			= left
+		self.cover_set			= wall
+		self.painhandler		= anim/cover.scr::HandlePain
+		self.deathhandler		= anim/cover.scr::WallDeath
+		self waitthread WallCrouch
+		break
+	case	lowwallright:
+		self.cover_dir			= right
+		self.cover_set			= wall
+		self.painhandler		= anim/cover.scr::HandlePain
+		self.deathhandler		= anim/cover.scr::WallDeath
+		self waitthread WallCrouch
+		break
+	case	stand:
+		self.cover_set			= stand
+		self.cover_dir			= ""
+		self.painhandler		= anim/cover.scr::HandlePain
+		break
+	case	crouch:
+		self.cover_set			= crouch
+		self.cover_dir			= ""
+		self.painhandler		= anim/cover.scr::HandlePain
+		break
+	case	prone:
+		self.cover_set			= prone
+		self.cover_dir			= ""
+		self.painhandler		= anim/cover.scr::HandlePain
+		break
+	case	crate:
+	case	grass:
+	case	none:
+	default:
+		self.cover_dir			= ""
+		self.cover_set			= crate
+		self.painhandler		= anim/cover.scr::HandlePain
+		break
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+NoCoverIdle:
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.covertype )
+	{
+	case	prone:
+		self waitthread anim/prone.scr::transition
+		break
+	case	crouch:
+	case	stand:
+	default:
+		// dprintln "self.waterdepth:" self.waterdepth " (" self.actorname ")"
+		switch ( self.waterdepth )
+		{
+		case	chest:
+		case	thigh:
+			self waitthread anim/stand.scr::transition
+			break
+		default:
+			self waitthread anim/crouch.scr::transition		// they crouch at stand nodes when idle...
+			break
+		}
+		break
+	}
+
+	self waitexec anim/idle.scr
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Idle:
+//
+//	Peform our idle animations
+//
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	if ( self.covernode==NULL || self.covertype==none || self.covertype=="stand" || self.covertype=="crouch" )
+	if ( self.covernode==NULL || self.covertype==none || self.covertype=="crouch" )
+	{
+		self waitthread NoCoverIdle
+		end
+	}
+
+	self waitthread HideTransition
+
+	while ( 1 )
+	{
+		local.random = randomint 5
+		local.random += 7
+
+		for ( local.i=0;local.i<local.random;local.i++ )
+		{
+			self waitthread PlayFullBody idle
+			self waittill flaggedanimdone
+		}
+
+		self waitthread IdlePeek
+	}
+
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+Search:
+//		"shoot intro" basically
+// ------------------------------------------------------------------------------------------
+
+	// for now, this is the same as just aiming..
+	self waitthread Init
+
+	if ( self.covertype==none )
+	{
+		self waitthread anim/opencombat.scr::Search
+		end
+	}
+
+	switch ( self.cover_set )
+	{
+		case	stand:
+			// since machine guns normally search with the weapon down low, we needed to use the search_stand alias here.
+			if ( self.weapongroup=="machinegun" )
+				break
+			// else purposely fall through here...
+		case	crouch:
+		case	prone:
+			self.position	= self.cover_set
+			self waitthread anim/opencombat.scr::Search
+			end
+	}
+
+	self waitthread ShootTransition
+
+	local.alias = self waitthread GetCoverAlias search
+	
+	while ( 1 )
+	{
+		self setmotionanim local.alias
+		self waittill flaggedanimdone
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+SetupAimTime:
+// ------------------------------------------------------------------------------------------
+
+	switch (self.weapongroup)
+	{
+	case	rifle:
+	case	pistol:
+		self.aimtime	= 0.2
+		break
+	case	shotgun:
+		self.aimtime	= 0.4
+		break
+	default:	// machinegun...
+		self.aimtime	= 0.05
+		break
+	}
+
+	if ( self.sniper )
+	{
+		local.enemyDist	= self.distancetoenemy
+		if ( local.enemyDist >= self.mediumrange )
+		{
+			// Let's do sniper aim....
+			self.snipershoot		= 1
+			self.aimtime			= 1 + randomfloat(0.5)
+		}
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CoverFire:
+// ------------------------------------------------------------------------------------------
+
+	// todo: Yell "covering fire..."
+
+	self waitthread Init
+
+	if ( self.covertype==none )
+	{
+		while ( 1 )
+		{
+			self waitthread anim/aim.scr::Aim
+			self waitthread WaitTillCanShoot
+			self waitexec anim/shoot.scr::Shoot
+		}
+		end
+	}
+	else
+	{
+		self waitthread Suppress
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Suppress:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread ShootTransition
+
+	self waitthread PlayFullBody aim	// a looping anim
+
+	self waitthread WaitTillCanShoot
+
+	// quick aimtime...
+	wait 0.2
+
+	local.alias = self waitthread GetCoverAlias shoot
+
+	while ( 1 )
+	{
+		self waitthread PlayFullBody aim	// a looping anim
+		self waitthread ShootRound local.alias
+		self waitthread WaitTillCanShoot
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WaitTillCanShoot:
+// ------------------------------------------------------------------------------------------
+	if ( self.needreload )
+		end
+
+	if ( self.enemy )
+	{
+		waitthread anim/shoot.scr::CanShoot
+		while (self.canshoot==0)
+		{
+			wait 0.1
+			waitthread anim/shoot.scr::CanShoot
+		}
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+ShootRound local.alias:
+// ------------------------------------------------------------------------------------------
+
+	if (self.weapongroup=="machinegun")
+	{
+		/*
+		// fire burst
+		local.rand = randomint (5)
+		local.rand += 2
+
+		for (local.i=1;local.i<=local.rand;local.i++)
+		{
+			self waitthread PlayFullBody shoot
+			self waittill flaggedanimdone
+		}
+		*/
+
+//		local.alias = self waitthread GetCoverAlias shoot
+		self waitthread anim/shoot.scr::ShootBurst local.alias
+	}
+	else
+	{
+		// fire single round
+//		self waitthread PlayFullBody shoot
+		self setmotionanim local.alias
+		self waittill flaggedanimdone
+	}
+
+
+	self interrupt_point shot			// tell thinker that we've fired a shot (or burst)
+
+	if ( self.rechamber )
+	{
+		self waitthread PlayFullBody rechamber
+		self waittill flaggedanimdone
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Shoot:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread ShootTransition
+
+	local.aimalias = self waitthread GetCoverAlias aim
+	local.shootalias = self waitthread GetCoverAlias shoot
+	
+	self setmotionanim local.aimalias		// looped anim
+
+
+	while ( isAlive self )
+	{
+		self waitthread WaitTillCanShoot
+
+		// ------
+		// aim...
+		self waitthread SetupAimTime
+		self setmotionanim local.aimalias		// looped anim
+		wait self.aimtime
+		// ------
+
+		self waitthread ShootRound local.shootalias
+	}   
+	
+	if ( self.team != "american" )
+	{			
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}
+	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Hide:
+// simply transition to the hiding state
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	local.playedAnim = self waitthread HideTransition
+
+	// That's all we need for these cover types
+	switch ( self.cover_set )
+	{
+		case	prone:
+		case	crouch:
+			end
+	}
+
+
+	if ( local.playedAnim==0 )
+	{
+		self waitthread PlayFullBody idle
+		waitframe
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Hiding:
+//
+//	continually hide....
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread HideTransition
+
+	switch ( self.cover_set )
+	{
+		case	prone:
+		case	crouch:
+			waitexec anim/cover.scr::Aim
+			end
+	}
+
+
+	// let's everyone know that we are in the hiding position
+	self interrupt_point hidden
+
+	while ( isAlive self )
+	{
+		self waitthread PlayFullBody idle
+		self waittill flaggedanimdone
+	}
+
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+NoCoverReload:
+// ------------------------------------------------------------------------------------------
+	self waitexec anim/reload.scr::DoReload
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Reload:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread GetCoverSet
+
+	if ( self.covertype=="stand" )
+	{
+		self waitthread HideTransition
+	}
+
+	if ( self.covernode==NULL || self.covertype==none || self.covertype=="crouch" )
+	{
+		self waitthread NoCoverReload
+		end
+	}
+
+	self waitthread Init
+	self waitthread HideTransition
+	
+	if (self.team != "german")
+	{	
+		// no one cares if we don't have an enemy!
+		if (self.enemy!=NULL)
+		{
+			self aid_reload
+		}
+	}
+
+	self waitthread PlayFullBody reload
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Blindfire:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+	self waitthread HideTransition
+
+	self waitthread PlayFullBody blindfire
+	self waittill flaggedanimdone
+
+	
+	if ( self.team != "american" )
+	{			
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}		
+	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Expose:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	//dprintln "Expose startpos:" self.origin
+
+	local.playedanim = self waitthread ShootTransition
+
+	if ( local.playedanim==0 )
+		waitframe
+
+	if ( self.team != "american" )
+	{			
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}
+
+//	dprintln "Expose endpos:" self.origin
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Aim:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	if ( self.covertype==none )
+	{
+		while ( 1 )
+		{
+			self waitthread anim/aim.scr::Aim
+			self waittill flaggedanimdone
+		}
+	}
+
+	self waitthread ShootTransition
+
+	local.alias = self waitthread GetCoverAlias aim
+
+	while ( 1 )
+	{
+		self setmotionanim local.alias
+		self waittill flaggedanimdone
+	}
+
+	
+	if ( self.team != "american" )
+	{			
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+ProneMount:
+// ------------------------------------------------------------------------------------------
+
+	self.position = prone
+	self waitthread PlayFullBody mount
+	wait 0.5
+	self.coverstate = cover_hidden
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Mount:
+//
+//	Plays an animation to mount the covernode...
+//	Animation should be 1/2 second.
+//	AI will "swivel" to the direction of the covernode during this animation.
+//	swivel will last no longer (even worse case) than 1/2 second.
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init 1
+
+	if ( self.nomount )
+	{
+		wait 0.5
+		end
+	}
+
+	if ( self.cover_set==prone )
+	{
+		self waitthread ProneMount
+		end
+	}
+
+	self.mounted_cover_set	= self.cover_set
+	self.mounted_cover_dir	= self.cover_dir
+
+	if ( self.covertype==stand )
+	{
+		// after we've mounted, we are in the crouched position...
+		self.position	= crouch
+	}
+
+	self waitthread PlayFullBody mount
+//	self waittill flaggedanimdone
+	wait 0.5	// all mounting animations should be 1/2 second...
+	
+	self.coverstate	= cover_hidden
+
+	self waitthread SyncCoverOrigin
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+IdlePeek:
+// ------------------------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.cover_set!="wall" && self.cover_set!="crate" )
+	{
+		// JSL-->We currently only have wall and crate animations for peeking...
+		waitframe
+		end
+	}
+
+	self waitthread PlayFullBody peekintro
+	self waittill flaggedanimdone
+
+	self waitthread PlayFullBody peek
+
+	local.random = randomfloat 2
+	local.random += 1
+
+	wait local.random
+
+	self waitthread PlayFullBody peekoutro
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+Peek:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	if ( self.cover_set!="wall" && self.cover_set!="crate" )
+	{
+		// JSL-->We currently only have wall and crate animations for peeking...
+		waitframe
+		end
+	}
+
+	self waitthread PlayFullBody peekintro
+	self waittill flaggedanimdone
+
+	self waitthread PlayFullBody peek
+
+	local.random = randomfloat 1
+	wait local.random
+
+	self waitthread PlayFullBody peekoutro
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+ThrowGrenade:
+// ------------------------------------------------------------------------------------------
+	
+	self exec anim/say_grenade_thrown.scr
+
+	self waitthread Init
+//	self endactionanim
+	self waitthread HideTransition	// make sure we're in the hidden pose..
+	// play the throw grenade animation..
+	self waitthread PlayFullBody throwgrenade
+	self waittill flaggedanimdone
+
+	end
+
+
+
+
+			// ----------------------------------
+			//		 Utility functions here
+			// ----------------------------------
+
+// ------------------------------------------------------------------------------------------
+GetCoverAlias local.action:
+// ------------------------------------------------------------------------------------------
+
+	local.position = ""
+
+	switch (self.cover_set)
+	{
+	case	crate:
+	case	crouch:
+		local.position = crouch
+		break
+	case	stand:
+		local.position = stand
+		break
+	}
+
+	local.alias = self getalias local.action self.cover_set local.position self.cover_dir
+
+	// Check for use of veteran and rookie animations
+	// currently these are only supported for machinegun weapon using wall cover.
+	if ( self.cover_set=="wall" && ( self.skilltype=="rook" || self.skilltype=="vet") )
+	{
+		switch ( self.weapongroup )
+		{
+			case	rifle:
+			case	pistol:
+			case	shotgun:
+				break
+			default:
+				switch ( local.action )
+				{
+					case	"aim":
+					case	"shoot":
+					case	"hide":
+					case	"expose":
+					case	"search":
+						local.alias = local.alias + "_" + self.skilltype
+						break
+					default:
+				}
+				break
+		}
+	}
+
+	end local.alias
+
+// ------------------------------------------------------------------------------------------
+PlayFullBody local.action:
+// ------------------------------------------------------------------------------------------
+
+	local.alias = self waitthread GetCoverAlias local.action
+	self setmotionanim local.alias
+
+	end
+
+
+			// ----------------------------------
+			//		 Put transitions here
+			// ----------------------------------
+
+// ------------------------------------------------------------------------------------------
+HideTransition:
+// ------------------------------------------------------------------------------------------
+
+	switch (self.cover_set)
+	{
+//	case	stand:
+//		self waitexec anim/crouch.scr::transition 0
+//		self.coverstate = cover_hidden
+//		waitframe
+//		end
+	case	crouch:
+		self.coverstate	= cover_hidden
+		waitframe
+		end
+	case	prone:
+		self waitexec anim/prone.scr::transition	// transition to prone if needed...
+		self.coverstate	= cover_hidden
+		waitframe
+		end
+	}
+
+
+	// see if we're already hidden, if so, bail out...
+	switch ( self.coverstate )
+	{
+	case	cover_hidden:
+	case	none:
+		self.coverstate	= cover_hidden
+//		self waitthread SyncCoverOrigin
+		end 0
+	}
+
+	if (self.iscaptain==true)
+	{	
+		self aid_tkcvr 2
+	}
+	
+	self.coverstate	= cover_hiding
+
+	self waitthread PlayFullBody hide
+	self waittill flaggedanimdone
+
+	self.coverstate	= cover_hidden
+//	self waitthread SyncCoverOrigin
+
+	if ( self.cover_set==crate )
+		self.position = crouch
+
+
+	// let's everyone know that we are in the hiding position
+	self interrupt_point hidden
+
+	end 1
+
+// ------------------------------------------------------------------------------------------
+ShootTransition:
+// ------------------------------------------------------------------------------------------
+
+	switch (self.cover_set)
+	{
+	case	stand:
+		self waitexec anim/stand.scr::transition 0
+		self.coverstate = cover_exposed
+		waitframe
+		end
+	case	crouch:
+		self.coverstate	= cover_exposed
+		waitframe
+		end
+	case	prone:
+		self waitexec anim/prone.scr::transition	// transition to prone if needed...
+		self.coverstate	= cover_exposed
+		waitframe
+		end
+	}
+
+
+	switch ( self.coverstate )
+	{
+	case	cover_exposed:
+		end 0
+	case	none:
+		if ( self.cover_set==crate )
+		{
+			self.coverstate = cover_exposed
+			end 0
+		}
+		break
+	}
+
+
+	self.coverstate	= cover_exposing
+	self waitthread PlayFullBody expose
+	self waittill flaggedanimdone
+	self.coverstate	= cover_exposed
+
+	if ( self.cover_set==crate )
+		self.position = stand
+
+	
+	// let's everyone know that we are in the hiding position
+	self interrupt_point exposed
+
+
+	end 1
+
+// ------------------------------------------------------------------------------------------
+WallCrouch:
+//
+//	If we're not crouched, play an anim to do so..
+//
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	stand:
+	walk:
+	run:
+		self.position	= crouch
+		break
+	prone:
+	pronewalk:
+		self waitexec anim/crouch.scr::transition
+		break
+
+	default:
+		self.position	= crouch
+	}
+
+	
+	if ( self.team != "american" )
+	{			
+		//3 is enemy attack chatter
+		self aid_combat 3 self.team
+	}	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallStand:
+//
+//	If we're not standing, play an anim to do so..
+//
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	stand:
+	walk:
+	run:
+	crouch:
+	crouchwalk:
+	crouchrun:
+		self.position	= stand
+		break
+	default:
+		self waitexec anim/stand.scr::transition
+	}
+
+	end
+
+
+			// ----------------------------------
+			//		 Pain & Death here
+			// ----------------------------------
+
+
+// ------------------------------------------------------------------------------------------
+HandlePain:
+// ------------------------------------------------------------------------------------------
+
+	//dprintln "Handle pain?"
+
+	switch ( self.cover_set )
+	{
+	case	stand:
+		if ( self.coverstate==cover_hidden )
+			self.position = crouch
+		else
+			self.position = stand
+
+		self waitexec anim/painhit.scr
+		end
+	
+	case	crouch:
+		self.position = crouch
+		self waitexec anim/painhit.scr
+		end
+
+	case	prone:
+		self.position = prone
+		self waitexec anim/painhit.scr
+		end
+
+	case	wall:
+		
+		if ( self.coverstate==cover_exposed )
+		{
+			self waitthread WallShootPain
+			end
+		}
+		
+		if ( self.coverstate=="cover_exposing" || self.coverstate=="cover_hiding" )
+		{
+			self interrupt_point "exit_cover"
+			self.painhandler = anim/painhit.scr::PainHitMain
+			self waitexec anim/painhit.scr
+			end
+		}
+		break
+	}
+
+
+//	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	local.position = self.position
+
+//	dprintln "Playing coverspecific pain."
+
+	if ( self.cover_set==crate )
+		local.position = crouch
+
+	self setmotionanim (self getalias pain self.cover_set local.position self.cover_dir) 1
+	self waittill flaggedanimdone
+
+	self.coverstate	= cover_hidden
+
+//	self waitthread SyncCoverOrigin
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+WallShootPain:
+// ------------------------------------------------------------------------------------------
+//	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	self setmotionanim (self getalias pain wallshoot self.position self.cover_dir) 1
+	self waittill flaggedanimdone
+
+	//13 is the priority used for low end specs.  Limits this to play only once per (x) seconds.  
+	//Set by the g_AIDHitsDelay cvar.
+	self aid_hits 13 -1 1	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallDeath:
+// ------------------------------------------------------------------------------------------
+
+//	waitexec anim/smoking.scr::SmokeRemoveCigarette
+//	self endactionanim
+	self waitthread PlayFullBody death
+	self waittill flaggedanimdone
+	self.position="dead"
+	
+	if (level.machinespec == "0")
+	{
+		//12 is the priority used for low end specs.  Limits this to play only once per (x) seconds.  
+		//Set by the g_AIDDeathsDelay cvar.
+		self aid_death 12 -1 1
+	}
+	else
+	{
+		//1 is the priority used to always play.
+		self aid_death 1 -1
+	}
+	
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+SyncCoverOrigin:
+// ------------------------------------------------------------------------------------------
+
+	if ( self.covernode )
+	{
+		// jsl-->Hopefully won't have to do this!
+		local.o = self.covernode.origin
+		local.o2 = self.origin
+		local.o[2] = local.o2[2]
+
+		local.closeenough = vector_within local.o self.origin 12
+
+		if ( local.closeenough==0 )
+		{
+			// only "teleport" if it's not too far...
+			local.closeenough = vector_within local.o self.origin 64
+			if ( local.closeenough==1 )
+			{
+//				dprintln "Syncing origin:" self.entnum
+				self.origin = local.o
+			}
+		}
+	}
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+CoverPathGoal:
+// ------------------------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.cover_set==crate )
+		self waitexec anim/crouch_walk.scr
+	else
+	{
+		if ( self.covernode.lowwall )
+			self waitexec anim/crouch_walk.scr
+		else
+			self waitexec anim/walk.scr
+	}
+		
+
+//	self waitthread PlayFullBody idle
+//	self waittill flaggedanimdone
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+Curious:
+//
+//	Do some quick peeks & maybe some expose/hides?
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+	if ( self.cover_set!="wall" && self.cover_set!="crate" )
+	{
+		// Nothing interesting to do unless we're wall or crate.
+		self waitthread CuriousIdle 1
+		end
+	}
+
+	while ( 1 )
+	{
+		self waitthread CuriousIdle 0
+
+		local.random = randomint 100
+
+		if ( local.random < 40 )
+		{
+			self waitthread CuriousSearch
+		}
+		else
+		{
+			self waitthread CuriousPeek
+		}
+
+		self interrupt_point curious
+
+		self waitthread CuriousIdle 1
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CuriousPeek:
+// ------------------------------------------------------------------------------------------
+	self waitthread Peek
+	end
+
+// ------------------------------------------------------------------------------------------
+CuriousSearch:
+//
+//	Play our search alias a few times....
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self waitthread ShootTransition
+
+	local.rand	= randomint 2
+	local.rand  += 1
+
+	for ( local.i=0;local.i<local.rand;local.i++ )
+	{
+		self waitthread PlayFullBody search
+		self waittill flaggedanimdone
+	}
+
+	self waitthread HideTransition
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CuriousIdle local.min:
+//
+//	Peforms limited # of idle animations
+//
+// ------------------------------------------------------------------------------------------
+
+	self waitthread Init
+
+//	if ( self.covernode==NULL || self.covertype==none || self.covertype=="stand" || self.covertype=="crouch" || self.covertype=="prone" )
+	if ( self.cover_set!="wall" && self.cover_set!="crate" )
+	{
+		self waitthread anim/idle.scr::Fidget
+		end
+	}
+
+	self waitthread HideTransition
+
+	local.random = randomint 2
+	local.random += local.min
+
+	for ( local.i=0;local.i<local.random;local.i++ )
+	{
+		self waitthread PlayFullBody idle
+		self waittill flaggedanimdone
+		self interrupt_point curious
+	}
+
+	end

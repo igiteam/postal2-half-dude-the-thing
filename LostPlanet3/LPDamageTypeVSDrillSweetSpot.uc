@@ -1,0 +1,1 @@
+class LPDamageTypeVSDrillSweetSpot extends LPDamageTypeVSDrill;

@@ -1,0 +1,310 @@
+// --------------------------------------------------------------------------------
+// global/sunflare.scr
+//
+// This overrides settings placed in worldspawn for a particular level
+// --------------------------------------------------------------------------------
+
+main:
+
+	if ( level.sunflare_script_run == 1 )
+	{
+		end
+	}
+	level.sunflare_script_run = 1
+
+level waittill spawn
+
+	// Level-based load-out decision
+	// MJG: note that all 'case' strings must be in lowercase to match properly
+	local.script = tolower level.script
+	println "*********** Loadout for: " local.script
+
+	switch ( local.script )
+	{
+////////Boot Camp
+	case "maps/1_1_bootcamp_chunk1.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/1_1_bootcamp_chunk2.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+		
+////////Pearl
+	case "maps/2_1_pearl_a_chunk1.scr":
+
+            setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/2_1_pearl_b_chunk1.scr":
+
+            setcvar r_flare_size 4000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/2_1_pearl_b_chunk2.scr":
+
+		setcvar r_flare_size 13000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/2_1_pearl_b_chunk3.scr":
+
+		setcvar r_flare_size 15000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+		
+////////Makin
+	case "maps/4_1_nightmoves_chunk1.scr":
+
+		setcvar r_flare_size 3000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/4_1_nightmoves_chunk2.scr":
+
+		setcvar r_flare_size 3000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/4_1_nightmoves_chunk3.scr":
+
+		setcvar r_flare_size 3000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/4_2_mandown_chunk1.scr":
+
+		setcvar r_flare_size 10000
+		setcvar r_flare_fade 5
+		setcvar r_flare_occlusion_scale 20
+
+		break
+	case "maps/4_2_mandown_chunk2.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/4_2_mandown_chunk3.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/4_4_sittingducks.scr":
+
+		setcvar r_flare_size 10000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+		
+////////Guadalcanal
+	case "maps/5_1_henderson_chunk1.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_1_henderson_chunk2.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+		break
+	case "maps/5_1_henderson_chunk3.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+		break
+	case "maps/5_1_henderson_chunk4.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_2_bloodyridge_chunk1.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_2_bloodyridge_chunk2.scr":
+
+		setcvar r_flare_size 3000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_2_bloodyridge_chunk3.scr":
+
+		setcvar r_flare_size 3000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 5
+
+		break
+	case "maps/5_3_riverwalk_chunk1.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_3_riverwalk_chunk2.scr":
+
+		setcvar r_flare_size 6000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_5_village_chunk1.scr":
+
+		
+		setcvar r_flare_size 9000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 3
+
+		break
+	case "maps/5_5_village_chunk2.scr":	
+
+		setcvar r_flare_size 9000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 3
+	
+		break
+	case "maps/5_5_village_chunk3.scr":	
+
+		setcvar r_flare_size 9000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 3
+	
+		break
+	case "maps/5_6_flyboys.scr":
+
+            setcvar r_flare_size 15000
+		setcvar r_flare_fade 5
+		setcvar r_flare_occlusion_scale 3
+	
+		break
+			
+////////Tarawa
+	case "maps/7_1_tarawa_a_chunk1.scr":
+
+		setcvar r_flare_size 9500
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/7_1_tarawa_a_chunk2.scr":
+
+		setcvar r_flare_size 9500
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/7_1_tarawa_a_chunk3.scr":
+
+		setcvar r_flare_size 9500
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break		
+	case "maps/7_1_tarawa_b_chunk1.scr":
+
+		setcvar r_flare_size 9500
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/7_1_tarawa_b_chunk2.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break		
+////////Demo
+	case "maps/mohpa_demo.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break	
+	default:
+		break
+
+////////Shells
+	case "maps/shell_start.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/Shell_Pearl.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+
+	case "maps/shell_Makin.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+
+	case "maps/shell_Guadalcanal.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+
+	case "maps/shell_Tarawa.scr":
+
+		setcvar r_flare_size 0
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	case "maps/5_6_introcinematic.scr":
+
+		setcvar r_flare_size 8000
+		setcvar r_flare_fade 3
+		setcvar r_flare_occlusion_scale 1
+
+		break
+	}
+end
+
+
+// -----------------------------------------------------

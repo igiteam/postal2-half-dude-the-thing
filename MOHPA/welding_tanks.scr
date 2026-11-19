@@ -1,0 +1,48 @@
+//-----------------------------
+start:
+//-----------------------------
+
+    local.force = 4500 
+    local.wait = 3.7   
+
+
+	//	Swap the renderable
+    self altmodel "awake"
+	
+	//	Start the rocket effect
+	self anim nozzle_on
+
+	// Start the sound
+	self loopsound weldingtank_flyaway 
+	
+	//	Enable damage on the tank
+    self takedamage
+	
+	//	Start the rocket
+	self havok_apply_force_to_bone "joint_root" "0.0 0.0 0.0" "0.0 0.0 -1.0" local.force
+	
+	//	Wait the duration of the rocket
+	wait local.wait
+	
+	//	Stop the rocket
+	self havok_apply_force_to_bone "joint_root" "0.0 0.0 0.0" "0.0 0.0 -1.0" 0.0
+
+    self kill
+
+end
+//-----------------------------
+pearl_gag:
+//-----------------------------
+	
+	//	Start the rocket effect
+	self anim nozzle_on
+    self waittill animdone
+
+	// Start the sound
+	self loopsound weldingtank_flyaway 
+
+    // Play the gag animation
+    self anim pearl_gag
+
+end
+	

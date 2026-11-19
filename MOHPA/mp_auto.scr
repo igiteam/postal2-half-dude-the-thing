@@ -1,0 +1,28 @@
+//
+// mp_auto.scr
+//
+
+// bandwidth-saving feature - if dm_effectscontroller is 0,
+// turn off ragdolls, effects, and map-specific ambience
+if (int(getcvar "dm_effectscontroller") == 0) 
+{
+	setcvar "dm_cull_map_ambience" 1
+	setcvar "dm_cull_placed_sounds" 1
+	setcvar "dm_noeffects" 1
+	setcvar "dm_maxragdolls" 0
+}
+else
+{
+	setcvar "dm_cull_map_ambience" 0
+	setcvar "dm_cull_placed_sounds"	0
+	setcvar "dm_noeffects" 0
+	
+	//Ragdolls are currently too expensive for DM.  Set this if we want to enable it in the future.
+	//setcvar "dm_maxragdolls" 0
+}
+
+exec global/mp_combat_classes.scr
+exec global/mp_tuning.scr
+exec global/mp_havok_disable_wakeup.scr
+exec global/mp_objective_status.scr
+

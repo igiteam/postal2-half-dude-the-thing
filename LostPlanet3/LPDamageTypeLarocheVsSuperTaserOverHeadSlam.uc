@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsSuperTaserOverHeadSlam extends LPDamageTypeLarocheVsMelee;

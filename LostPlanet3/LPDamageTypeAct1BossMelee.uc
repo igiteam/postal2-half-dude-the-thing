@@ -1,0 +1,1 @@
+class LPDamageTypeAct1BossMelee extends LPDamageTypeMelee;

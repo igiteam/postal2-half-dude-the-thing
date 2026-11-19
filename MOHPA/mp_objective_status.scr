@@ -1,0 +1,601 @@
+//
+// mp_objective_status.scr by Victor Dods
+//
+// This script is used to control the objective status
+// text lines in the "invader corner" HUD in the upper-right
+// portion of the screen.
+//
+// NOTE: you should exec this script after after waittill spawn
+//
+// 6/22/2004 - VDODS - initial file creation
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	// clear objective status text.
+	waitthread clear
+
+end
+
+
+//-----------------
+clear:
+//-----------------
+
+	// self is undefined
+
+	clear_objective_status
+	clear_radar_icons
+	
+	level.objectiveStatusCount = 0
+
+end
+
+
+//-----------------
+set_status local.number local.showHealth local.health local.showText local.text local.showTimer local.updateTimer local.timer local.blinking:
+//-----------------
+
+	// self is undefined
+
+	if (local.number == NIL || local.number == NULL)
+		end
+
+	if (local.number <= 0 || local.number > 9)
+		end
+
+	if (local.showHealth == NIL || local.showHealth == NULL)
+		local.showHealth = 0
+	if (local.health == NIL || local.health == NULL)
+		local.health = 0
+	if (local.showText == NIL || local.showText == NULL)
+		local.showText = 0
+	if (local.text == NIL || local.text == NULL)
+		local.text = 0
+	if (local.showTimer == NIL || local.showTimer == NULL)
+		local.showTimer = 0
+	if (local.updateTimer == NIL || local.updateTimer == NULL)
+		local.updateTimer = 0
+	if (local.timer == NIL || local.timer == NULL)
+		local.timer = 0
+	if (local.blinking == NIL || local.blinking == NULL)
+		local.blinking = 0
+
+	set_objective_status (local.number-1) local.showHealth local.health local.showText local.text local.showTimer local.updateTimer local.timer local.blinking
+
+end
+
+
+//-----------------
+set_icon local.number local.inUse local.pulsing local.ent:
+//-----------------
+
+	// self is undefined
+	
+	if (local.number == NIL || local.number == NULL)
+		end
+
+	if (local.number <= 0 || local.number > 9)
+		end
+
+	if (local.inUse == NIL || local.inUse == NULL)
+		local.inUse = 0
+	if (local.pulsing == NIL || local.pulsing == NULL)
+		local.pulsing = 0
+	if (local.ent == NIL || local.ent == NULL) {
+		local.inUse = 0
+		local.x = 0
+		local.y = 0
+	} else {
+		local.x = local.ent.origin[0]
+		local.y = local.ent.origin[1]
+	}
+
+	switch (local.number) {
+		case 1:
+		local.texture = "textures/hud/radar_subobjective1.tga"
+		break
+		
+		case 2:
+		local.texture = "textures/hud/radar_subobjective2.tga"
+		break
+		
+		case 3:
+		local.texture = "textures/hud/radar_subobjective3.tga"
+		break
+		
+		case 4:
+		local.texture = "textures/hud/radar_subobjective4.tga"
+		break
+
+		case 5:
+		local.texture = "textures/hud/radar_subobjective5.tga"
+		break
+		
+		case 6:
+		local.texture = "textures/hud/radar_subobjective6.tga"
+		break
+		
+		case 7:
+		local.texture = "textures/hud/radar_subobjective7.tga"
+		break
+		
+		case 8:
+		local.texture = "textures/hud/radar_subobjective8.tga"
+		break
+
+		case 9:
+		local.texture = "textures/hud/radar_subobjective9.tga"
+		break
+	}		
+		
+	set_radar_icon (local.number-1) local.inUse local.pulsing local.x local.y local.texture
+
+end
+
+
+//----------------------------------------------------------------------------
+destroyable_initialize local.destroyable local.name:
+//-----------------
+
+	// this function eases the use of mp_objective_status.scr with
+	// mp_destroyable.scr.  it returns a script_origin which contains
+	// the data: name of the thing the bomb is on (e.g. "AA Gun")
+	// and the line number this will be displayed on.
+	// NOTE: this must NOT be called before the objective is in
+	// progress or it will be clobbered.  it should be called
+	// right when the pertinent objective starts.
+	
+	// self is undefined
+	
+	
+	
+	// disallow more than 9 lines to be used
+	if (level.objectiveStatusCount >= 9)
+		end NULL // return NULL for error
+	
+	// increase the number of lines used
+	level.objectiveStatusCount++
+
+	// assign the statusNum and name
+	local.retval = spawn script_origin
+	local.retval.statusNum = level.objectiveStatusCount
+	local.retval.destroyable = local.destroyable
+	local.retval.name = local.name
+	// states:
+	// 0 - never been armed
+	// 1 - was armed, not currently
+	// 2 - armed
+	// 3 - destroyed
+	local.retval.state = 0
+	local.retval.updateTimer = 0		
+		
+	if (local.retval.destroyable.bomb)
+		local.retval.originEnt = local.retval.destroyable.bomb
+	else
+		local.retval.originEnt = local.retval.destroyable
+	// set the icon
+	waitthread set_icon local.retval.statusNum 1 0 local.retval.originEnt
+	
+	local.retval thread destroyable_monitor
+	
+end local.retval // return the retval
+
+
+//-----------------
+destroyable_monitor:
+//-----------------
+
+	// self is the script_origin returned by destroyable_initialize
+	
+	if (!self)
+		end
+
+	local.statusNum = self.statusNum
+	local.timer = self.destroyable.bomb.fuseTime
+	local.updateTimer = 0
+	local.blinking = 0
+	while (self && self.destroyable && self.state != 3) {		
+	
+		// set health
+		if (self.destroyable.hurt) {
+			local.showHealth = 1
+			local.health = int ( 100 * (self.destroyable.hurt.health - (self.destroyable.hurt.max_health-self.destroyable.brinkOfDeathHealth)) / self.destroyable.brinkOfDeathHealth )
+		} else {
+			local.showHealth = 0
+			local.health = 0
+		}
+			
+		// set the bomb status text and timer (if applicable
+		local.showText = 1
+		switch (self.state) {
+			case 0: 
+			local.text = "MPOBJSTATUS:Intact"
+			local.showTimer = 0
+			local.blinking = 0
+			break
+			
+			case 1: 
+			local.text = "MPOBJSTATUS:BombDisarmed"
+			local.showTimer = 0
+			local.blinking = 0
+			break
+			
+			case 2: 
+			local.text = "MPOBJSTATUS:BombArmed"
+			local.showTimer = 1
+			local.updateTimer = 1
+			local.blinking = 1
+			self.state = 4
+			break
+			
+			case 3: 
+			local.text = "MPOBJSTATUS:Destroyed"
+			local.showTimer = 0
+			local.blinking = 0
+			break
+
+			case 4: 
+			local.text = "MPOBJSTATUS:BombArmed"
+			if( self.destroyable.bomb.usePlunger )
+				local.showTimer = 0
+			else
+				local.showTimer = 1
+			local.updateTimer = 0
+			local.blinking = 1
+			break
+						
+		}
+
+ 		// update the status
+		waitthread set_status local.statusNum local.showHealth local.health local.showText local.text local.showTimer local.updateTimer local.timer local.blinking
+		
+		waitframe
+	}
+
+	// update the final status
+	local.showHealth = 0
+	local.text = "MPOBJSTATUS:Destroyed"
+	local.showTimer = 0
+	local.blinking = 0
+ 	waitthread set_status local.statusNum local.showHealth local.health local.showText local.text local.showTimer 0 local.timer local.blinking
+end
+
+
+//-----------------
+destroyable_bomb_armed:
+//-----------------
+
+	// self is the script_origin returned by destroyable_initialize
+	
+	// if self doesn't exist anymore, exit
+	if (!self)
+		end
+
+	if ( self.destroyable.bomb.usePlunger )		
+		self.state = 4	
+	else						
+		self.state = 2
+		
+	waitthread set_icon self.statusNum 1 1 self.originEnt
+end
+
+
+//-----------------
+destroyable_bomb_disarmed:
+//-----------------
+
+	// self is the script_origin returned by destroyable_initialize
+	
+	// if self doesn't exist anymore, exit
+	if (!self)
+		end
+
+	self.state = 1
+	waitthread set_icon self.statusNum 1 0 self.originEnt
+end
+
+
+//-----------------
+destroyable_destroyed:
+//-----------------
+
+	// self is the script_origin returned by destroyable_initialize
+	
+	// if self doesn't exist anymore, exit
+	if (!self)
+		end
+
+	self.state = 3
+	waitthread set_icon self.statusNum 0 0 self.originEnt
+end
+
+
+//----------------------------------------------------------------------------
+occupation_initialize local.occupationTrigger:
+//-----------------
+
+	// this function eases the use of mp_objective_status.scr with
+	// occupation objectives.
+	// NOTE: this must NOT be called before the objective is in
+	// progress or it will be clobbered.  it should be called
+	// right when the pertinent objective starts.
+	
+	// self is undefined
+
+	// disallow more than 9 lines to be used
+	if (level.objectiveStatusCount >= 9)
+		end // return NULL for error
+	
+	// increase the number of lines used
+	level.objectiveStatusCount++
+
+	// assign the statusNum and name
+	local.retval = spawn script_origin
+	local.retval.statusNum = level.objectiveStatusCount
+	local.retval.occupationTrigger = local.occupationTrigger
+	waitthread set_icon local.retval.statusNum 1 0 local.retval.occupationTrigger
+	waitthread set_status local.retval.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0
+	
+end local.retval
+
+
+//-----------------
+occupation_occupied:
+//-----------------
+
+	// self is the script_origin returned by occupation_initialize
+	
+	if (self == NIL || self == NULL)
+		end
+		
+	waitthread set_icon self.statusNum 1 1 self.occupationTrigger
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Threatened" 1 1 (self.occupationTrigger.timer/10) 1
+	
+end
+
+
+//-----------------
+occupation_partially_occupied:
+//-----------------
+
+	// self is the script_origin returned by occupation_initialize
+	
+	if (self == NIL || self == NULL)
+		end
+		
+	waitthread set_icon self.statusNum 1 1 self.occupationTrigger
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Threatened" 0 0 0 1
+	
+	
+end
+
+
+//-----------------
+occupation_notify_successful_attempt:
+//-----------------
+
+	// self is the script_origin returned by occupation_initialize
+	
+	if (self == NIL || self == NULL)
+		end
+		
+	waitthread set_icon self.statusNum 0 0 self.occupationTrigger
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Captured" 0 0 0 0
+	
+end		
+
+
+//-----------------
+occupation_notify_failed_attempt:
+//-----------------
+
+	// self is the script_origin returned by occupation_initialize
+	
+	if (self == NIL || self == NULL)
+		end
+		
+	waitthread set_icon self.statusNum 1 0 self.occupationTrigger
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0
+		
+end
+	
+
+//----------------------------------------------------------------------------
+flip_switch_initialize local.switch:
+//-----------------
+	// this function eases the use of mp_objective_status.scr with
+	// flip_switch objectives
+	// NOTE: this must NOT be called before the objective is in
+	// progress or it will be clobbered.  it should be called
+	// right when the pertinent objective starts.
+	
+	// self is undefined
+
+	// disallow more than 9 lines to be used
+	if (level.objectiveStatusCount >= 9)
+		end // return NULL for error
+	
+	// increase the number of lines used
+	level.objectiveStatusCount++
+
+	// assign the statusNum and name
+	local.retval = spawn script_origin
+	local.retval.statusNum = level.objectiveStatusCount
+	local.retval.switch = local.switch
+	
+	waitthread set_icon local.retval.statusNum 1 0 local.retval.switch
+	waitthread set_status local.retval.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0
+	
+end local.retval
+
+
+//-----------------
+flip_switch_start_countdown local.timer:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum 1 1 self.switch
+	// start the timer on the flip_switch
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Threatened" 1 1 local.timer 1
+end
+
+
+//-----------------
+flip_switch_notify_failed_attempt:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum 1 0 self.switch
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0
+end
+
+
+//-----------------
+flip_switch_notify_successful_attempt:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum 1 0 self.switch
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Captured" 0 0 0 0
+end
+
+
+//-----------------
+flip_switch_flipped local.text:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	waitthread set_status self.statusNum 0 0 1 local.text 0 0 0 0
+end
+
+
+//----------------------------------------------------------------------------
+item_retrieval_initialize local.retrievalTrigger:
+//-----------------
+	// this function eases the use of mp_objective_status.scr with
+	// retrieve_item objectives
+	// NOTE: this must NOT be called before the objective is in
+	// progress or it will be clobbered.  it should be called
+	// right when the pertinent objective starts.
+	
+	// self is undefined
+
+	// disallow more than 9 lines to be used
+	if (level.objectiveStatusCount >= 9)
+		end // return NULL for error
+	
+	// increase the number of lines used
+	level.objectiveStatusCount++
+
+	// assign the statusNum and name
+	local.retval = spawn script_origin
+	local.retval.statusNum = level.objectiveStatusCount
+	local.retval.trigger = local.retrievalTrigger
+	
+	waitthread set_icon local.retval.statusNum 1 0 local.retval.trigger
+	waitthread set_status local.retval.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0	
+	
+end local.retval
+
+
+//-----------------
+item_retrieval_start_countdown local.timer:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum 1 1 self.trigger
+	
+	// start the timer on the flip_switch
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Threatened" 1 1 local.timer 1
+end
+
+
+//-----------------
+item_retrieval_notify_successful_steal:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Stolen" 0 0 0 0
+end
+
+
+//-----------------
+item_retrieval_notify_successful_radio:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Transmitted" 0 0 0 0
+end
+
+
+//-----------------
+item_retrieval_notify_failed_attempt:
+//-----------------
+
+	// self is the script_origin returned by flip_switch_initialize
+	
+	waitthread set_icon self.statusNum 1 0 self.trigger
+	waitthread set_status self.statusNum 0 0 1 "MPOBJSTATUS:Secure" 0 0 0 0
+end
+
+
+//-----------------
+general_objective_add_item local.objItem local.notThreatenedText local.threatenedText:
+//-----------------           
+
+	// This function is used to add a diamond to the compass and HUD
+	// to represent an objective item. More specifically, it is used for the plunger
+	// in Bridge.
+
+	// self is undefined
+		
+	// disallow more than 9 lines to be used
+	if (level.objectiveStatusCount >= 9)
+		end NULL // return NULL for error
+	
+	// increase the number of lines used
+	level.objectiveStatusCount++
+
+	// assign the statusNum and name
+	local.retval = spawn script_origin
+	local.retval.statusNum = level.objectiveStatusCount
+	local.retval.objItem = local.objItem
+	local.retval.name = local.name
+	local.retval.notThreatenedText = local.notThreatenedText
+	local.retval.threatenedText = local.threatenedText
+	
+	// set the icon
+	waitthread set_icon local.retval.statusNum 1 0 local.retval.objItem
+	waitthread set_status local.retval.statusNum 0 0 1 local.retval.notThreatenedText 0 0 0 0	
+
+end local.retval // return the retval
+
+
+//-----------------
+general_item_threatened:
+//-----------------
+	waitthread set_icon self.statusNum 1 1 self.objItem	
+	waitthread set_status self.statusNum 0 0 1 self.threatenedText 0 0 0 1		
+
+end
+
+
+//-----------------
+general_item_not_threatened:
+//-----------------
+	waitthread set_icon self.statusNum 1 0 self.objItem
+	waitthread set_status self.statusNum 0 0 1 self.notThreatenedText 0 0 0 0	
+
+end

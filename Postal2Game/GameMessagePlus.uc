@@ -1,0 +1,2 @@
+class GameMessagePlus extends GameMessage;
+

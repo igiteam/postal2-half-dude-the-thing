@@ -1,0 +1,63 @@
+//
+// mp_scharge.scr
+//
+// multiplayer satchel charges
+//
+
+//----------------------------------------------------------------------------
+main:
+//----------------- 
+        // empty main function so that any accidental call to exec on this
+        // script doesn't clobber anything
+end
+
+
+//----------------------------------------------------------------------------
+toss:
+//----------------- 
+	// wait for the charge to settle on the ground
+	local.origin = self.origin
+	
+	// can't defuse the satchel in the first couple seconds
+	wait 2
+
+	while (self != NULL && (isalive self))
+	{
+		if ((vector_length (local.origin - self.origin)) < 1)
+			break
+		local.origin = self.origin
+		wait 0.1
+	}
+
+	if (self == NULL)
+		end
+
+	// now spawn a trigger and wait to be defused
+	local.trigger = spawn trigger_multiple
+	local.trigger.charge = self
+	local.trigger setthread detect
+	local.trigger setsize ( -20 -20 -20 ) ( 20 20 20 )
+
+	while (self != NULL && (isalive self))
+	{
+		local.trigger.origin = self.origin
+		wait 0.1
+	}
+
+	if (self != NULL)
+	{
+		local.trigger remove
+	}
+end
+
+//----------------------------------------------------------------------------
+detect local.player:
+//----------------- 
+	if (local.player.combatclass == "ammotech" && self.charge != NULL && self.charge != NIL)
+	{
+		local.player ammo satchel 1
+		self.charge remove
+		local.player waitthread global/mp_message.scr::player_message "COMBATCLASS:YouDefusedSatchel"
+		self remove		
+	}
+end

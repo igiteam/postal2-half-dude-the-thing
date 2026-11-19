@@ -1,0 +1,353 @@
+// ------------------------------------------------------------------------------------------
+//	cover_wall.scr
+//
+//
+//	This scripts handles all the wall-specific aggressive cover animations.
+//
+// ------------------------------------------------------------------------------------------
+
+
+main:
+	println "cover_wall.scr performing animation tests!"
+
+	self waitthread WallTest
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallTest:
+// ------------------------------------------------------------------------------------------
+	/// todo::
+
+	while ( 1 )
+	{
+		dprintln ".....................................Alert"
+		self thread WallAlert
+		local.thread = parm.previousthread
+		wait 10
+		local.thread end
+
+		dprintln ".....................................ShootIntro"
+		self waitthread WallShootIntro
+
+		dprintln ".....................................Aiming"
+		self thread WallAim
+		local.thread = parm.previousthread
+		wait 5
+		local.thread end
+
+//		dprintln ".....................................Shoot"
+//		self thread WallShoot
+//		local.thread = parm.previousthread
+//		wait 1
+//		local.thread end
+		dprintln ".....................................Hide"
+		self waitthread WallHide
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+GetDirection:
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.covertype )
+	{
+	case	wallleft:
+		end "left"
+	case	wallright:
+		end "right"
+	}
+
+	end "left"
+
+// ------------------------------------------------------------------------------------------
+WallInit:
+// ------------------------------------------------------------------------------------------
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	waitexec anim/reload.scr::ReloadInit
+
+	self.painhandler = anim/cover_wall.scr::WallPain
+	self.deathhandler = anim/cover_wall.scr::WallDeath
+
+	if ( self.wallstate==NIL )
+		self.wallstate = "none"
+
+	if (self.covernode)
+	{
+		if ( self.covernode.lowwall )
+			self waitthread WallCrouch
+		else
+			self waitthread WallStand
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallCrouch:
+//
+//	If we're not crouched, play an anim to do so..
+//
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	stand:
+	walk:
+	run:
+		self.position	= crouch
+		break
+	prone:
+	pronewalk:
+		break
+
+	default:
+		self.position	= crouch
+	}
+
+	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallStand:
+//
+//	If we're not crouched, play an anim to do so..
+//
+// ------------------------------------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	stand:
+	walk:
+	run:
+	crouch:
+	crouchwalk:
+	crouchrun:
+		self.position	= stand
+		break
+	default:
+		self.position	= stand
+	}
+
+	
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallShootIntro:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+
+	local.dir = self waitthread GetDirection
+
+	self endactionanim
+	self setmotionanim (self getalias shootintro wall "" local.dir)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallShoot:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+	self.painhandler = anim/cover_wall.scr::WallShootPain
+
+	local.dir = self waitthread GetDirection
+
+	while ( 1 )
+	{
+		self setmotionanim (self getalias aim wall "" local.dir )
+//		self setactionanim (self getalias aim wall "" local.dir ) -60 60
+		wait 0.2
+		self setmotionanim (self getalias shoot wall "" local.dir)	
+//		self setactionanim (self getalias shoot wall "" local.dir) -60 60
+		self waittill flaggedanimdone
+
+	}
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+WallPeek:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+
+	local.dir = self waitthread GetDirection
+
+	self endactionanim
+	self setmotionanim (self getalias peek wall "" local.dir)		
+	self waittill flaggedanimdone
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallHide:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+
+	local.dir = self waitthread GetDirection
+
+	self endactionanim
+	self setmotionanim (self getalias shootoutro wall "" local.dir)	
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallBlindfire:
+// ------------------------------------------------------------------------------------------
+	self waitthread WallInit
+
+	local.dir		= self waitthread GetDirection
+	local.curpos	= self.origin
+
+	self endactionanim
+	self setmotionanim (self getalias blindfire wall "" local.dir )		
+	self waittill flaggedanimdone
+
+	self.origin = local.curpos
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallIdle:
+//
+//	Performs idle-cover animation(s)
+//
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+
+	self endactionanim
+	self setmotionanim (self getalias idle wall "" x)	// x means no left/right for idle...
+	pause	// for now, we'll just loop the only idle animation we have.
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallAlert:
+// ------------------------------------------------------------------------------------------
+	self waitthread WallInit
+
+	local.dir		= self waitthread GetDirection
+
+	self endactionanim
+	self setmotionanim (self getalias idle wall "" "x" )	// 
+
+	pause
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallAim:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+
+	self.painhandler = anim/cover_wall.scr::WallShootPain
+
+	local.dir		= self waitthread GetDirection
+
+	self waitthread WallShootIntro
+
+	// setup our looping animations
+	self setmotionanim (self getalias aim wall "" local.dir )
+//	self setactionanim (self getalias aim wall "" local.dir ) -60 60
+
+	// don't want/need to return from this...
+	pause
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+WallReload:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+	
+
+	// play our reload with whole body!
+	self setmotionanim (self getalias reload wall)
+	self waittill flaggedanimdone
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+WallThrowGrenade:
+// ------------------------------------------------------------------------------------------
+
+	self exec anim/say_grenade_thrown.scr
+
+	self waitthread WallInit
+	local.dir = self waitthread GetDirection
+	self endactionanim
+	self setmotionanim (self getalias throwgrenade wall "" local.dir)
+	self waittill flaggedanimdone
+
+	end
+
+// ------------------------------------------------------------------------------------------
+WallSearch:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread WallInit
+	local.dir = self waitthread GetDirection
+
+	self setmotionanim (self getalias aim wall "" local.dir)
+//	self setactionanim (self getalias aim wall "" local.dir) -60 60
+
+	pause
+
+
+	end
+
+
+
+// ------------------------------------------------------------------------------------------
+WallPain:
+// ------------------------------------------------------------------------------------------
+	self waitthread WallInit
+
+	local.curpos = self.origin
+	local.dir = self waitthread GetDirection
+	
+	self setmotionanim (self getalias pain wall "x" local.dir)
+	self waittill flaggedanimdone
+	self.origin = local.curpos
+end
+
+// ------------------------------------------------------------------------------------------
+WallShootPain:
+// ------------------------------------------------------------------------------------------
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	local.dir = self waitthread GetDirection
+
+	local.curpos = self.origin
+	self setmotionanim (self getalias pain wallshoot "" local.dir)
+	self waittill flaggedanimdone
+	self.origin = local.curpos
+end
+
+// ------------------------------------------------------------------------------------------
+WallDeath:
+// ------------------------------------------------------------------------------------------
+	local.dir = self waitthread GetDirection
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self setmotionanim (self getalias death wall "" local.dir)
+	self waittill flaggedanimdone
+	self.position="dead"
+end
+

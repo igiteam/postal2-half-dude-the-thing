@@ -1,0 +1,143 @@
+// ----------------------------------------------------------------------------
+//	runto_charge.scr
+//
+//	Run at enemy shooting (if possible).  Do a melee attack when within range
+//	of the Enemy.  The script will end once the melee attack has occurred and
+//	the enemy is dead or has gone out of melee range.
+//
+// ----------------------------------------------------------------------------
+start:
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	self weaponcommand mainhand attachtohand mainhand
+
+	group.debug = 1
+	
+	thread PlayRunAnimation
+	group.runAnimationThread = parm.previousthread
+
+//	self weaponcommand mainhand attachtohand mainhand
+
+	waitthread GetEnemy
+
+	group.runAnimationThread end
+
+
+
+end
+
+
+// ----------------------------------------------------------------------------
+PlayRunAnimation:
+// PlayRunAnimation calls a standard running script with a waitexec.  It's done from a seperate thread like this to 
+// keep all threads in the same threadgroup, so that they will all end together if the group is terminated.
+// ----------------------------------------------------------------------------
+
+	waitexec anim/run.scr::InOpen
+
+end
+
+// ----------------------------------------------------------------------------
+DoMeleeAttack:
+//
+//	we are now in melee attack range, time to go get him...
+// ----------------------------------------------------------------------------
+
+	while ( 1 ) 
+	{
+		local.dist = self.distancetoenemy
+
+		if ( local.dist < self.meleerange )
+		{
+
+		}
+		waitframe 
+	}
+	
+
+end
+
+// ----------------------------------------------------------------------------
+GetEnemy:
+// ----------------------------------------------------------------------------
+
+	local.dist = self.distancetoenemy
+
+	local.maxdist = self.meleerange - 10
+
+	if ( local.dist > local.maxdist )
+	{
+		while ( local.dist > local.maxdist )
+		{
+			local.dist = self.distancetoenemy
+			local.ang  = self.angletoenemy
+
+			// only shoot if our angle to the enemy isn't too far off...	
+			if ( local.ang < 15 )
+			{
+				self.shootinmotionanimdone = 0
+				waitexec anim/shoot.scr::Shoot run
+//				self waittill upperanimdone
+//				waitexec anim/reload.scr::Reload 1 0
+
+				self.shootinmotionanimdone = 1
+				waitexec anim/aim.scr::Aim run
+//				self waittill upperanimdone
+				self waittill flaggedanimdone
+			}
+			else
+			{
+				wait 0.25
+			}
+		}
+	}
+	else
+	{
+		waitframe	// make sure we stay in this script for at least 1 frame......
+	}
+
+
+	end
+
+
+
+// ----------------------------------------------------------------------------
+// thread DPrintln - for debug prints
+DPrintln local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 1 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrint local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 0 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrintorPrintln local.newline local.text1 local.text2 local.text3 local.text4 local.text5:
+	if (group.debug == 1)
+	{
+		if (local.text1 != NIL)
+		{
+			print local.text1
+			if (local.text2 != NIL)
+			{
+				print local.text2
+				if (local.text3 != NIL)
+				{
+					print local.text3
+					if (local.text4 != NIL)
+					{
+						print local.text4
+						if (local.text5 != NIL)
+						{
+							print local.text5
+						}
+					}
+				}
+			}
+		}
+		if (local.newline == 1)
+		{
+			println
+		}
+	}
+end

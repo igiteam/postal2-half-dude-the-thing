@@ -1,0 +1,370 @@
+//--------------------------------------------------------------------------------
+// Stand.scr
+//
+//		Makes the character stand up, stop walking or running, stop shooting, just stand
+// there.  If the character is already standing, then this script plays standing
+// animations.  (Goes into idle animations)
+//
+//--------------------------------------------------------------------------------
+
+
+waitexec anim/default_inithandler.scr
+
+//--------------------------------------------------------------------------------
+start:
+//--------------------------------------------------------------------------------
+
+	// make sure we're standing first..
+	self waitthread transition
+	self waitthread anim/idle.scr::IdleAnim
+
+	/*
+
+	// do different idles depending on mood..
+
+	switch (self.mood)
+	{
+		case	atease:
+			self waitthread AtEaseStand
+			break
+		case	cautious:
+			self waitthread CautiousStand
+			break
+		case	alert:
+			self waitthread AlertStand
+			break
+		default:
+			dprintln "Invalid mood????"
+			waitframe
+			break
+	}
+
+	*/
+
+
+	end
+	
+//--------------------------------------------------------------------------------
+AlertStand:
+//--------------------------------------------------------------------------------
+	local.rand = randomint 100
+	local.animtoplay = NIL
+	
+	self.mood = alert
+	
+	if (NIL == self.shiftcounter)
+	{
+		self.shiftcounter = 4 + (randomint 3)
+	}
+	
+	if (local.rand < 10 && (0 == self.shiftcounter))	// 10% chance to fidget
+	{
+		self.shiftcounter = 4 + (randomint 3)
+		
+		local.rand = randomint 8
+		switch (local.rand)
+		{
+			case 0:
+				local.animtoplay = self getalias idle adjust
+				break
+			case 1:
+				local.animtoplay = self getalias idle duck
+				break
+			case 2:
+				local.animtoplay = self getalias idle duck2
+				break
+			case 3:
+				local.animtoplay = self getalias idle duck3
+				break
+			case 4:
+				local.animtoplay = self getalias idle franticlook
+				break
+			case 5:
+				local.animtoplay = self getalias idle lowerweapon
+				break
+			case 6:
+				local.animtoplay = self getalias idle shift
+				break
+			case 7:
+				local.animtoplay = self getalias idle sweep
+				break			
+		}
+	}
+	else
+	{
+		local.animtoplay = self getalias idle
+	
+		if (0 < self.shiftcounter)
+		{
+			self.shiftcounter--
+		}
+	}
+	 
+	if (NIL != local.animtoplay)
+	{
+		// if we've got a custom  animation, use it!
+		if ( self.customidle!="" && self.customidle!=NIL)
+		{
+			local.animtoplay = self.customidle
+		}
+
+		self setmotionanim local.animtoplay
+		self waittill flaggedanimdone
+	}
+end
+
+//--------------------------------------------------------------------------------
+CautiousStand:
+//--------------------------------------------------------------------------------
+	local.rand = randomint 100
+	local.animtoplay = NIL
+	self.mood = cautious
+	
+	if (NIL == self.shiftcounter)
+	{
+		self.shiftcounter = 2 + (randomint 2)
+	}
+	
+	if (local.rand < 40 && (0 == self.shiftcounter))	//40% chance to fidget
+	{
+		local.rand = randomint 3
+		switch (local.rand)
+		{
+			case 0:
+				local.animtoplay = self getalias idle duckdown_c
+				break
+			case 1:
+				local.animtoplay = self getalias idle checkgear_c
+				break
+			case 2:
+				local.animtoplay = self getalias idle lookaround_c
+				break
+		}
+		
+		self.shiftcoutner = 3 + (randomint 3)
+	}
+	else
+	{
+		local.animtoplay = self getalias idle c
+
+		if ( 0 < self.shiftcounter)
+		{
+			self.shiftcounter--
+		}
+	}
+	
+	
+	if (NIL != local.animtoplay)
+	{
+		self setmotionanim local.animtoplay
+		self waittill flaggedanimdone
+	}
+
+end
+
+//--------------------------------------------------------------------------------
+AtEaseStand:
+//--------------------------------------------------------------------------------
+	local.rand = randomint 100
+
+	local.animtoplay = NIL
+	
+	if (NIL == self.shiftcounter)
+	{
+		self.shiftcounter = 2 + (randomint 2)
+	}
+	
+	if (local.rand < 20 && (0 == self.shiftcounter) && self.posestyle)	// 20% chance to change posestyle
+	{
+		local.rand = randomint 2
+		switch (self.posestyle)
+		{
+			case a:
+				if (local.rand)
+				{
+					local.animtoplay = self getalias idle a2b
+					self.posestyle = b
+				}
+				else
+				{
+					local.animtoplay = self getalias idle a2c
+					self.posestyle = c
+				}
+				break
+			case b:
+				if (local.rand)
+				{
+					local.animtoplay = self getalias idle b2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle b2c
+					self.posestyle = c
+				}
+				break
+			default:
+				if (local.rand)
+				{
+					local.animtoplay = self getalias idle c2a
+					self.posestyle = a
+				}
+				else
+				{
+					local.animtoplay = self getalias idle c2b
+					self.posestyle = b
+				}
+				break
+		}
+		self.shiftcounter = 2 + (randomint 3)
+	}
+	else if (local.rand < 35 && self.posestyle && (0 == self.shiftcounter))	// 15% chance to fidget
+	{
+		switch (self.posestyle)
+		{
+			case a:
+				local.rand = randomint 2
+				switch (local.rand)
+				{
+					case 0:
+						local.animtoplay = self getalias idle left_a
+						break
+					case 1:
+						local.animtoplay = self getalias idle right_a
+						break
+				}
+				break
+			case b:
+				local.rand = randomint 4
+				switch (local.rand)
+				{
+					case 0:
+						local.animtoplay = self getalias idle left_b
+						break
+					case 1:
+						local.animtoplay = self getalias idle left_alt_b
+						break
+					case 2:
+						local.animtoplay = self getalias idle right_b
+						break
+					case 3:
+						local.animtoplay = self getalias idle right_alt_b
+						break
+				}
+				break
+			case c:
+				local.rand = randomint 2
+				switch (local.rand)
+				{
+					case 0:
+						local.animtoplay = self getalias idle shift_c
+						break
+					case 1:
+						local.animtoplay = self getalias idle bored_c
+						break
+				}
+				break
+		}
+		
+		self.shiftcounter = 2 + (randomint 3)
+		
+	}
+	else
+	{
+		switch (self.posestyle)
+		{
+			case a:
+				local.animtoplay = self getalias idle a
+				break
+			case b:
+				local.animtoplay = self getalias idle b
+				break
+			case c:
+				local.animtoplay = self getalias idle c
+				break
+			default:
+				
+				local.animtoplay = self getalias idle a
+				self.posestyle = a
+						
+				self.shiftcounter = 2 + (randomint 3)
+				break
+		}
+		
+		if (0 < self.shiftcounter)
+		{
+			self.shiftcounter--
+		}
+	}
+	
+	self setmotionanim local.animtoplay
+	self waittill flaggedanimdone
+
+//	self waitthread CheckForSmoke
+end
+
+
+
+
+//--------------------------------------------------------------------------------
+transition local.blendonly:
+//
+//	If not standing still, transition to standing...
+//
+//--------------------------------------------------------------------------------
+
+	self.blendtime = 0.5
+
+	if (stand != self.position)
+		self.posestyle = a
+
+	if ( local.blendonly==NIL )
+		local.blendonly = 1
+
+	switch (self.position)
+	{
+		stand:
+		walk:
+		run:
+			self.position = stand
+			break
+		crouch:
+		crouchwalk:
+		crouchrun:
+			if ( local.blendonly==0 )
+			{
+				self setmotionanim (self getalias trans stand)
+				self waittill flaggedanimdone
+			}
+			self.position = stand
+			break // can crossblend directly from these
+
+		prone:
+		pronewalk:
+			// Get up to crouch first
+			waitexec anim/crouch.scr::transition
+			self.position = stand
+			goto transition	// now anim to standing from crouched.
+//			break // can crossblend directly now
+
+
+		// Pain positions
+		knees:
+		floor:
+		crawl:
+			waitexec anim/continue_pain.scr
+			goto transition
+
+		dead:
+			// What do I do if he's dead?  Have to call setanim or it'll break!
+			println "^~^~^ Warning: stand.scr called on dead guy!"
+
+		default:
+			// I meant to catch all cases, so print a warning
+			println "^~^~^ Stand.scr called while in unexpected position (" self.position ") fix stand.scr"
+			waitframe
+			break
+
+	}	// End switch (position)
+	end
+

@@ -1,0 +1,1 @@
+class LPDamageTypeVSBump extends LPDamageType;

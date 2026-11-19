@@ -1,0 +1,237 @@
+//
+// mp_tuning.scr
+//
+
+//----------------------------------------------------------------------------
+
+// General parameters
+//setcvar "developer"           		"1"
+//setcvar "spam"           				"1"
+//setcvar "havokplayermove"           "0"
+//setcvar "dm_combatClassesEnabled"   "1"    // whether or node combat classes should be recognized
+//setcvar "dm_incapacitatedMaxHealth" "25"
+//setcvar "dm_unhealthyIconThreshold" "0.5"
+//setcvar "dm_classesDeathDropHealth"	"0"    // whether health is dropped when classes are enabled
+//setcvar "dm_classesDeathDropBackpack" "1"  
+//setcvar "dm_deathDropWeapon"        "0"
+//setcvar "g_enable_pophelmet"        "1"    
+
+// This value is set in configs/unnamedsoldier.cfg
+//setcvar "g_respawn_time"	    "15" // seconds between reinforncement spawns
+
+// Base effect ID
+//setcvar "dm_playerPostEffect" "7"
+
+// default effect modifiers
+//setcvar "dm_def_cc_sat"       "0.5"
+//setcvar "dm_def_cc_add"       "0.0 0.0 0.0"
+//setcvar "dm_def_cc_mul"       "1.0 1.0 1.0 1.0"
+//setcvar "dm_def_mono_blur"    "0.0"
+//
+//// VOD effect modifiers
+//setcvar "dm_vod_cc_sat"       "0.5"
+//setcvar "dm_vod_cc_add"       ".2 .2 .2"
+//setcvar "dm_vod_cc_mul"       "1 1 1"
+//setcvar "dm_vod_mono_blur"    "0.9"
+
+//setcvar "dm_knockback_coeff"  "0.1"	// smaller numbers - faster things get blurry
+
+thread commitPostFx
+
+//----------------------------------------------------------------------------
+
+// combat class general parameters
+//setcvar "dm_classMaxHealth_infantry" "120"
+//setcvar "dm_classMaxHealth_corpsman" "100"
+//setcvar "dm_classMaxHealth_engineer" "100"
+//setcvar "dm_classMaxHealth_ammotech" "100"
+//setcvar "dm_classMaxHealth_scout"    "100"
+
+// corpsman parameters
+// setcvar dm_corpsmanAttentionDist 400	// how close corpsman has to be to heal
+// setcvar dm_corpsmanReviveTime    2.0	// seconds to revive someone
+// setcvar dm_corpsmanHealTime      2.0	// seconds to heal someone
+// setcvar dm_corpsmanHealAmount    25	// amount to heal someone
+// setcvar dm_corpsmanMaxMorphine   6	// max carriable morphine syrettes
+// setcvar dm_corpsmanMaxSulfa      10	// max carriable sulfa powder
+
+// combat engineer parameters
+// setcvar dm_engineerPlantExplSpeedup  4.0  // how many times faster he can plant
+// setcvar dm_engineerDisarmExplSpeedup 4.0  // how many times faster he can defuse
+// setcvar dm_engineerMaxExplosives     8    // max carriable explosives
+
+//----------------------------------------------------------------------------
+
+// invader map functionality options
+
+// setcvar dm_largePlayerCount 12 // player count to start using large spawn locs
+// setcvar dm_attackerAdvanceDelay 10 // seconds head start for defender spawns
+
+//----------------------------------------------------------------------------
+
+// Optional secondary equipment, what the classes are allowed to
+//    choose from the class selection menu
+
+
+// the entire list of secondaries COMMA SEPARATED, NO SPACES !
+setcvar "dm_allSecondaries" "m1Carbine,garand,springfield,m1Sniper,thompson50,reising55,browning,riot,usMines,arisaka,japan44,JPNsniper,model100smg,Model96LMG"
+
+// allowed equipment for FFA
+
+
+// MOHPA TKO, CCARON - Limit the weapon loadout for Focus Group / CPL
+
+setcvar "dm_ffaSecondaries" "m1Carbine,thompson50,arisaka,model100smg"
+
+/*
+// allowed optional equipment, 1st item is default
+setcvar "dm_infantrySecondaries" "m1Carbine,thompson50,arisaka,model100smg"
+setcvar "dm_corpsmanSecondaries" "m1Carbine,arisaka"
+setcvar "dm_engineerSecondaries" "thompson50,usMines,model100smg"
+setcvar "dm_ammotechSecondaries" "m1Carbine,thompson50,arisaka,model100smg"
+*/
+
+// CCARON, THIS IS THE ACTUAL LOADOUT
+
+// allowed optional equipment, 1st item is default
+setcvar "dm_infantrySecondaries" "m1Carbine,garand,springfield,thompson50,m1Sniper,reising55,browning,riot,arisaka,japan44,model100smg,Model96LMG,JPNsniper"
+setcvar "dm_corpsmanSecondaries" "m1Carbine,springfield,garand,arisaka,Japan44"
+setcvar "dm_engineerSecondaries" "thompson50,reising55,riot,usMines,model100smg,Model96LMG"
+setcvar "dm_ammotechSecondaries" "m1Carbine,springfield,garand,thompson50,browning,reising55,arisaka,Japan44,Model96LMG,model100smg"
+
+setcvar "dm_ffaSecondaries" "m1Carbine,garand,springfield,m1Sniper,thompson50,reising55,browning,riot,arisaka,japan44,JPNsniper,model100smg,Model96LMG"
+
+//setcvar "dm_scoutSecondaries"    "m1903Sniper,m1Carbine,m1903,m1941"
+
+// CCARON - according to the most recent GDD (6/30) , this is the weapon set for allied and axis
+/*
+Allied items
+------------
+Corpsmans pouch
+Engineers Pack
+Ammunitions Satchel
+Smith and Wesson M1917 .45 Magnum
+Colt 45
+Mark II Hand grenade
+.30 Calibur M1 Carbine
+Springfield M1903 Rifle
+M1 Garand w/Bayinet
+Sprintfield M1903/A5 sniper rifle
+Thompson SMG w/50 round drum
+Reising Model 55 SMG
+M1918 A2 Browning Auto Rifle (BAR)
+Model 11 Remington SemiAuto riot gun
+
+Axis Items
+----------
+Nambu pistol
+Model 97 Grenade
+Model 38 6.5 mm Arisaka rifle
+Model 44 Cavalry Carbine Rifle w/bayonet
+Model 97 6.5 mm Sniper Rifle
+Type 100 SMG w/Bayonet
+Model 96 6.5 Light MG w/bayonet
+Katana - this weapon can be picked up but is useless
+*/
+
+//----------------------------------------------------------------------------
+setcvar "g_droppeditemlife" "30"  // how many seconds a dropped item remains
+
+//----------------------------------------------------------------------------
+// explosives
+//----------
+// setcvar dm_explosivesFuseTime    30
+// setcvar dm_explosivesArmTime     15
+// setcvar dm_explosivesDisarmTime  15
+// setcvar dm_explosivesDamage      200
+// setcvar dm_explosivesRadius      500
+
+//----------------------------------------------------------------------------
+// landmines
+//----------
+// setcvar dm_landmineDefuseTime         16   // secs for non-engineer to defuse
+// setcvar dm_landmineDefuseTimeEngineer 4    // secs for engineer to defuse
+// setcvar dm_landmineMaxSpotDistance    500  // max distance landmine spotted
+// setcvar dm_landmineSpottingNarrowness 0.85 // how directly spotter must look
+// setcvar dm_landmineSpotMultStand      0.33 // spotting dist reduction - stand
+// setcvar dm_landmineSpotMultCrouch     0.5  // spotting dist reduction - crouch
+// setcvar dm_landmineSpotMultProne      1.0  // spotting dist reduction - prone
+
+//----------------------------------------------------------------------------
+// mg params
+//----------
+// setcvar dm_mgInternalAmmo        65    // max amount of ammo
+// setcvar dm_mgSupplySize          30
+// setcvar dm_mgSupplyCount         2
+// setcvar dm_mgSupplyMaxCount      5
+// setcvar dm_mgAmmoTime            1.5   // time to reload
+// setcvar dm_mgHeatRate            4     // seconds of constant firing before 
+// setcvar dm_mgCoolRate            2
+// setcvar dm_mgJamTime             1.5   // seconds gun is jammed when overheated
+// setcvar dm_mgMaxHealth           150   // initial health of mg
+// setcvar dm_mgUserDistance        128   // units from gun user is placed
+
+//----------------------------------------------------------------------------
+// stationary artillery params (flak type gun)
+//----------
+// setcvar dm_artInternalAmmo       1
+// setcvar dm_artSupplySize         1
+// setcvar dm_artSupplyCount        3
+// setcvar dm_artSupplyMaxCount     5
+// setcvar dm_artAmmoTime           4
+// setcvar dm_artMaxHealth          1750
+
+//----------------------------------------------------------------------------
+// sniper wobble
+//----------
+setcvar "dm_sniperWobbleDuration"     "1.5" 
+setcvar "dm_sniperWobbleAzPeriod"     "1.0" 
+setcvar "dm_sniperWobbleIncPeriod"    "2.0" 
+setcvar "dm_sniperWobbleAzAmplitude"  "3.0"
+setcvar "dm_sniperWobbleIncAmplitude" "0.3"
+
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+
+// for support of fly-throughs in single player mode
+	thread setupSPEffects
+
+
+//-------------------------
+setupSPEffects:
+//-------------------------
+
+	// this is just here so that when the artists run the fly through
+	//    of the map, they get the right effect settings
+	
+
+	level waittill prespawn
+	level waittill spawn
+
+	local.gameType = getcvar("g_gametype")	
+	if (local.gameType != "0")
+		end
+	
+	$player global_posteffect 7	
+	local.sat = getcvar(dm_def_cc_sat)
+	local.add = getcvar(dm_def_cc_add)
+	local.mul = getcvar(dm_def_cc_mul)
+	local.blur = getcvar(dm_def_mono_blur)
+
+	setcvar r_cc_sat local.sat
+	setcvar r_cc_add local.add
+	setcvar r_cc_mul local.mul
+	setcvar r_mono_blur local.blue
+	waitframe
+end
+
+//-------------------------
+commitPostFx:
+//-------------------------
+
+while (1)
+{
+	dm_postfx_commit
+	wait 0.5
+}

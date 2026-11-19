@@ -1,0 +1,47 @@
+class LPSM_VsLarocheDefaultStandingStunEnd extends LPSM_AIBasePlayFullBodyAnimSeq
+    config(Game);
+
+function SpecialMoveStarted()
+{
+    local /*0x97E50000-0x00000000*/ private bool bForced[8388609];
+    local /*0x97E50000-0x00000000*/ private @NULL PrevMove[8388609];
+
+    super.SpecialMoveStarted(bForced, PrevMove);
+    MySPPawn.ZeroRotationRate();
+    MySPPawn.Mesh.RootMotionMode = 2;
+    MySPPawn.Mesh.RootMotionRotationMode = 0;
+    //return;    
+}
+
+function SpecialMoveEnded()
+{
+    local /*0x97E50000-0x00000000*/ private @NULL PrevMove[8388609], NextMove, VsLarochePawn;
+
+    VsLarochePawn = LPAIPawnVsLaroche(MySPPawn);
+    ProccesGrabLocationForEndOfSM(VsLarochePawn);
+    super.SpecialMoveEnded(PrevMove, NextMove);
+    MySPPawn.ResetRotationRate();
+    //return;    
+}
+
+function ProccesGrabLocationForEndOfSM()
+{
+    local /*0x97E50000-0x00000000*/ private @NULL VsLarochePawn[8388609];
+
+    // End:0xDB
+    if(VsLarochePawn != none)
+    {
+        VsLarochePawn.SetGrabPointEnabledByIndex(7, false);
+        VsLarochePawn.SetGrabPointEnabledByIndex(8, false);
+        VsLarochePawn.SetGrabPointEnabledByIndex(9, false);
+        VsLarochePawn.SetGrabPointEnabledByIndex(11, false);
+        VsLarochePawn.SetGrabPointEnabledByIndex(12, false);
+        VsLarochePawn.SetGrabPointEnabledByIndex(6, false);
+    }
+    //return;    
+}
+
+defaultproperties
+{
+    AnimationTemplateNodeNames=/* Array type was not detected. */
+}

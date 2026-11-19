@@ -1,0 +1,1 @@
+class LPDamageTypeCarrierPincerPushVs extends LPDamageTypeCarrierMelee;

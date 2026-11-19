@@ -1,0 +1,2 @@
+class MilitaryPosition extends DefensePosition;
+

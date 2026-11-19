@@ -1,0 +1,1 @@
+class LPDamageTypeStalkerRam extends LPDamageTypeStalkerMelee;

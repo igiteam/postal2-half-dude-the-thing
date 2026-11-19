@@ -1,0 +1,353 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// global/obj.scr
+//
+// copyright: (c) 2000-2003 Electronic Arts Inc.
+//
+// synopsis:
+//	this script provides a common entry point for all objective-related functions.
+//
+// description:
+//	the objectives are numbered internally (range is 1 through 20)
+//	the objectives are displayed from top to bottom, in increasing numeric order
+//	if an objective is marked as "hidden", it will not be displayed
+//	if an objective is marked as "shown", it will be displayed with an unchecked checkbox
+//	if an objective is marked as "completed", it will be displayed with a checked checkbox
+//	if an objective's number corresponds to the internal current objective, it will be
+//		displayed in an alternate font and/or color
+//	
+//
+// usage:
+//		quick usage table, see below for detail:
+//		to:								do this:
+//			add a new objective					waitthread global/obj.scr::new <#> <?text> <?location>
+//			add a hidden objective				waitthread global/obj.scr::newhidden <#> <?text> <?location>
+//			add a completed objective			waitthread global/obj.scr::newcompleted <#> <?text> <?location>
+//			hide an objective					waitthread global/obj.scr::hide <#>
+//			show an objective					waitthread global/obj.scr::show <#>
+//			complete an objective				waitthread global/obj.scr::complete <#>
+//			set the current objective			waitthread global/obj.scr::setcurrent <#>
+//			update an objective text string		waitthread global/obj.scr::updatetext <#> <text>
+//			update an objective location		waitthread global/obj.scr::updateLoc <#> <location>
+//			silently show an objective			waitthread global/obj.scr::showquiet <#>
+//			
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to add a new (shown) objective to the list, use:
+//
+//		waitthread global/obj.scr::new <number> <objective text> <location>
+//
+//		where:
+//			1) <number> is an entry number from 1 to 20
+//			2) <cvar name text> the cvar name used by the objective map urc file
+//			3) <location> [optional] is the location vector for the objective
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to add a new, hidden objective to the list, use:
+//
+//		waitthread global/obj.scr::newhidden <number> <objective text> <location>
+//
+//		where:
+//			1) <number> is an entry number from 1 to 20
+//			2) <objective text> [optional] is the text that is shown for the objective
+//			3) <location> [optional] is the location vector for the objective
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to add a new, completed objective to the list, use:
+//
+//		waitthread global/obj.scr::newcompleted <number> <objective text> <location>
+//
+//		where:
+//			1) <number> is an entry number from 1 to 20
+//			2) <objective text> [optional] is the text that is shown for the objective
+//			3) <location> [optional] is the location vector for the objective
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to hide an objective from the list, use:
+//
+//		waitthread global/obj.scr::hide <number>
+//
+//		where:
+//			1) <number> is the entry number for the objective to hide
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to show (unhide) an objective from the list, use:
+//
+//		waitthread global/obj.scr::show <number>
+//
+//		where:
+//			1) <number> is the entry number for the objective to show
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to complete an objective from the list, use:
+//
+//		waitthread global/obj.scr::complete <number>
+//
+//		where:
+//			1) <number> is the entry number for the objective to complete
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to set the current (hilighted) objective, use:
+//
+//		waitthread global/obj.scr::setcurrent <number>
+//
+//		where:
+//			1) <number> is the entry number for the desired current objective
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to update the text of an objective, use:
+//
+//		waitthread global/obj.scr::updatetext <number> <objective text>
+//
+//		where:
+//			1) <number> is the entry number for the desired current objective
+//			2) <objective text> is the (updated) text for the objective
+//
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//	- to update the location of an objective, use
+//
+//		waitthread global/obj.scr::updateLoc <number> <objective location vector>
+//
+//		where:
+//			1) <number> is the entry number for the desired current objective
+//			2) <objective location vector> is the (updated) location for the objective
+//
+// TODO:
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main:
+
+	// Clear objective status
+	for ( local.i = 1; local.i <= level.maxobjectives; local.i++ )
+	{
+		level.objective[local.i] = 0
+	}
+
+	// Set correct objective count per level
+	setobjectivecount 1 21 3
+	setobjectivecount 2 7  3
+	setobjectivecount 4 19 2
+	setobjectivecount 5 47 8
+	setobjectivecount 7 14 2
+	
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// add a new (shown) objective to the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+new local.index local.objective local.location:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to create an objective with invalid index.")
+
+	local.objective = waitthread str_format local.objective
+	addobjective local.index 2 local.objective local.location
+	level.objective[local.index] = 2
+	
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// add a new, hidden objective to the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+newhidden local.index local.objective local.location:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to create an objective with invalid index.")
+
+	local.objective = waitthread str_format local.objective
+	addobjective local.index 1 local.objective local.location local.isSecret
+	level.objective[local.index] = 1
+	
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// add a new, hidden secret objective to the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+newhiddensecret local.index local.objective local.location:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to create an objective with invalid index.")
+
+	local.objective = waitthread str_format local.objective
+	addobjective local.index 4 local.objective local.location local.isSecret
+	level.objective[local.index] = 1
+	
+end
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// add a new, completed objective to the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+newcompleted local.index local.objective local.location:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to create an objective with invalid index.")
+
+	local.objective = waitthread str_format local.objective
+	addobjective local.index 3 local.objective local.location
+	level.objective[local.index] = 3
+	$player playsound objective_text
+	
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// hide an existing objective from the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+hide local.index:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to hide an objective with invalid index.")
+		
+	addobjective local.index 1
+	level.objective[local.index] = 1
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// show (unhide) an existing objective from the list
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+show local.index:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to show an objective with invalid index.")
+		
+	addobjective local.index 2
+	level.objective[local.index] = 2
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// complete an existing objective
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+complete local.index:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to complete an objective with invalid index.")
+		
+	addobjective local.index 3
+	level.objective[local.index] = 3
+	$player playsound objective_text
+	
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// set current objective
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setcurrent local.index:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) || (level.objective[local.index] == 0) )
+		exec global/error.scr ("Error, tried to set current objective with invalid index.")
+		
+	setcurrentobjective local.index
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// change the text of an objective
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+updatetext local.index local.objective:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) || (level.objective[local.index] == 0) )
+		exec global/error.scr ("Error, tried to change text of objective with invalid index.")
+
+	local.objective = waitthread str_format local.objective
+	addobjective local.index level.objective[local.index] local.objective		
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// change the location of an objective
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+updateLoc local.index local.location:
+
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) || (level.objective[local.index] == 0) )
+		exec global/error.scr ("Error, tried to change text of objective with invalid index.")
+
+	addobjective local.index level.objective[local.index] NIL local.location
+	setcurrentobjective local.index
+
+end
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// format string for objective window
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+str_format local.objective:
+
+	local.objective = waitthread global/string_format.scr::str_format local.objective 60	
+	
+end local.objective	
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// silently show an objective
+//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+showquiet local.index:	
+	
+	if ( (local.index == NIL) || (local.index > level.maxobjectives) )
+		exec global/error.scr ("Error, tried to show an objective with invalid index.")
+
+	local.def_vector = "0 0 0"
+	
+	addobjective local.index 2 "" local.def_vector 1
+	level.objective[local.index] = 2
+
+end
+

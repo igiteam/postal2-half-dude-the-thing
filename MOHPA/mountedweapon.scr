@@ -1,0 +1,465 @@
+// -----------------------------------------------------------------------
+//		Animation scripts used on the mounted weapon (currently just the mg42)
+// -----------------------------------------------------------------------
+
+//TODO-SC: query the turret's stance, and do a transition towards that stance
+// and then setmotionanim based on the new stance
+
+// -----------------------------------------------------------------------
+GetPrefix:
+// return a prefix suitable for use in animation
+// -----------------------------------------------------------------------
+
+	//SC could check if we are dealing with a mortar and set it automatically
+	// to xtcxx, or xtmxx....
+	// and can see if we are dealing with a reloader and set it automatically
+	// to xtrxx....
+
+	switch (self.position)
+	{
+		stand:
+		walk:
+		run:
+			local.prefix = "xtsxx"
+			break
+		crouch:
+		crouch_walk:
+		crouch_run:
+
+			local.prefix = "xtcxx"
+			break		
+		prone:
+		prone_walk:
+			local.prefix = "xtpxx"
+			break
+		default:
+			println "Invalid position for mount on mounted weapon- default case reached"
+			local.prefix = "xtsxx"
+			break
+	}
+end local.prefix
+
+// -----------------------------------------------------------------------
+GetWeaponTypeSuffix:
+// return a suffix associated with the weapon type
+// -----------------------------------------------------------------------
+	
+	//SC: Currently, "" signifies usage of regular animation set 
+	local.aianimationset = self.turret.aianimationset
+	if (local.aianimationset == "")
+	{
+		local.suffix = ""	
+	}
+	else
+	{
+		local.suffix = "_" + local.aianimationset
+	}
+
+end local.suffix
+
+// -----------------------------------------------------------------------
+GetGunInHandSuffix:
+// return a suffix associated with the gun in hand
+// also sets whether the guy had a gun or not
+// -----------------------------------------------------------------------
+		
+	// set type of gun in hand animation
+	if (self.gun == "")
+	{
+		local.suffix = ""
+		self.hadgun = ""
+	}
+	else
+	if (self.gun == "nambu pistol")
+	{
+		local.suffix = "_pistol"
+		self.hadgun = "pistol"	
+	}
+	else
+	{
+		local.suffix = "_rifle"
+		self.hadgun = "rifle"
+	}
+end local.suffix
+
+// -----------------------------------------------------------------------
+GetHadGunSuffix:
+// return a suffix associated with what gun was in the guy's hand when mounting
+// also sets whether the guy had a gun or not
+// -----------------------------------------------------------------------
+
+	if (self.hadgun == "rifle")
+	{
+		local.suffix = "_rifle"
+	}
+	else
+	if (self.hadgun == "pistol")
+	{
+		local.suffix = "_pistol"
+	}
+	else
+	{
+		local.suffix = ""
+	}
+end local.suffix
+
+// -----------------------------------------------------------------------
+CheckStanceTransition:
+//	checks the stance that is needed by the turret and transitions
+//	the sentient appropriately towards that stance
+// -----------------------------------------------------------------------
+//	dprintln "do the transition"
+	local.turret = self.turret
+	if ((local.turret != NIL) && (local.turret != NULL))
+	{
+		local.turretstance = local.turret.usestance
+	}
+	switch (local.turretstance)
+	{
+		stand:
+			waitexec anim/stand.scr::transition
+			break
+		crouch:
+			waitexec anim/crouch.scr::transition
+			break
+		prone:
+			waitexec anim/prone.scr::transition
+			break
+		default:
+			println "Invalid turret stance"
+			break
+	}
+end
+
+// -----------------------------------------------------------------------
+Mount:
+// Prefix_<mountedweapontype>_mount_<guninhand>
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+
+	//SC since I'm assuming that by this time, the npc will be in a "stand"
+	// position, all of our mounts will be from this same position...
+	// so we won't need to call CheckStanceTransition
+	
+	// get stance from turret
+	if ((self.turret != NIL) && (self.turret != NULL))
+	{
+		self.position = self.turret.usestance
+	}
+	else
+	{
+		self.position = stand
+	}
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_mount"
+	local.anim += waitthread GetGunInHandSuffix
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+end
+
+// -----------------------------------------------------------------------
+Aim:
+// Prefix_<mountedweapontype>_aim
+// -----------------------------------------------------------------------
+	// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+	// lining up perfectly.
+	self.blendtime = 0.10
+
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_aim"
+
+	// play anim
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+end
+
+// -----------------------------------------------------------------------
+Shoot:
+// Prefix_<mountedweapontype>_shoot
+// -----------------------------------------------------------------------
+	// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+	// lining up perfectly.
+	self.blendtime = 0.10
+
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_shoot"
+
+	// play anim
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+end
+
+// -----------------------------------------------------------------------
+Idle:
+// Prefix_<mountedweapontype>_idle
+// -----------------------------------------------------------------------
+	self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_idle"
+
+	idle_loop:
+	// play anim
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	goto idle_loop
+end
+
+// -----------------------------------------------------------------------
+Reload:
+// Prefix_<mountedweapontype>_reload
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reload"
+
+	// play anim	
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+end
+
+// -----------------------------------------------------------------------
+ReloadWait:		
+// gunner waits for reloader
+// Prefix_<mountedweapontype>_ready_idle_to_wait
+// Prefix_<mountedweapontype>_wait_idle
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloadWaitPain
+	self.painanimmode = direct_attached
+
+	// create anim alias
+	local.prefix = waitthread GetPrefix
+
+	// play transition animation first
+	local.anim = local.prefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_ready_idle_to_wait"
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	
+	// Play Looped Idle Animations
+	local.waitIdle = local.prefix
+	local.waitIdle += waitthread GetWeaponTypeSuffix
+	local.waitIdle += "_wait_idle"
+	
+	while(1)
+	{
+		self setmotionanim local.waitIdle
+		self waittill flaggedanimdone
+	}
+end
+
+// -----------------------------------------------------------------------
+ResumeFromReloadWait:
+// Prefix_<mountedweapontype>_wait_idle_to_ready
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloadWaitPain
+	self.painanimmode = direct_attached
+	
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_wait_idle_to_ready"
+
+	// play anim
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	end
+
+// -----------------------------------------------------------------------
+PainOnMG42:
+// Script for playing pain animations while on MG42
+// Prefix_<mountedweapontype>_pain
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::PainOnMG42
+	self.painanimmode = direct_attached
+	self.blendtime = 0.50
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_pain"
+
+	// play anim
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+end
+
+// -----------------------------------------------------------------------
+ReloadWaitPain:
+// pain while waiting for the reload
+// Prefix_<mountedweapontype>_wait_idle_pain
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloadWaitPain	
+	self.painanimmode = direct_attached
+
+	//SC NOTE: for Reloads, mounts, and dismounts, "restarting" the thread
+	// may not look that great.  Although it's probably worst for the 
+	// reload.  Keep this in mind.  You can solve this 
+	// through extra states, or having a pain handler that references
+	// variables that are set, ...or just make him invincible ;)
+
+	// create anim alias
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_wait_idle_pain"
+	
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	end
+
+// -----------------------------------------------------------------------
+Dismount:
+// Prefix_<mountedweapontype>_dismount_<guninhand>
+// -----------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_dismount"
+	local.anim += waitthread GetHadGunSuffix
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	self.position = stand		// make sure the guy is in a stand position after dismounting
+end
+
+
+//SC for now, put the 2nd player reload into this file
+// -------- Reloader actions -------------------------------------------
+
+// -----------------------------------------------------------------------
+ReloaderPain:
+// Prefix_<mountedweapontype>_reloader_pain
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloaderPain	
+	self.painanimmode = direct_attached
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_pain"
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	end
+
+// ----------------------------------------------------------------------
+ReloaderIdleWhileFiring:
+// Prefix_<mountedweapontype>_reloader_idle
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloaderPain
+	self.painanimmode = direct_attached
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_idle"
+
+	while(1)
+	{
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+	end
+
+// ----------------------------------------------------------------------
+ReloaderIdle:
+// Prefix_<mountedweapontype>_reloader_idle
+// -----------------------------------------------------------------------
+	//SC reloader idle and reloader idle while firing are both the same at this moment
+
+	self.painhandler = anim/mountedweapon.scr::ReloaderPain
+	self.painanimmode = direct_attached
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_idle"
+
+	while(1)
+	{
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+	}
+	end
+
+// -----------------------------------------------------------------------
+ReloaderReload:
+// Prefix_<mountedweapontype>_reloader_reload
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloaderPain	
+	self.painanimmode = direct_attached
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_reload"
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+	end
+
+// -----------------------------------------------------------------------
+ReloaderMount:
+// Prefix_<mountedweapontype>_reloader_mount_<guninhand>
+// -----------------------------------------------------------------------
+	self.painhandler = anim/mountedweapon.scr::ReloaderPain
+	self.painanimmode = direct_attached
+	
+	// get stance from turret
+	if ((self.turret != NIL) && (self.turret != NULL))
+	{
+		self.position = self.turret.usestance
+	}
+	else
+	{
+		self.position = stand
+	}
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_mount"
+	local.anim += waitthread GetGunInHandSuffix
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	end
+
+// -----------------------------------------------------------------------
+ReloaderDismount:
+// Prefix_<mountedweapontype>_reloader_mount_<guninhand>
+// -----------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+
+	local.anim = waitthread GetPrefix
+	local.anim += waitthread GetWeaponTypeSuffix
+	local.anim += "_reloader_dismount"
+	local.anim += waitthread GetHadGunSuffix
+
+	self setmotionanim local.anim
+	self waittill flaggedanimdone
+
+	self.position = stand	// make sure the guy is in a stand position after dismounting
+	end

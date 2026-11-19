@@ -1,0 +1,1 @@
+class LPKynapseObstacleManager extends SPKynapseObstacleManager;

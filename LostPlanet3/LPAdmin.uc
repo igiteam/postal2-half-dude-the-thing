@@ -1,0 +1,13 @@
+class LPAdmin extends SPAdmin
+    config(Game)
+    hidecategories(AnimDependency,Navigation);
+
+defaultproperties
+{
+    // Reference: CylinderComponent'Default__LPAdmin.CollisionCylinder'
+    begin object name=CollisionCylinder
+    end object
+    CylinderComponent=CollisionCylinder
+    Components[0]=CollisionCylinder
+    CollisionComponent=CollisionCylinder
+}

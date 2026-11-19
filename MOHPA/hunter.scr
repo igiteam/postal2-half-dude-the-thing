@@ -1,0 +1,54 @@
+// -------------------------------------------------------------------------
+// hunter.scr
+//
+//	Performs hunter thinker animations.
+//
+// -------------------------------------------------------------------------
+
+
+main:
+
+	waitthread LookAround
+
+
+end
+
+// -------------------------------------------------------------------------
+LookAround:
+// -------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+
+	// make sure we're at least crouched...
+	switch (self.position)
+	{
+	case	prone:
+	case	pronewalk:
+		self waitthread anim/crouch.scr::transition
+		end
+	}
+
+
+	self waitthread PlayIdle
+	local.rand = randomfloat 1
+	wait local.rand
+	self waitthread PlayLookAround
+
+	end
+
+// -------------------------------------------------------------------------
+PlayIdle:
+// -------------------------------------------------------------------------
+	self setmotionanim (self getalias idle)
+	self waittill flaggedanimdone
+
+	end
+
+// -------------------------------------------------------------------------
+PlayLookAround:
+// -------------------------------------------------------------------------
+	self setmotionanim (self getalias lookaround)
+	self waittill flaggedanimdone
+
+	end
+

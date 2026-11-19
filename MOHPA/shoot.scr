@@ -1,0 +1,168 @@
+//-------
+// Shoot
+//-------
+// Shoot at someone.
+
+//println "Shoot.scr called"
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+waitexec anim/reload.scr::ReloadInit
+self weaponcommand mainhand attachtohand mainhand
+
+//--------------------------------------------------------------------------------
+start:
+//--------------------------------------------------------------------------------
+
+if (self.enemy)
+{
+	local.distance = self.distancetoenemy
+	if (local.distance < self.meleerange )
+	{
+		waitexec anim/turret.scr::AttackDoMelee
+		end
+	}
+}
+
+// jsl-->Added check for CanShoot to prevent shooting our friendlies as much as possible...
+if (self.enemy)
+{
+	waitthread CanShoot
+	if ( self.canshoot==0 )
+	{
+		wait 0.2
+		End
+	}
+}
+
+// Need a fast crossblend so the shoot is snappy, which means we rely on the aim animation
+// lining up perfectly.
+self.blendtime = 0.20
+
+//self setmotionanim (self getalias idle legs)
+waitexec anim/shoot.scr::Shoot
+//self waittill upperanimdone
+
+end
+
+
+//--------------------------------------------------------------------------------
+CanShoot:
+//--------------------------------------------------------------------------------
+	if (self.enemy != NULL)
+	{
+		if ( self.weaponready==NIL )
+			self.weaponready = 1		// jsl-->Only needed until smoke build is put up into game (07/01/04)
+
+		if ( self.weaponready==0 )
+		{
+			self.canshoot = 0
+			end
+		}
+
+		// check angle
+		local.vec = self.enemy.origin - self.origin
+		local.vec[2] = 0.0
+		local.vec = vector_normalize(local.vec)
+		local.angle = local.vec * self.forwardvector
+//		if (local.angle > 0.95 && (self cansee self.enemy))		// ~10deg
+
+		local.dot = self.aimturnthresholdangle
+		if ( local.dot > 0.95 )
+			local.dot = 0.95
+//		if (local.angle > 0.95 && (self canshoot self.enemy))		// ~10deg
+//		if (local.angle > 0.95 && (self FriendlyInLineOfFire self.enemy)==0 )		// ~10deg
+		if ( (local.angle > local.dot) && (self FriendlyInLineOfFire self.enemy)==0 )
+		{
+			if ( self.gunontarget==1 )
+				self.canshoot = 1
+			else
+				self.canshoot = 0
+		}
+		else
+		{
+			self.canshoot = 0
+		}
+	}
+	else
+	{
+		self.canshoot = 0
+	}
+end
+
+//--------------------------------------------------------------------------------
+ShootBurst local.alias:
+//--------------------------------------------------------------------------------
+
+	// how many empty shots will we allow....
+	local.reload_wait = randomint 3
+
+	local.rand = randomint (7)
+	local.rand += 5
+
+//	dprintln level.inttime ">Doing machine gun burst:" local.rand
+
+	for (local.i=1;local.i<=local.rand;local.i++)
+	{
+		self setmotionanim local.alias
+		self waittill flaggedanimdone
+
+		if ( self.needreload )
+		{
+			local.reload_wait --
+
+			if ( local.reload_wait <= 0 )
+				break
+		}
+	}
+
+end
+
+//--------------------------------------------------------------------------------
+Shoot local.shoottype:
+//
+//			valid shoottypes are:
+//								shoot		- standing shoot	(default)
+//								run			- running shoot
+//								walk		- walking shoot
+//
+//--------------------------------------------------------------------------------
+
+
+
+	if ( local.shoottype==NIL )
+		local.shoottype	= "shoot"
+
+///dprintln "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shoot:" local.shoottype
+
+	switch ( local.shoottype )
+	{
+		case	shoot:
+//			self setactionanim (self getalias local.shoottype) -60 60
+//			self waittill upperanimdone
+
+			if ( self.weapongroup=="machinegun" )
+			{
+				self waitthread ShootBurst (self getalias local.shoottype)
+			}
+			else
+			{
+				self setmotionanim (self getalias local.shoottype)
+				self waittill flaggedanimdone
+			}
+			if ( self.rechamber )
+			{
+				self setmotionanim (self getalias rechamber)
+				self waittill flaggedanimdone
+			}
+			break
+		case	run:
+		case	walk:
+		default:
+			// if moving and wanting to shoot, just send the fire event...
+			self fire
+			wait 0.3	// todo: This needs to be updated on a per-weapon basis...
+			break;
+	}
+
+end
+

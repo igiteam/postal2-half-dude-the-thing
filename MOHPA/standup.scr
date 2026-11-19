@@ -1,0 +1,26 @@
+// tells AI to stand
+if (self.no_idle)
+	error ("Cannot call global/stand.scr on entnum " + self.entnum + " if no_idle is set") 1
+
+self animscript anim/stand_transition.scr
+// wait long enough for the transition to occur....
+switch (self.position)
+{
+	case	prone:
+	case	pronewalk:
+		wait 1
+		break
+	case	crouch:
+	case	crouchwalk:
+	case	crouchrun:
+		wait 0.5
+		break;
+	case	stand:
+	case	walk:
+	case	run:
+		waitframe
+		break
+	default:
+		wait 0.25
+		break;
+}

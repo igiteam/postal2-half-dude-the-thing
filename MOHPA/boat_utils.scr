@@ -1,0 +1,772 @@
+// --------------------------------------------------------------------------------
+// boat_utils.scr
+//
+//	
+//	Useful functions for working with and managing vehicles in levels.
+//	
+//
+//
+// --------------------------------------------------------------------------------
+
+
+// SPAWN BOATS
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+SpawnBoatVRP local.spawnPosition local.health local.deathanim local.stayInvulnerable local.dontProtect:
+//
+//	Spawns a Vehicle_Ridable_Plane (yeah, I know, but here, it's a boat.) at the specified position,
+//	and returns a reference to the spawned boat
+//
+//	local.spawnPosition is a reference to an info_waypoint (or similar object), with 
+//	the filename of the model of the boat you want to spawn specified as $mymodel
+//
+//	If the supplied waypoint has a target, the boat will take it on as its target.
+//
+//	Accepts:
+//		local.spawnPosition:	reference to an info_waypoint with $mymodel specified.	Required.	No default
+//	
+//	Returns:
+//		a reference to the spawned boat
+//----------------------------------------------------------------------------
+	
+	Assert (local.spawnPosition != NIL && "SpawnBoatVRP requires a valid waypoint.")
+	Assert (local.spawnPosition != NULL && "SpawnBoatVRP was given a waypoint argument, but that argument didn't name a valid object in the map.")
+	Assert (local.spawnPosition.mymodel != NIL && "SpawnBoatVRP has been called on a spawnPosition that doesn't have its $mymodel key specified.")
+	
+	// Assigns local.spawnedBoat a class type and a model 
+	local.spawnedBoat = spawn VehicleRidablePlane model local.spawnPosition.mymodel
+	local.spawnedBoat waitthread ApplyBoatVariables
+	
+	// Set the angle and the origin to the position passed
+	local.spawnedBoat angles local.spawnPosition.angles
+	local.spawnedBoat.origin = local.spawnPosition.origin
+	
+	// override this boat's health if we've been given a health value as an argument or on the spawner
+	if (local.health != NIL && local.health > 0)
+		local.spawnedBoat.health = local.health
+	else if (local.spawnPosition.health != NIL && local.spawnPosition.health > 0)
+		local.spawnedBoat.health = local.spawnPosition.health
+	
+	// if we've been provided a specific deathanim, apply it here
+	if (local.deathanim != NIL)
+		local.spawnedBoat.deathanim = local.deathanim	// long_crash, particle_death01, particle_death02, particle_death03
+	
+	if (local.spawnPosition.target != NIL)
+	{
+		//println "[boat_utils]: Target assigned to Boat"
+		local.spawnedBoat.target = local.spawnPosition.target
+	}
+	
+	if(local.stayInvulnerable == NIL)
+		local.stayInvulnerable = 0
+	
+	local.spawnedBoat.stayInvulnerable = local.stayInvulnerable
+	
+	if(local.dontProtect != 1 )
+		local.spawnedBoat thread ProtectBoat
+	
+end local.spawnedBoat
+
+
+//----------------------------------------------------------------------------
+ProtectBoat:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	self nodamage
+	if(!self.stayInvulnerable)
+	{
+		wait 1
+		if(isAlive self)
+			self takedamage
+	}
+	
+end
+
+
+// SET COMMON BOAT PROPERTIES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+ApplyBoatVariables:
+//
+//	Reads the supplied boat's model filename, and calls the appropriate thread to set up its characteristics.
+//	Must be run on an object with a recognized model filename.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------	
+	assert (self != NULL)
+	
+	self stop
+	self runsounds 0
+	
+	// Init boat based on the model spawned
+	switch ( self.model )
+	{
+	case "models/vehicles/higgins.hag":
+	
+		self waitthread ApplyHigginsVariables
+		break
+
+	case "models/vehicles/lvt1.hag":	// Missing break here on purpose - MTM
+	case "models/vehicles/lvt2.hag":
+
+		self waitthread ApplyLVT2Variables
+		break
+
+	case "models/vehicles/pt20.hag":
+	case "models/vehicles/pt20_npc.hag":
+	case "models/vehicles/pt20_player.hag":
+
+		self waitthread ApplyPTVariables
+		break
+
+	case "models/vehicles/tugboat.hag":
+
+		self waitthread ApplyTugboatVariables
+		break
+
+	default:
+		dprintln "[boat_utils]: WARNING: ApplyBoatVariables was run on a model it hasn't yet been set up to handle: " self.model
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+ApplyHigginsVariables:
+//
+//	Applies flight characteristics appropriate to an SBD
+//	Usually called by ApplyBoatVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/boat_utils.scr::ApplyHigginsVariables, on " self
+	
+	self maxyawrate			35
+	self maxpitchrate		0
+	self maxrollrate		5
+	self maxrollangle		20
+	self setmaxturnspeed	"20 100 20"
+
+	self acceleration		64
+	self speed				256
+	self.minspeed =			100
+	
+	self.drivebysound = Dauntless_By
+	
+	//Setup a landing animation
+	self.landingAnim		= "open"
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyLVT2Variables:
+//
+//	Applies flight characteristics appropriate to an SBD
+//	Usually called by ApplyBoatVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/boat_utils.scr::ApplyLVT2Variables, on " self
+	
+	self maxyawrate			25
+	self maxpitchrate		0
+	self maxrollrate		1.5
+	self maxrollangle		10
+	self setmaxturnspeed	"20 100 20"
+	
+	self acceleration		64
+	self speed				256
+	self.minspeed =			100
+	
+	self.team = "ALLIES"
+	self allies
+
+	self.landingAnim		= NULL
+	
+end
+
+//----------------------------------------------------------------------------
+ApplyPTVariables:
+//
+//	Applies flight characteristics appropriate to a PT Boat
+//	Usually called by ApplyBoatVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/boat_utils.scr::ApplyPTVariables, on " self
+	
+	self maxyawrate			35
+	self maxpitchrate		0
+	self maxrollrate		5
+	self maxrollangle		20
+	self setmaxturnspeed	"30 100 30"
+	
+	self acceleration		64
+	self speed				400
+	self.minspeed =			100
+	
+	self.drivebysound = Dauntless_By
+	
+	self.team = "ALLIES"
+	self allies
+
+	self.landingAnim		= NULL
+	
+end
+
+
+//----------------------------------------------------------------------------
+ApplyTugboatVariables:
+//
+//	Applies characteristics appropriate to a Tugboat
+//	Usually called by ApplyBoatVariables, but may be called directly if desired.
+//
+//	Accepts:
+//		Nothing
+//	
+//	Returns:
+//		Nothing
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/boat_utils.scr::ApplyTugboatVariables, on " self
+	
+	self maxyawrate			10
+	self maxpitchrate		0
+	self maxrollrate		10
+	self maxrollangle		1
+	
+	self acceleration		20
+	self speed				200
+	self.minspeed =			100
+	
+	self.drivebysound = Dauntless_By
+	
+	self.team = "ALLIES"
+	self allies
+
+	self.landingAnim		= NULL
+	
+end
+
+
+// DRIVEPATH
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+DrivePath local.path local.speed local.minspeed local.acceleration local.softturn local.node_proximity_dist local.taxi local.lookahead:
+//
+//
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/boat_utils.scr::DrivePath, on " self ", with path " local.path ", speed: " local.speed
+	
+	assert (self != NIL)
+	assert (local.path != NIL && "Call to DrivePath with no path specified")
+	assert ( $(local.path) != NULL && "Call to DrivePath with invalid path. No object exists")
+	
+	self.artificial_terrain_altitude = -500	// ensure that the boat doesn't attempt to track terrain under the water
+	
+	self.minspeed =			100
+	
+	if(local.speed != NIL)
+		self.speed = local.speed
+		
+	if(local.minspeed != NIL)
+		self.minspeed = local.minspeed
+	
+	if(local.acceleration != NIL)
+		self.acceleration = local.acceleration
+		
+	if(local.softturn == NIL)
+		local.softturn = 20
+	
+	if(local.node_proximity_dist == NIL)
+		local.node_proximity_dist = 128
+
+	if (NIL == local.taxi)
+		local.taxi = 0
+
+	self.taxiing = local.taxi
+
+	if (NIL == local.lookahead)
+		local.lookahead = self.pathlookahead
+
+	self pathlookahead local.lookahead
+		
+	self.softturn = local.softturn
+	
+	waitframe
+	
+	self node_proximity_dist local.node_proximity_dist
+	self node_proximity_dist_inner local.node_proximity_dist
+	
+	if (local.path.classname == "SplinePath")
+		self autopilot local.path
+	else
+		self flyto local.path.target.origin
+
+	self notsolid
+	self havok_game_driven
+	
+	self waittill movedone
+	//-----------------------------------
+	println self " at destination."
+	
+	self.taxiing = 1
+	waitframe
+	self fullstop
+	self.minspeed = 0.0
+	
+end
+
+
+// LANDBOAT
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+LandBoat local.speed local.maxturnspeed local.health local.deathanim local.soundOnPlayer:
+//
+//	Spawn a boat, drive it to a point, and play its landing animation
+//	
+//	Boat will spawn at spawnPoint origin, then fly its target path.  Plays landing animation when finished.
+//
+//	Accepts:
+//		local.spawnPoint:	An origin with a boat model defined and a valid splinepath targeted	REQUIRED	NO DEFAULT
+//		local.speed:	The boat's speed for the ride in						OPTIONAL	Defaults to boat's default speed
+//	
+//	Returns:
+//		A reference to the spawned boat
+//----------------------------------------------------------------------------
+	
+	assert (self != NULL)
+	
+	// Spawn boat
+	local.spawnedBoat = waitthread SpawnBoatVRP self local.health local.deathanim		// pass arguments through
+	local.spawnedBoat.targetname = "SpawnedLandingBoat"
+
+	local.spawnedBoat addwaittill "boatLanded"
+	
+	// if we've opted to override the boat's default speed, set it here
+	if (local.speed != NIL)
+		local.spawnedBoat speed local.speed 1	// accelerate instantly
+	
+	if(local.maxturnspeed == NIL)
+		local.maxturnspeed = "30 20 20"
+	local.spawnedBoat setmaxturnspeed local.maxturnspeed		// default "60 30 30"	reduce turn rates for a more elegant turn
+		
+	local.spawnedBoat artificial_terrain_altitude -500	// he's on a spline - we don't care where the terrain is.
+	
+	if(local.soundOnPlayer == NIL)
+		local.soundOnPlayer = 0
+	
+	local.spawnedBoat thread ExecuteLanding local.soundOnPlayer
+	
+end local.spawnedBoat
+
+
+//----------------------------------------------------------------------------
+ExecuteLanding local.soundOnPlayer:
+//
+//	Execute the landing
+//----------------------------------------------------------------------------
+	assert (self != NULL)
+	assert ( $(self.target) != NULL && "ExecuteLanding: Boat isn't targeting a valid path.")
+	
+	self runsounds 1
+	self anim bob_moving
+	//self thread DoDriveBySound NIL NIL local.soundOnPlayer
+	
+	// Autopilot the path if we can - otherwise, just fly to the node.
+	switch (self.target.classname)
+	{
+	case "SplinePath":
+		self autopilot self.target
+		break
+	default:
+		self flyto self.target.origin
+	}
+	
+	self waittill movedone
+	self thread HitLand
+	
+end
+
+//----------------------------------------------------------------------------
+HitLand:
+//
+//	
+//----------------------------------------------------------------------------
+	
+	println self " hit land."
+	
+	// stop the boat
+	self.taxiing = 1
+	waitframe
+	self fullstop
+	self.minspeed = 0.0
+
+	//If we have a landing animation to play do it now
+	if( self.landingAnim != NULL && self.landingAnim != NIL )
+	{
+		self anim self.landingAnim
+		self waittill animdone
+	}
+	
+	self invokewaittill "boatLanded"
+
+	// do our thing
+	//wait 10
+	//self delete
+	
+end
+
+
+// SPAWNDRIVEBY
+//----------------------------------------------------------------------------
+SpawnDriveBy local.speed local.maxturnspeed local.health local.deathanim local.AddTorsos local.nomodulatespeed:
+//
+//          Spawn a boat, drive it to a point, and play its landing animation
+//          
+//          Boat will spawn at spawnPoint origin, then fly its target path.  Plays landing animation when finished.
+//
+//          Accepts:
+//                      local.spawnPoint:           An origin with a boat model defined and a valid splinepath targeted            REQUIRED       NO DEFAULT
+//                      local.speed:       The boat's speed for the ride in                                                               OPTIONAL        Defaults to boat's default speed
+//          
+//          Returns:
+//                      A reference to the spawned boat
+//----------------------------------------------------------------------------
+
+           
+	assert (self != NULL)
+
+    if (level.SpawnDBCount == NIL || level.SpawnDBCount == NULL)
+	{
+		level.SpawnDBCount = 0
+	}
+
+    // Spawn boat
+	local.spawnedBoat = waitthread SpawnBoatVRP self local.health local.deathanim               // pass arguments through
+	local.spawnedBoat.targetname = ("SpawnedLandingBoat" + level.SpawnDBCount )
+	level.SpawnDBCount++
+
+	if (NIL != local.AddTorsos && NULL != local.AddTorsos && 0 != local.AddTorsos)
+	{
+		// Put the torso-only "passnegers" in
+		local.passenger =  spawn "models/characters/mission7/allied_marine_tarawa_upperbody.gr2" classname Animate
+		local.passenger notsolid
+		local.passenger nodamage
+		local.spawnedBoat  attachpassengerslot 0 local.passenger 1
+	}
+
+	// if we've opted to override the boat's default speed, set it here
+	if (local.speed != NIL)
+		local.spawnedBoat speed local.speed 1   // accelerate instantly
+
+	if(local.maxturnspeed == NIL)
+		local.maxturnspeed = "30 20 20"
+	
+	local.spawnedBoat setmaxturnspeed local.maxturnspeed               // default "60 30 30"            reduce turn rates for a more elegant turn       
+	local.spawnedBoat artificial_terrain_altitude -500  // he's on a spline - we don't care where the terrain is.
+
+	if(self.deleteatdest == NIL)
+		self.deleteatdest = 1
+	local.spawnedBoat.deleteatdest = self.deleteatdest
+	
+	if (local.nomodulatespeed != 1)
+		local.spawnedBoat thread ModulateSpeed 256
+
+    local.spawnedBoat thread ExecuteDriveBy        
+
+end local.spawnedBoat
+
+ 
+
+ 
+
+//----------------------------------------------------------------------------
+ExecuteDriveBy:
+//
+//          Execute the landing
+//----------------------------------------------------------------------------
+	assert (self != NULL)
+	assert ( $(self.target) != NULL && "ExecuteDriveBy: Boat isn't targeting a valid path.")
+	assert( $(self.target) != NIL && "ExecuteDriveBy: Boat isn't targeting a valid path.")
+
+	// Autopilot the path if we can - otherwise, just fly to the node.
+	switch (self.target.classname)
+	{
+	case "SplinePath":
+		self autopilot $(self.target)
+		self notsolid
+		self havok_game_driven
+		break
+	            
+	default:
+		self flyto self.target.origin
+		break
+	}
+
+	waitframe
+	self waittill movedone
+	dprintln self " I'm done."
+	self speed 0 1
+
+	if(self.deleteatdest)
+				self thread global/actor_utils.scr::DeleteMeWhenUnseen
+end
+
+ 
+
+ 
+
+
+
+// COMMON UTILITIES
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//----------------------------------------------------------------------------
+DoDriveBySound local.alias local.delay local.onPlayer:
+//
+// 
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane")
+	// apply defaults
+	if (local.alias == NIL)
+		if(self.drivebysound != NIL)
+			local.alias = self.drivebysound
+		else
+			local.alias = Zero_Plane_By
+	
+	if (local.delay == NIL)
+		local.delay = 0
+	
+	// run sound
+	wait local.delay
+	
+	if(local.onPlayer == NIL)
+		local.onPlayer = 0
+	if(local.onPlayer)
+		$player playsound local.alias auto
+	else
+		self playsound local.alias auto
+	
+end
+
+
+//----------------------------------------------------------------------------
+KillBoat local.deathanim:
+//
+//	Kill the specified boat immediately 
+//----------------------------------------------------------------------------
+	
+	assert (self.classname == "VehicleRidablePlane")
+	
+	if(local.deathanim != NIL)
+		self.deathanim = local.deathanim
+	
+	self takedamage
+	self solid
+	self hurt self.health
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+DeleteAtDest:
+//
+//	
+//
+// ----------------------------------------------------------------------------------
+	
+	//println "[boat_utils]: Thread launched: global/boat_utils::DeleteAtDest, on " self
+	
+	self waittill movedone
+	//println "[boat_utils]: At destination: " self ".  Removing."
+	self remove
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+Capsize local.rollTime local.rollMax local.rollToPort:
+//
+//	General routine handling capsizing or rolling ships
+//	
+//	self:				Object to be rolled		(REQUIRED - NO DEFAULT)
+//	local.rollTime:		Seconds to complete the roll	(60)
+//	local.rollMax:		Degree of roll at completion	(180)
+//	local.rollToPort:	0 == Starboard, 1 == Port	(0)
+
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/boat_utils.scr::Capsize, with " self ", " local.rollTime ", " local.rollMax ", " local.rollToPort
+	
+	assert (self != NULL && "global/boat_utils.scr::Capsize.scr --> given a bad object to roll.")
+	if (local.rollTime == NIL)
+		local.rollTime = 60
+	if (local.rollMax == NIL)
+		local.rollMax = 180
+	if (local.rollToPort == NIL)
+		local.rollToPort = 0
+	
+	local.pitch	= self.angles[0]
+	local.yaw 	= self.angles[1]
+	local.roll	= self.angles[2]
+	println self "Starting roll at: " self.angles
+	
+	local.lasttime = level.time
+	local.timeRemaining = local.rollTime
+	while(local.timeRemaining > 0)
+	{
+		local.deltatime = level.time - local.lasttime
+		local.lasttime = level.time
+		local.timeRemaining -= local.deltatime
+		local.newroll = local.rollMax - (local.rollMax * local.timeRemaining) / local.rollTime
+		if(local.rollToPort)
+			self.angles = (local.pitch local.yaw (local.roll+local.newroll))
+		else
+			self.angles = (local.pitch local.yaw (local.roll-local.newroll))
+		
+		waitframe
+		if(self == NULL) {
+			end		// shut down the thread if the object is deleted before it finishes
+		}
+	}
+	
+	if (local.rollToPort) {
+		local.newangles = (local.pitch local.yaw (local.roll + local.rollMax))
+	} else {
+		local.newangles = (local.pitch local.yaw (local.roll - local.rollMax))
+	}
+	self.angles = local.newangles
+	println self " Capsize complete.  Final angles = " self.angles
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+Sink local.sinkTime local.sinkDepth:
+//
+//	General routine handling sinking ships
+//	
+//	self:		Object to be sunk		(REQUIRED - NO DEFAULT)
+//	local.sinkTime:		Seconds to complete the sinking	(60)
+//	local.sinkDepth:	How many units to take it down	(320)
+
+// ----------------------------------------------------------------------------------
+
+	println "Thread launched: global/boat_utils.scr::Sink, with " self ", " local.sinkTime ", " local.sinkDepth
+	
+	assert (self != NULL && "global/boat_utils.scr::Sink.scr --> given a bad object to sink.")
+	if (local.sinkTime == NIL)
+		local.sinkTime = 60
+	if (local.sinkDepth == NIL)
+		local.sinkDepth = 320
+	
+	local.curx = self.origin[0]
+	local.cury = self.origin[1]
+	local.curz = self.origin[2]
+	println self "Starting sink at Z: " local.curz
+	
+	// lerp it over the specified duration
+	local.lasttime = level.time
+	local.timeRemaining = local.sinkTime
+	while(local.timeRemaining > 0)
+	{
+		local.deltatime = level.time - local.lasttime
+		local.lasttime = level.time
+		local.timeRemaining -= local.deltatime
+		local.newZ = (local.sinkDepth * local.timeRemaining) / local.sinkTime
+		
+		local.setZ = local.curz - local.sinkDepth + local.newZ
+		local.neworigin = local.curx + " " + local.cury + " " + local.setZ
+		self.origin = local.neworigin
+		//dprintln self "Sunk to Z: " local.neworigin
+		
+		waitframe
+		if(self == NULL) {
+			end		// shut down the thread if the object is deleted before it finishes
+		}
+	}
+	
+	local.setZ = local.curz - local.sinkDepth
+	local.neworigin = local.curx + " " + local.cury + " " + local.setZ
+	self.origin= local.neworigin
+	println self " Sink complete.  Final origin = " self.origin
+	
+	
+end
+
+
+//----------------------------------------------------------
+AmbientMGs:
+//----------------------------------------------------------
+	
+	for (local.i = 0; local.i < 8; local.i++)
+	{
+		local.TurretName = (self.targetname + "_turret" + local.i)
+		if ($(local.TurretName)  != NULL && $(local.TurretName) != NIL)
+		{
+			$(local.TurretName) firetype fakebullet
+		}
+	}
+		
+	while (isAlive self)
+	{
+		wait (2 + (randomfloat 2))
+		
+		if (isAlive self)
+		{
+			self.force_fire = 1
+			wait (0.5 + (randomfloat 3))
+			if (isAlive self)
+			{				
+				self.force_fire = 0
+			}
+		}
+	}
+end
+
+//----------------------------------------------------------
+ModulateSpeed local.MaxDelta:
+//----------------------------------------------------------
+
+	// Assume we'll be at base speed in two seconds.
+	wait 2
+
+	local.basespeed = self.speed
+
+	local.MinDelta = (0.5 * local.MaxDelta)
+
+	if (self.acceleration == 0)
+		self.acceleration = 64
+
+	while (isAlive self && (self.FixSpeed == NULL || self.FixSpeed == NIL || self.FixSpeed != 0) )
+	{
+		local.Multiplier = ((randomint 3) - 1)
+		local.Delta = ( local.MinDelta + (randomint (local.MaxDelta - local.MinDelta) ) )
+		self.speed = ( local.basespeed + (local.Multiplier * local.Delta) )
+
+		wait ( 2 + (randomfloat 5.0) )
+	}
+end

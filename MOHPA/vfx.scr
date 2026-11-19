@@ -1,0 +1,1099 @@
+// vfx.scr
+//
+// Functions for starting particles and other vfx
+
+//----------------------------------------------------------------------------
+oneshotfx_triggered local.fxModel local.fxPos local.tName:
+//----------------------------------------------------------------------------
+
+	local.triggerfx = spawn Trigger
+	local.triggerfx.origin = local.fxPos
+	local.triggerfx.targetname = local.tName
+	local.triggerfx thread oneshotfx_triggerthread local.fxModel
+
+end
+
+
+//----------------------------------------------------------------------------
+oneshotfx_triggerthread local.fxModel:
+//----------------------------------------------------------------------------
+	
+	//goto loop label
+	oneshotfx_triggerthread_loop:
+
+	
+	self waittill trigger
+	
+	local.fx = spawn local.fxModel
+	local.fx.origin = self.origin
+	
+	wait 2
+	
+	if( local.fx != NIL && local.fx != NULL )
+	{		
+		local.fx delete
+	}
+	
+	goto oneshotfx_triggerthread_loop
+
+end
+
+//----------------------------------------------------------------------------
+oneshotfx local.fxModel local.fxPos:
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::oneshotfx, with " local.fxModel ", at " local.fxPos
+	assert( local.fxPos != NIL )
+	//assert( isvector(local.fxPos) && "local.fxPos is not a valid origin." )
+	
+	local.fx = spawn local.fxModel origin local.fxPos
+	
+	wait 2
+	
+	if( local.fx != NIL && local.fx != NULL )
+	{
+		local.fx delete
+	}
+
+end
+
+//----------------------------------------------------------------------------
+oneshotfx_nodelete local.fxModel local.fxPos local.broadcast:
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::oneshotfx_nodelete, with " local.fxModel ", at " local.fxPos
+	
+	assert( local.fxPos != NIL )
+	//assert( isvector(local.fxPos) && "local.fxPos is not a valid origin." )
+
+	if(local.broadcast == NIL)
+		local.broadcast = 0
+		
+	local.fx = spawn local.fxModel origin local.fxPos
+	if(local.broadcast)
+		local.fx svflags "+broadcast"
+
+	// return a handle to the spawned effect so end user can delete it later
+end local.fx
+
+//----------------------------------------------------------------------------
+oneshotfx_nodelete_directional local.fxModel local.fxPos local.fxAngles local.broadcast:
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::oneshotfx_nodelete_directional, with " local.fxModel ", at " local.fxPos
+	
+	assert( local.fxPos != NIL )
+	//assert( isvector(local.fxPos) && "local.fxPos is not a valid origin." )
+	
+	if(local.broadcast == NIL)
+		local.broadcast = 0
+	
+	local.fx = spawn local.fxModel origin local.fxPos angles local.fxAngles
+	if(local.broadcast)
+		local.fx svflags "+broadcast"
+	local.fx anim start
+
+	// return a handle to the spawned effect so end user can delete it later
+end local.fx
+
+//----------------------------------------------------------------------------
+loopfx local.fxModel local.fxPos local.fxMinWait local.fxMaxWait:
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::loopfx, with " local.fxModel ", at " local.fxPos
+	
+	assert( local.fxPos != NIL )
+	//assert( isvector(local.fxPos) && "local.fxPos is not a valid origin." )
+	
+	waitframe
+
+	while( 1 )
+	{
+		local.fx = spawn local.fxModel origin local.fxPos
+		local.wait = randomfloat( local.fxMaxWait - local.fxMinWait ) + local.fxMinWait
+		wait local.wait
+		if( local.fx != NIL && local.fx != NULL )
+		{
+			local.fx delete
+		}
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+broadcastloopfx local.fxModel local.fxPos local.fxMinWait local.fxMaxWait:
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::broadcastloopfx, with " local.fxModel ", at " local.fxPos
+	
+	assert( local.fxPos != NIL )
+	//assert( isvector(local.fxPos) && "local.fxPos is not a valid origin." )
+	
+	waitframe
+
+	while( 1 )
+	{
+		local.fx = spawn local.fxModel origin local.fxPos
+		local.fx svflags "+broadcast"
+		local.wait = randomfloat( local.fxMaxWait - local.fxMinWait ) + local.fxMinWait
+		wait local.wait
+		if( local.fx != NIL && local.fx != NULL )
+		{
+			local.fx delete
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------
+SpawnRandomFX local.vfxassets local.vfxlocs local.sfxassets local.delaymin local.delaymax local.eqdur local.eqmag local.leadinsndchance local.leadinsnd:
+//
+//	Spawns effects randomly from supplied list of effects and locations
+//
+//	local.vfxassets:	array of vfx asset names.		Required	No default
+//	local.vfxlocs:		array of locations.			Required	No default
+//	local.sfxassets:	array of sfx asset names.		Optional	No default
+//					** if only one sfx asset exists in the array, it'll play for all vfx
+//					** if more than one exist, they must be paired 1:1 to vfxassets
+//	local.delaymin:		min time to wait between triggerings.	Optional	Default 1
+//	local.delaymin:		max time to wait between triggerings.	Optional	Default 5
+//	local.eqdur:		earthquake duration			Optional	Default 0
+//	local.eqmag:		earthquake magnitude			Optional	Default 1
+//	local.leadinsndchance:	chance leadin sound will play (0-1)	Optional	Default 0
+//	local.leadinsnd:	sound to play before effect runs	Optional	No default
+//	
+//	Usage:
+//	// If you intend to shut the system down sometime after spawning it, capture a pointer to its thread:
+//
+//	thread SpawnRandomFX level.vfx_s11_rndfx_dirtexplosions01 level.sfx_s11_rndfx_dirtexplosions01 level.vfx_s11_rndfxloc_hill01 1 6
+//	level.threadRndFXHill01 = parm.previousthread
+//	
+//	// Now, to turn it off, delete that thread.
+//	// turn off trench01 random fx
+//	if ( level.threadRndFXHill01 != NIL )
+//	{
+//		println "Shutting off Random effect system."
+//		level.threadRndFXHill01 delete
+//		level.threadRndFXHill01 = NIL
+//	}
+//	
+// -----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::SpawnRandomFX"
+	
+	// check required values
+	assert( local.vfxassets != NIL )
+	assert( local.vfxassets.size && "VFX Asset array is empty." )
+	assert( local.vfxlocs != NIL )
+	assert( local.vfxlocs.size && "Location array is empty." )
+	
+	// apply defaults
+	if (local.delaymax == NIL || local.delaymax < 1)
+		local.delaymax = 5
+	if (local.delaymin == NIL || local.delaymin < 1)
+		local.delaymin = 1
+	if (local.eqdur == NIL)
+		local.eqdur = 0
+	if (local.eqdur)	// Capture these arguments only if we're going to play an earthquake
+	{
+		if (local.eqmag == NIL)
+			local.eqmag = 1
+	}
+	if (local.leadinsndchance == NIL)
+		local.leadinsndchance = 0
+	
+	// prepare timing values
+	local.delaymin--			// decrease min by 1 because randomint is already 1-based
+	local.delaymax -= local.delaymin	// reduce local.delaymax by local.delaymin, as we'll be adding dalaymin back in
+	
+	// main loop.  delete the calling thread to terminate.
+	while (1)
+	{
+		// pick a random effect from the provided array
+		local.rnd01 = randomint( local.vfxassets.size ) + 1
+		local.myvfx = local.vfxassets[local.rnd01]
+		assert (local.myvfx != NIL && local.myvfx != NULL)
+		
+		// pick our sound, if supplied
+		local.mysfx = NIL
+		if (local.sfxassets != NIL)
+		{
+			// check our sound values
+			assert( local.sfxassets.size && "SFX Asset array is empty." )
+			assert( ( local.sfxassets.size == 1 || local.sfxassets.size == local.vfxassets.size ) && "SFX asset list must have 1 value, or must be paired 1:1 with VFX asset list." )
+			// pick it
+			if (local.sfxassets.size > 1)
+			{
+				local.mysfx = local.sfxassets[local.rnd01]	// if we've been given multiple values, use the one that matches vfx
+			}
+			else
+			{
+				local.mysfx = local.sfxassets[1]	// if we've been given a single value, use that
+			}
+			assert (local.mysfx != NIL && local.mysfx != NULL)
+		}
+
+		// pick a random location from the provided array
+		local.rnd02 = randomint( local.vfxlocs.size ) + 1
+		local.myloc = local.vfxlocs[local.rnd02]
+		assert (local.myloc != NIL && local.myloc != NULL)
+		
+		// spawn the effect
+		//println "Spawning random fx: [" local.rnd01 "] " local.myvfx " at location: [" local.rnd02 "] " local.myloc
+		if (local.leadinsndchance)
+		{
+			assert (0 <= local.leadinsndchance && local.leadinsndchance <= 1)
+			assert (local.leadinsnd != NIL)
+			local.rndrunleadin = randomfloat 1
+			if (local.rndrunleadin <= local.leadinsndchance)
+			{
+				local.rndleadindelay = ( randomfloat 0.5 ) + 0.4	// 0.6 - 1.0 second delay before main effect
+				$player playsound local.leadinsnd
+				wait local.rndleadindelay
+			}
+		}
+		local.vfx = spawn script_model model local.myvfx origin local.myloc
+		/*
+		local.debug_disttoplayer = vector_length $player.origin local.vfx.origin
+		debugline $player.origin local.vfx.origin 1 0 0 1
+		//dprintln "global/vfx.scr::SpawnRandomFX --> Spawned FX at dist: " local.debug_disttoplayer
+		*/
+		local.vfx notsolid
+		local.vfx anim start
+		if(local.mysfx != NIL)
+			local.vfx playsound local.mysfx
+		local.vfx thread DeleteWhenDone
+		
+		// jolt the camera if specified
+		if (local.eqdur)
+			exec global/earthquake.scr local.eqdur local.eqmag 0 0	// .duration .magnitude .no_rampup .no_rampdown
+		
+		// wait a random interval
+		local.rnddelay = randomint( local.delaymax ) + local.delaymin
+		wait local.rnddelay
+	}
+
+end
+
+
+
+// -----------------------------------------------------------------------------
+RunChainFX local.vfx local.sfx local.mintime local.maxtime local.quakeduration local.quakemagnitude local.quakeradius:
+//
+//	Runs a series of effects, starting at the given node, and then recursing
+//	through that node's target chain.
+//
+//	Run on an info_notnull, or other script object with a discernable origin
+//	Target that object to others in chain
+// -----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::RunChainFX, on " self
+	
+	// check required values and apply defaults
+	assert( local.vfx != NIL && "RunChainFX needs to know what visual effect asset to spawn.")
+	assert( self != NULL && "RunChainFX must be run on the node at which you'd like the effect to start.")
+	if (local.mintime == NIL)
+		local.mintime = 1
+	if (local.maxtime == NIL)
+		local.maxtime = 2
+	
+	// spawn effect at the location of this node
+	local.myvfx = spawn script_model model local.vfx origin self.origin
+
+	// trigger camera shake at location of this node with duration, magnitude, and radius as defined by user.
+	if ( local.quakeduration != NIL && local.quakemagnitude != NIL && local.quakeradius != NIL )
+	{
+		level earthquake local.quakeduration local.quakemagnitude 0 0 self.origin local.quakeradius
+	}	
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.myvfx.origin
+	debugline $player.origin local.myvfx.origin 0 1 0 1
+	//dprintln "global/vfx.scr::RunChainFX --> Spawned FX at dist: " local.debug_disttoplayer
+	*/
+	assert ( local.myvfx != NIL && local.vfx != NULL && "VFX failed to spawn." )
+	if (self.angles != NIL)
+		local.myvfx.angles = self.angles
+	if (local.sfx != NIL)
+		local.myvfx playsound local.sfx
+	local.myvfx thread DeleteVFX
+	
+	// delay before spawning next
+	local.delaytime = randomfloat (local.maxtime - local.mintime) + local.mintime
+	wait local.delaytime
+
+	// Recurse onto this node's target, if it targets a valid entity
+	if ( $(self.target) != NULL)
+	{
+		self.target thread RunChainFX local.vfx local.sfx local.mintime local.maxtime local.quakeduration local.quakemagnitude local.quakeradius
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------
+SpawnBombExplosion local.fx local.holdtime local.damage local.radius local.magnitude:
+//
+// -----------------------------------------------------------------------------
+
+	assert (local.fx != NIL && "local.fx hasn't been properly initialized.")
+
+	if( local.magnitude == NIL )
+	{
+		local.magnitude = 4.0
+	}
+	
+	local.temp1 = spawn script_model model local.fx origin self.origin
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.temp1.origin
+	debugline $player.origin local.temp1.origin 0 0 1 1
+	dprintln "global/vfx.scr::SpawnBombExplosion --> Spawned FX"
+	*/
+	local.temp1 notsolid
+	local.temp1 anim start
+	local.temp1 notsolid
+	local.temp1 playsound explo_dirt
+
+	if ( (local.damage != NIL) && (local.radius != NIL) )
+	{
+		radiusdamage self.origin local.damage local.radius 0
+		killradius   self.origin local.radius
+	}
+
+	// Play earthquake last
+	earthquake 0.2 local.magnitude 0 0 $player.origin 256
+
+	if ( local.holdtime == NIL )
+	{
+		local.holdtime = 5
+	}
+
+	wait local.holdtime
+	
+	if(local.temp1 != NULL)	// trap the possibility that vfx may have expired on its own
+		local.temp1 remove
+
+end
+
+
+// ----------------------------------------------------------------------------------
+DeleteWhenDone:
+//
+//	Deletes self when current animation is finished.
+// ----------------------------------------------------------------------------------
+	//println "Thread launched: global/vfx.scr::DeleteWhenDone, on " self
+	
+	assert( self != NIL && self != NULL && "DeleteWhenDone must be called on an object." )
+
+	if( self != NIL && self != NULL )
+	{
+		self waittill animdone
+		//-----------------------------------
+		self delete
+		//println "Spawned effect deleted."
+	}
+	
+end
+
+
+// ----------------------------------------------------------------------------------
+DeleteVFX:
+//
+//	Deletes self after two seconds.  (Won't cut off an effect already running)
+// ----------------------------------------------------------------------------------
+	
+	wait 2
+		
+	if( self != NIL && self != NULL )
+	{		
+		self delete
+	}
+	
+end
+
+
+
+
+//----------------------------------------------------------------------------
+VFXRunEffectOnce local.effectobject local.effectmodel local.fxscale local.fxangles local.fxsound local.fxsoundvol local.fxsounddelay local.eqdur local.eqmag local.eqrampup local.eqrampdown:
+//
+//	Spawns a visual effect at specified location
+//
+//	local.effectobject:	effect's spawn location		(REQUIRED - NO DEFAULT)
+//	local.effectmodel:	effect model			(REQUIRED - NO DEFAULT)
+//	local.fxscale:		effect scale			(1)
+//	local.fxangles:		effect orientation		(0 0 0)
+//
+//	local.fxsound:		sound to play on effect trigger	(NIL)
+//	local.fxsoundvol:	sound volume			(1)
+//	local.fxsounddelay:	seconds to wait before playing sound after effect trigger	(0)
+//
+//	local.eqdur:		earthquake duration		(0)
+//	local.eqmag:		earthquake magnitude		(1)
+//	local.eqrampup:		earthquake rampup		(1)
+//	local.eqrampdown:	earthquake rampdown		(1)
+//
+//	Arguments may be passed in manually, or may be embedded in effect locator object.
+//	Manually passed arguments supersede those embedded in the object.
+//	For those arguments where default values make sense, defaults are applied if
+//		info doesn't exist in either place.
+//	Earthquakes, if specified, are delayed by the same value as sound delay; i.e., shockwave hits at once
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::VFXRunEffectOnce, with " local.effectobject ", " local.effectmodel ", " local.fxscale ", " local.fxangles
+
+	assert (local.effectobject != NIL && "VFXRunEffectOnce --> No effect locator object provided.")
+	
+	// Capture Arguments and/or Set Defaults
+	// VFX Arguments
+	if (local.effectmodel == NIL)	// if an effect model hasn't been passed in, pull it from the locator object
+	{
+		//println "Reading fxname from " local.effectobject ": " local.effectobject.fxname
+		assert (local.effectobject.fxname != NIL && "VFXRunEffectOnce --> Effect model name hasn't been passed to function and can't be found in locator object.")
+		local.effectmodel = local.effectobject.fxname
+	}
+	
+	if (local.fxscale == NIL)
+	{
+		if (local.effectobject.fxscale != NIL)
+			local.fxscale = local.effectobject.fxscale
+		else
+			local.fxscale = 1
+	}
+	
+	if (local.fxangles == NIL)
+	{
+		if (local.effectobject.angles != NIL)
+			local.fxangles = local.effectobject.angles
+		else
+			local.fxangles = "0 0 0"
+	}
+	
+	// Effect Sound Arguments
+	if (local.fxsound == NIL)
+	{
+		if (local.effectobject.fxsound != NIL)
+			local.fxsound = local.effectobject.fxsound
+	}
+	
+	if (local.fxsound != NIL)	// Capture these arguments only if we're going to play a sound
+	{
+		if (local.fxsoundvol == NIL)
+		{
+			if (local.effectobject.fxsoundvol != NIL)
+				local.fxsoundvol = local.effectobject.fxsoundvol
+			else
+				local.fxsoundvol = 1
+		}
+		if (local.fxsounddelay == NIL)
+		{
+			if (local.effectobject.fxsounddelay != NIL)
+				local.fxsounddelay = local.effectobject.fxsounddelay
+			else
+				local.fxsounddelay = 0
+		}
+	}
+	
+	// Effect Earthquake Arguments
+	if (local.eqdur == NIL)
+	{
+		if (local.effectobject.eqdur != NIL)
+			local.eqdur = local.effectobject.eqdur
+		else
+			local.eqdur = 0	// we won't play an earthquake with a 0 duration
+	}
+	
+	if (local.eqdur)	// Capture these arguments only if we're going to play an earthquake
+	{
+		if (local.eqmag == NIL)
+		{
+			if (local.effectobject.eqmag != NIL)
+				local.eqmag = local.effectobject.eqmag
+			else
+				local.eqmag = 1
+		}
+		if (local.eqrampup == NIL)
+		{
+			if (local.effectobject.eqrampup != NIL)
+				local.eqrampup = local.effectobject.eqrampup
+			else
+				local.eqrampup = 0
+		}
+		if (local.eqrampdown == NIL)
+		{
+			if (local.effectobject.eqrampdown != NIL)
+				local.eqrampdown = local.effectobject.eqrampdown
+			else
+				local.eqrampdown = 0
+		}
+	}
+	
+	// Spawn and Prepare effect
+	//println "Spawning effect: " local.effectobject ", with " local.effectmodel ", " local.fxscale ", " local.fxangles ", at " local.effectobject.origin
+	
+	local.vfx01 = spawn script_model model local.effectmodel origin local.effectobject.origin angles local.fxangles
+	assert (local.vfx01 != NIL && "VFXRunEffectOnce --> Attempt to spawn FX script model failed.")
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.vfx01.origin
+	debugline $player.origin local.vfx01.origin 1 1 0 1
+	dprintln "global/vfx.scr::VFXRunEffectOnce --> Spawned FX at dist: " local.debug_disttoplayer
+	*/
+	local.vfx01 notsolid
+	local.vfx01.scale = local.fxscale
+	
+	// Run effect (and sound, if specified)
+	local.vfx01 anim start
+	
+	if (local.fxsound != NIL)	// play effect sound if specified, but don't wait for it
+	{
+		thread FXPlaySound local.fxsound local.effectobject local.fxsoundvol local.fxsounddelay local.eqdur local.eqmag local.eqrampup local.eqrampdown
+	}
+	
+	// Clean up effect
+	if( local.vfx01 != NIL && local.vfx01 != NULL )
+	{
+		local.vfx01 waittill animdone
+		local.vfx01 delete
+		//println "vfx cleaned up"
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+FXPlaySound local.fxsound local.effectloc local.fxsoundvol local.fxsounddelay local.eqdur local.eqmag local.eqrampup local.eqrampdown:
+//
+//	Play a sound effect at specified location
+//
+//	local.fxsound:		sound to play on effect trigger	(REQUIRED - NO DEFAULT)
+//	local.effectloc		sound location			(PLAYER)
+//	local.fxsoundvol:	sound volume			(1)
+//	local.fxsounddelay:	seconds to wait before playing sound after effect trigger	(1 frame)
+//
+//	local.eqdur:		earthquake duration		(0)
+//	local.eqmag:		earthquake magnitude	(1)
+//	local.eqrampup:		earthquake rampup		(1)
+//	local.eqrampdown:	earthquake rampdown		(1)
+//
+//----------------------------------------------------------------------------
+
+	//println "Thread launched: global/vfx.scr::FXPlaySound, with " local.fxsound ", " local.effectloc ", " local.fxsoundvol ", " local.fxsounddelay
+
+	if ( local.fxsounddelay == NIL || local.fxsounddelay == NULL )
+		waitframe
+	else
+		wait local.fxsounddelay
+		
+	if ( local.fxsoundvol == NIL || local.fxsoundvol == NULL )
+		local.fxsoundvol = 1.0
+		
+	//-----------------------------------
+	
+	//println "Playing sound " local.fxsound ", at " local.effectloc ", vol: " local.fxsoundvol
+	local.effectloc playsound local.fxsound CHAN_BODY local.fxsoundvol	// String soundName, [ Integer channel ], [ Float volume ], [ Float min_distance ], [ Float pitch ]
+	
+	if ( local.eqdur == NIL || local.eqdur == NULL )
+		local.eqdur = 0
+		
+	if (local.eqdur)	// play an earthquake if we've been given earthquake parameters
+	{
+		if ( local.eqmag == NIL || local.eqmag == NULL )
+			local.eqmag = 1.0
+			
+		if ( local.eqrampup == NIL || local.eqrampup == NULL )
+			local.eqrampup = 1.0
+			
+		if ( local.eqrampdown == NIL || local.eqrampdown == NULL )
+			local.eqrampdown = 1.0		
+		
+		waitexec global/earthquake.scr local.eqdur local.eqmag local.eqrampup local.eqrampdown
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+DoOneShotFX local.target local.fxName local.sfxAlias:
+//
+//	local.target:		[REQUIRED]	string name of the entity to play the effect on should
+//									be an info_waypoint
+//	local.fxName:		[OPTIONAL]	name of the fx file to spawn in
+//	local.sfxAlias		[OPTIONAL]	name of the sound alias to play
+//
+//----------------------------------------------------------------------------
+	
+	if( local.target == NIL )
+	{	
+		println "ERROR: global/vfx.scr no target passed to DoOneShotFX"
+		end
+	}	
+
+	//Figure out which object we are doing our FX on (The object could be an array of objects we randomly pick one)
+	local.index = randomint $(local.target).size + 1	
+	
+	if( local.fxName == NIL )
+	{
+		//Get the fxName from the object
+		if( $(local.target)[local.index].fxName != NIL )
+		{
+			local.fxName = $(local.target)[local.index].fxName
+		}
+		else
+		{		
+			println "ERROR: global/vfx.scr no fxName found in DoOnShotFX"
+			end
+		}
+	}
+
+	//Get the sound alias
+	if( local.sfxAlias == NIL )
+	{
+		if( $(local.target)[local.index].sfxAlias != NIL )
+		{
+			local.sfxAlias = $(local.target)[local.index].sfxAlias
+		}
+	}
+	
+	//spawn and play the effect
+	local.ent = spawn local.fxName origin $(local.target)[local.index].origin
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.ent.origin
+	debugline $player.origin local.ent.origin 0 1 1 1
+	dprintln "global/vfx.scr::DoOneShotFX --> Spawned FX at dist: " local.debug_disttoplayer
+	*/
+	local.ent anim idle
+	local.ent thread DeleteWhenDone		
+
+	//Play the sound alias if we found one
+	if( local.sfxAlias != NIL )
+	{
+		local.ent playsound local.sfxAlias
+	}
+
+end
+
+
+//----------------------------------------------------------------------------
+DoLoopingFX local.target local.fxName local.bFXArray local.sfxAlias local.minDelay local.maxDelay local.doDamage local.damage local.radius local.killRadius:
+//
+//	local.target:		[REQUIRED]	string name of the entity to play the effect on should
+//									be an info_waypoint
+//	local.fxName:		[REQUIRED]	name of the fx file to spawn in.  This is overriden by
+//									the local.targets fxName parameter.  
+//	local.bFXArray		[OPTIONAL]  Is local.fxName an array of effects?  This allows us to
+//									pass in an array of effects to be played.  Default is 0.
+//	local.sfxAlias:		[OPTIONAL]	name of the sfx alias to play
+//	local.minDelay:		[OPTIONAL]	minimum delay between blasts default 1.0
+//	local.maxDelay:		[OPTIONAL]	maximum delay between blasts default 5.0
+//  local.doDamage:		[OPTIONAL]	Should the effect cause damage?  Default is 0
+//	local.damage:		[OPTIONAL]	Amt of damage the effect causes.  Default 1000
+//	local.radius:		[OPTIONAL]	Radius of the damage.  Default 256
+//	local.killradius	[OPTIONAL]	Radius in which to kill anyone within.  Default 256
+//
+//
+//	USAGE:
+//
+//	Start the Effects:
+//	thread global/vfx.scr::DoLoopingFX "test_fx" "models/vfx/shockandawe.tik" "DaiHatsu_Explosion01"	
+//	local.fxThread = parm.previousthread
+//
+//	Stop the Effects:
+//	local.fxThread delete
+//
+//----------------------------------------------------------------------------
+
+	if( local.target == NIL )
+	{	
+		println "ERROR: global/vfx.scr::DoLoopingFX local.target is NIL"
+		end
+	}	
+
+	//Figure out which object we are doing our FX on (The object could be an array of objects we randomly pick one)
+	local.index = randomint $(local.target).size + 1	
+
+	if( local.bFXArray == NIL )
+	{
+		local.bFXArray = 0
+	}
+
+	if( local.fxName == NIL )
+	{
+		println "ERROR: global/vfx.scr::DoLoopingFX local.fxName is NIL"
+		end
+	}	
+	else
+	{	
+		if( local.bFXArray == 1 )
+		{
+			local.index = randomint local.fxName.size
+			local.index += 1
+			local.defaultFXName = local.fxName[local.index]
+		}
+		else
+		{
+			local.defaultFXName = local.fxName
+		}
+	}
+
+	//Get the sound alias to play
+	if( local.sfxAlias == NIL )
+	{
+		if( $(local.target)[local.index].sfxAlias != NIL )
+		{
+			local.sfxAlias = $(local.target)[local.index].sfxAlias
+		}
+	}	
+
+	if( local.doDamage == NIL )
+	{
+		local.doDamage = 0
+	}
+	else
+	{
+		if( local.damage == NIL )
+		{
+			local.damage = 1000
+		}
+
+		if( local.radius == NIL )
+		{
+			local.radius = 256
+		}
+
+		if( local.killRadius == NIL )
+		{
+			local.killRadius = 256
+		}
+	}
+
+	//Set the min delay if not passed in
+	if( local.minDelay == NIL )
+	{	
+		local.minDelay = 1.0
+	}
+
+	//Set the max delay if not passed in
+	if( local.maxDelay == NIL )
+	{
+		local.maxDelay = 5.0
+	}	
+
+	while( 1 )
+	{
+		local.delay = randomfloat local.maxDelay + local.minDelay
+		
+		local.index = randomint $(local.target).size + 1
+		
+		//Check if we have an fxName on the object this will supercede the passed in parameter
+		if( $(local.target)[local.index].fxName != NIL )
+		{
+			local.fxName = $(local.target)[local.index].fxName
+		}
+		else
+		{
+			if( local.bFXArray == 1 )
+			{
+				local.index = randomint local.fxName.size
+				local.index += 1
+				local.defaultFXName = local.fxName[local.index]
+				local.playEffect = local.fxName[local.index]
+			}
+			else
+			{
+				local.fxName = local.defaultFXName
+				local.playEffect = local.defaultFXName
+			}
+		}
+		
+		//spawn and play the effect		
+		local.ent = spawn local.playEffect origin $(local.target)[local.index].origin
+		/*
+		local.debug_disttoplayer = vector_length $player.origin local.ent.origin
+		debugline $player.origin local.ent.origin 1 0 1 1
+		dprintln "global/vfx.scr::DoLoopingFX --> Spawned FX at dist: " local.debug_disttoplayer
+		*/
+		local.ent anim start
+		local.ent thread DeleteWhenDone
+
+		//If we got a sound alias play it
+		if( local.sfxAlias != NIL )
+		{
+			local.ent playsound local.sfxAlias
+		}
+
+		//See if we are going to do damage
+		if( local.doDamage )
+		{	
+			radiusdamage $(local.target)[local.index].origin local.damage local.radius 0			
+			killradius $(local.target)[local.index].origin local.radius
+		}
+
+		wait local.delay
+	}
+
+end local
+
+
+//----------------------------------------------------------------------------
+SpawnFXNearTarget local.target local.fxName local.sfxAlias local.minRange local.maxRange local.zposition:
+//
+//	Spawns the specified effect at a random location around the specified target
+//	
+//	local.target:		[REQUIRED]	string name of the entity around whom we should play this effect
+//	local.fxName:		[REQUIRED]	name of the fx file to spawn in.  
+//	local.sfxAlias:		[OPTIONAL]	name of the sfx alias to play
+//	local.minRange:		[OPTIONAL]	minimum range from the target to spawn default 256
+//	local.maxRange:		[OPTIONAL]	maximum range from the target to spawn default 2048
+//	local.zposition:	[OPTIONAL]	z position at which to spawn the effect. defaults to target's z position
+//
+//	USAGE:
+//
+//	thread global/vfx.scr::SpawnFXNearTarget $player "models/vfx/waterhit_generic_lrg01.tik" "7_1Explos_lrg" 512 2048 64
+//
+//	Optionally returns the distance from target at which the effect spawned
+//	
+//
+//----------------------------------------------------------------------------
+	
+	println "Thread launched: global/vfx.scr::SpawnFXNearTarget, with target " local.target ", and effect " local.fxName
+	
+	// check arguments
+	assert (local.target != NIL && "local.target hasn't been properly initialized.")
+	assert (local.fxName != NIL && "local.fxName hasn't been properly initialized.")
+	if(local.minRange == NIL)
+		local.minRange = 256
+	if(local.maxRange == NIL)
+		local.maxRange = 2048
+		
+	// find the effect position
+	local.temptarget = spawn script_object
+	local.range = randomint(local.maxRange - local.minRange) + local.minRange
+	local.rot = randomint(360)
+	local.temptarget.angles = "0 " + local.rot + " 0"
+	local.normalized = angles_toforward local.temptarget.angles
+	local.fxorigin = vector_scale local.normalized local.range
+	local.fxorigin += local.target.origin
+	
+	if(local.zposition != NIL)
+	{
+		// adjust z-position
+		local.curX = local.fxorigin[0]
+		local.curY = local.fxorigin[1]
+		local.fxorigin = (local.curX local.curY local.zposition)
+	}
+	
+	// spawn effect at this origin
+	local.vfx = spawn script_model model local.fxName origin local.fxorigin
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.vfx.origin
+	debugline $player.origin local.vfx.origin 1 1 1 1
+	dprintln "global/vfx.scr::SpawnFXNearTarget --> Spawned FX at dist: " local.debug_disttoplayer
+	*/
+	local.vfx notsolid
+	local.vfx anim start
+	
+	// play sound if defined
+	if( local.sfxAlias != NIL ) {
+		local.vfx playsound local.sfxAlias
+	}
+	
+	local.vfx thread DeleteWhenDone	
+	
+	// return the distance from target at which this effect spawned in case end user wants to base further actions on this info
+	local.disttotarget = vector_length( local.fxorigin - local.target.origin )
+	local.temptarget delete
+	
+end local.disttotarget
+
+
+//----------------------------------------------------------------------------
+SpawnFXInRegion local.fxName local.sfxAlias local.originMin local.originMax local.damage local.radius local.killRadius:
+//
+//	Spawns the specified effect at a random location around the specified target
+//	
+//	local.fxName:		[REQUIRED]	name of the fx file to spawn in.  
+//	local.sfxAlias:		[OPTIONAL]	name of the sfx alias to play
+//	local.originMin:	[REQUIRED]	Minimum bounds of the cube in which to spawn effect
+//	local.originMax:	[REQUIRED]	Maximum bounds of the cube in which to spawn effect
+//	local.damage:		[OPTIONAL]	Damage to deal within damage radius (applied only if non-zero value supplied)
+//	local.radius:		[OPTIONAL]	Radius within which to apply damage (applied only if non-zero damage specified.  default 512)
+//	local.killRadius:	[OPTIONAL]	Radius within which to kill entities (applied only if non-zero damage specified.  default 256)
+//
+//	USAGE:
+//	thread SpawnFXInRegion "models/vfx/waterhit_generic_lrg01.tik" "explo_water01" "2112 6016 16" "4120 7432 16" 1000 256 128
+//
+//----------------------------------------------------------------------------
+	
+	//println "Thread launched: global/vfx.scr::SpawnFXInRegion, with originMin " local.originMin ", originMax " local.originMax
+	
+	assert (local.fxName != NIL && "local.fxName hasn't been properly initialized.")
+	assert (local.originMin != NIL && "local.originMin hasn't been properly initialized.")
+	assert (local.originMax != NIL && "local.originMax hasn't been properly initialized.")
+	
+	// an unfortunate hack required to cast arguments as origins
+	local.minMarker = spawn info_waypoint
+	local.minMarker.origin = local.originMin
+	local.maxMarker = spawn info_waypoint
+	local.maxMarker.origin = local.originMax
+	
+	// sort min max origin components if necessary
+	if(local.minMarker.origin[0] > local.maxMarker.origin[0])
+	{
+		println "SCRIPT WARNING: global/vfx.scr::SpawnFXInRegion - min x is greater than max x.  Correcting automatically."
+		local.tempmin = local.minMarker.origin[0]
+		local.tempmax = local.maxMarker.origin[0]
+		local.minMarker.origin[0] = local.tempmax
+		local.maxMarker.origin[0] = local.tempmin
+	}
+	if(local.minMarker.origin[1] > local.maxMarker.origin[1])
+	{
+		println "SCRIPT WARNING: global/vfx.scr::SpawnFXInRegion - min y is greater than max y.  Correcting automatically."
+		local.tempmin = local.minMarker.origin[1]
+		local.tempmax = local.maxMarker.origin[1]
+		local.minMarker.origin[1] = local.tempmax
+		local.maxMarker.origin[1] = local.tempmin
+	}
+	if(local.minMarker.origin[2] > local.maxMarker.origin[2])
+	{
+		println "SCRIPT WARNING: global/vfx.scr::SpawnFXInRegion - min z is greater than max z.  Correcting automatically."
+		local.tempmin = local.minMarker.origin[2]
+		local.tempmax = local.maxMarker.origin[2]
+		local.minMarker.origin[2] = local.tempmax
+		local.maxMarker.origin[2] = local.tempmin
+	}
+	
+	// derive random x value
+	local.rndx = randomint( local.maxMarker.origin[0] - local.minMarker.origin[0] ) + local.minMarker.origin[0]
+	local.rndy = randomint( local.maxMarker.origin[1] - local.minMarker.origin[1] ) + local.minMarker.origin[1]
+	local.rndz = randomint( local.maxMarker.origin[2] - local.minMarker.origin[2] ) + local.minMarker.origin[2]
+	local.fxorigin = local.minMarker.origin	// initialize array with any old value
+	local.fxorigin[0] = local.rndx
+	local.fxorigin[1] = local.rndy
+	local.fxorigin[2] = local.rndz
+	
+	// clean up spawned waypoints
+	local.minMarker delete
+	local.maxMarker delete
+	
+	// spawn effect at this origin
+	local.vfx = spawn script_model model local.fxName origin local.fxorigin
+	/*
+	local.debug_disttoplayer = vector_length $player.origin local.vfx.origin
+	debugline $player.origin local.vfx.origin 1 1 0.5 1
+	dprintln "global/vfx.scr::SpawnFXInRegion --> Spawned FX at dist: " local.debug_disttoplayer
+	*/
+	local.vfx notsolid
+	local.vfx anim start
+	
+	// play sound if defined
+	if( local.sfxAlias != NIL )
+	{
+		local.vfx playsound local.sfxAlias
+	}
+	
+	// handle damage if we've been given a non-zero && non-NIL value for damage
+	if( local.damage == NIL )
+		local.damage = 0
+	
+	if(local.damage)
+	{
+		if( local.radius == NIL )
+			local.radius = 512
+		
+		if( local.killRadius == NIL )
+			local.killRadius = 256
+		
+		radiusdamage local.fxorigin local.damage local.radius 0			
+		killradius local.fxorigin local.radius
+	}
+	
+	local.vfx thread DeleteWhenDone	
+	
+end
+
+
+//----------------------------------------------------------------------------
+LoopFXInAABB local.minDelay local.maxDelay local.fxName local.sfxAlias local.originMin local.originMax local.damage local.radius local.killRadius:
+//
+//	Loops the specified effect within axis-aligned bounding box described by min and max origins supplied
+//	
+//	local.minDelay:		[REQUIRED]	Minimum delay between spawns. default 1
+//	local.maxDelay:		[REQUIRED]	Maximum delay between spawns. default 3
+//	local.fxName:		[REQUIRED]	name of the fx file to spawn in.  
+//	local.sfxAlias:		[REQUIRED]	name of the sfx alias to play
+//	local.originMin:	[REQUIRED]	Minimum bounds of the cube in which to spawn effect
+//	local.originMax:	[REQUIRED]	Maximum bounds of the cube in which to spawn effect
+//	local.damage		[OPTIONAL]	Amt of damage to be caused by the effect.  Default: 0
+//	local.radius		[OPTIONAL]	Radius of the damage from the effect.
+//	local.killRadius	[OPTIONAL]	Radius of things to die from the effect.
+//
+//	USAGE:
+//	thread global/vfx.scr::LoopFXInRegion 2 4 "models/vfx/waterhit_generic_lrg01.tik" "explo_water01" "2112 6016 16" "4120 7432 16" 1000 256 128
+//
+//----------------------------------------------------------------------------
+
+	if( local.minDelay == NIL )
+		local.minDelay = 1
+	if( local.maxDelay == NIL )
+		local.maxDelay = 3
+	
+	while(1)
+	{
+		thread SpawnFXInRegion local.fxName local.sfxAlias local.originMin local.originMax local.damage local.radius local.killRadius
+		local.rndDelay = randomfloat( local.maxDelay - local.minDelay ) + local.minDelay
+		wait local.rndDelay
+	}
+	
+end
+
+
+//----------------------------------------------------------------------------
+CM_GetMaterialIndex local.name:
+//
+// Return the Index of the given Material Name
+//----------------------------------------------------------------------------
+
+	if (local.name == NIL)
+		local.index = -1	// invalid
+	else
+        local.index = cm_getmaterialindex local.name
+
+end local.index
+
+
+//----------------------------------------------------------------------------
+CM_GenerateEffect local.cm_type local.cm_index local.cm_position local.cm_normal:
+//
+// cm_types:
+//	0  melee
+//	1  pistolwhip	
+//	2  bodyfall
+//	3  footstep_walking
+//	4  footstep_running
+//	5  landing
+//	6  bullethit_heavy
+//	7  bullethit_large
+//	8  bullethit_small
+//	9  grenade_explosion
+//	10 footstepdecal
+//	11 bulletdecal
+//	12 blastmark
+//	13 generic_explosion
+//
+// cm_index should be retrieved though the CM_GetMaterialIndex 
+//----------------------------------------------------------------------------
+
+	if (local.cm_type == NIL || local.cm_index == NIL || local.cm_position == NIL)
+	{
+		dprintln "CM_GenerateEffect: Invalid Parameters"
+		end
+	}
+
+	// Set Default Normal
+	if (local.cm_normal == NIL)
+		local.cm_normal = (0 0 0)
+
+	// Send Command
+	cm_command local.cm_type local.cm_index local.cm_position local.cm_normal	
+end

@@ -1,0 +1,231 @@
+//-----------------------------------------------------------------------------
+//
+//  gameflow.scr
+//
+//  Controls level and mission progression for MOHPA 
+//
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+Init:
+//
+//	Initializes the game-flow system	
+//-----------------------------------------------------------------------------
+	
+	// Mappings from current map to next map and specifies it this is a mission change
+		
+	// Reset counter
+	level.gameFlowNumMaps	= 0
+	
+	//                              Current Map					Next Map			Mission Over?
+	// Mission: Boot camp
+	waitthread AddLevelTransition	"maps/1_1_BootCamp_chunk2.scr"				"Shell_Start"		1
+	
+	// Mission: Pearl Harbor
+	waitthread AddLevelTransition	"maps/2_1_pearl_b_chunk3.scr"			"Shell_Makin"			1
+	
+	// Mission: 
+	waitthread AddLevelTransition	"maps/4_1_NightMoves_chunk3.scr"		"4_2_ManDown_chunk1"		0
+	waitthread AddLevelTransition	"maps/4_2_ManDown_chunk3.scr"			"4_4_SittingDucks"		0
+	waitthread AddLevelTransition	"maps/4_4_SittingDucks.scr"			"Shell_Guadalcanal"		1
+	
+	// Mission: 
+	waitthread AddLevelTransition	"maps/5_1_Henderson_chunk4.scr"			"5_2_BloodyRidge_chunk1"	0
+	waitthread AddLevelTransition	"maps/5_2_BloodyRidge_chunk3.scr"		"5_3_RiverWalk_chunk1"		0
+	waitthread AddLevelTransition	"maps/5_3_RiverWalk_chunk2.scr"			"5_5_Village_chunk1"		0
+	
+	level.previewBuild = getcvar "cl_previewBuild"
+    if ( level.previewBuild == "1" )
+	{
+		waitthread AddLevelTransition	"maps/5_5_Village_chunk3.scr"			"Shell_Tarawa"			1
+	}
+	else
+	{
+		waitthread AddLevelTransition	"maps/5_5_Village_chunk3.scr"			"5_6_Flyboys"			0
+		waitthread AddLevelTransition	"maps/5_6_Flyboys.scr"					"Shell_Tarawa"			1
+	
+		// Mission: 
+		waitthread AddLevelTransition	"maps/7_1_tarawa_b_chunk2.scr"			"Shell_Tarawa"			1
+	}
+
+end
+
+//-----------------------------------------------------------------------------
+LevelEndSuccess:
+//
+//	The current game-level has been completed successfully
+//	
+//-----------------------------------------------------------------------------
+	dprintln "****LEVEL END SUCCESS"
+	
+	// Make sure the level script set its "level.script" properly
+	if ((level.script==NIL)||(level.script==NULL))
+	{
+		println "ERROR: Please set 'level.script' value in your level script"
+		end
+	}
+	
+	// Give Medal
+	setcvar "g_gotmedal" "1"
+
+	local.script = tolower level.script
+
+	// Figure out which table entry coincides with this level
+	for (local.mapIter = 1; local.mapIter <= level.gameFlowNumMaps ; local.mapIter ++ )
+	{
+		if (level.gameFlowSrcMapName[local.mapIter] == local.script)
+		{	
+			// Transition here
+			exec global/missioncomplete.scr  level.gameFlowDstMapName[local.mapIter] level.gameFlowMissionBit[local.mapIter]
+			end	
+		}
+	}
+	
+	println "*****NEXT LEVEL NOT FOUND!  "  local.script 
+		
+end
+
+//-----------------------------------------------------------------------------
+LevelEndFailed:
+//
+//	The current game-level has been completed but failed
+//	
+//-----------------------------------------------------------------------------
+end
+
+//-----------------------------------------------------------------------------
+AddLevelTransition local.currentMapName local.nextMapName local.missionComplete:
+//
+//	Specifies transition mapping from current map to next map and remembers if
+//  the transition is a "mission complete" transition
+//	
+//	Params:
+//	local.currentMapName	Name of the map we are have just complete 
+//	local.nextMapName		Name of map we are going to
+//	local.missionComplete	Is this transition a "mission complete" transition
+//-----------------------------------------------------------------------------
+	level.gameFlowNumMaps ++
+	
+	level.gameFlowSrcMapName[level.gameFlowNumMaps]	= tolower local.currentMapName
+	level.gameFlowDstMapName[level.gameFlowNumMaps]	= local.nextMapName	
+	level.gameFlowMissionBit[level.gameFlowNumMaps]	= local.missionComplete
+	
+	
+		
+end
+
+
+//-----------------------------------------------------------------------------
+SetMissionAndLevel:
+//
+//	Set the currect g_mission & g_missionlevel for a map
+//	
+//-----------------------------------------------------------------------------
+
+	//DebugPrintLn("> level.script: " + level.script)
+	local.lowercase = tolower level.script
+
+	switch (local.lowercase)
+	{
+	case "maps/shell_start.scr":
+	case "maps/7_1_tarawa_a_chunk3.scr":
+	case "maps/1_1_bootcamp_chunk2.scr":
+	case "maps/1_1_bootcamp_chunk1.scr":
+			setcvar "g_mission" "1"
+			setcvar "g_missionlevel" "1"
+			break
+
+	case "maps/shell_pearl.scr":
+	case "maps/2_1_pearl_a_chunk1.scr":
+	case "maps/2_1_pearl_b_chunk1.scr":
+	case "maps/2_1_pearl_b_chunk2.scr":
+	case "maps/2_1_pearl_b_chunk3.scr":
+			setcvar "g_mission" "2"
+			setcvar "g_missionlevel" "1"
+			break
+
+	case "maps/shell_makin.scr":
+		setcvar "g_mission" "4"
+
+		// If missionlevel is invalid, set to 1
+		local.ml = getcvar(g_missionlevel)
+		if (local.ml != "1" && local.ml != "2" && local.ml != "4")
+			setcvar "g_missionlevel" "1"
+		break;
+
+	case "maps/4_1_nightmoves_chunk1.scr":
+	case "maps/4_1_nightmoves_chunk2.scr":
+	case "maps/4_1_nightmoves_chunk3.scr":
+			setcvar "g_mission" "4"
+			setcvar "g_missionlevel" "1"
+			break
+	case "maps/4_2_mandown_chunk1.scr":
+	case "maps/4_2_mandown_chunk2.scr":
+	case "maps/4_2_mandown_chunk3.scr":
+			setcvar "g_mission" "4"
+			setcvar "g_missionlevel" "2"
+			break
+	case "maps/4_4_sittingducks.scr":
+			setcvar "g_mission" "4"
+			setcvar "g_missionlevel" "4"
+			break
+
+	case "maps/shell_guadalcanal.scr":
+		setcvar "g_mission" "5"
+
+		// If missionlevel is invalid, set to 1
+		local.ml = getcvar(g_missionlevel)
+		DebugPrintln "local.ml is : " local.ml
+		if (local.ml != "1" && local.ml != "2" && local.ml != "3" && local.ml != "5" && local.ml != "6")
+			setcvar "g_missionlevel" "1"
+
+		break;
+	case "maps/5_1_henderson_chunk1.scr":
+	case "maps/5_1_henderson_chunk2.scr":
+	case "maps/5_1_henderson_chunk3.scr":
+	case "maps/5_1_henderson_chunk4.scr":
+			setcvar "g_mission" "5"
+			setcvar "g_missionlevel" "1"
+			break
+	case "maps/5_2_bloodyridge_chunk1.scr":
+	case "maps/5_2_bloodyridge_chunk2.scr":
+	case "maps/5_2_bloodyridge_chunk3.scr":
+			setcvar "g_mission" "5"
+			setcvar "g_missionlevel" "2"
+			break
+	case "maps/5_3_riverwalk_chunk1.scr":
+	case "maps/5_3_riverwalk_chunk2.scr":
+			setcvar "g_mission" "5"
+			setcvar "g_missionlevel" "3"
+			break
+	case "maps/5_5_village_chunk1.scr":
+	case "maps/5_5_village_chunk2.scr":
+	case "maps/5_5_village_chunk3.scr":
+			setcvar "g_mission" "5"
+			setcvar "g_missionlevel" "5"
+			break
+	case "maps/5_6_flyboys.scr":
+			setcvar "g_mission" "5"
+			setcvar "g_missionlevel" "6"
+			break
+
+	case "maps/shell_tarawa.scr":
+	case "maps/7_1_tarawa_a_chunk1.scr":
+	case "maps/7_1_tarawa_a_chunk2.scr":
+	case "maps/7_1_tarawa_b_chunk1.scr":
+	case "maps/7_1_tarawa_b_chunk2.scr":
+			setcvar "g_mission" "7"
+			setcvar "g_missionlevel" "1"
+			break
+
+	default: 
+			setcvar "g_mission" "1"
+			setcvar "g_missionlevel" "1"
+			dprintln("WARNING: Mission and MissionLevel not set for map " + local.lowercase)
+			break
+	}
+
+	//DebugPrintLn("=== g_mission " + getcvar(g_mission))
+	//DebugPrintLn("=== g_missionlevel: " + getcvar(g_missionlevel))
+
+end

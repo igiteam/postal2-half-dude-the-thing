@@ -1,0 +1,79 @@
+// ----------------------------------------------------------------------------------
+// run_carry.scr
+//
+//		- run while carrying an object
+//
+// dwc 2.04
+// ----------------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------------
+start:
+// ----------------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	self.painhandler = anim/run_carry.scr::HandlePainSpecial
+
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+
+	self.position = run
+	self.blendtime = 0.30
+
+	self waitthread RunCarry
+
+end
+
+
+
+//--------------------------------------------------------------
+RunCarry:
+//--------------------------------------------------------------
+	while ( 1 )
+	{
+		self waitexec anim/run_carry.scr::DoNormalRun
+	}
+
+end
+
+//--------------------------------------------------------------
+DoNormalRun:
+//--------------------------------------------------------------
+	self endactionanim
+
+	// default
+	if ( self.carryrunanim == NIL || self.carryrunanim == NULL)
+		self.carryrunanim = generic_box_carry
+
+	waitexec anim/motionblend.scr::PlayAnim self.carryrunanim
+
+end
+
+
+
+
+
+// ----------------------------------------------------------------------------------------
+HandlePainSpecial local.location local.damage:
+// ----------------------------------------------------------------------------------------
+	if (local.location == NIL)
+		local.location = -1
+	if (local.damage == NIL)
+		local.damage = 0
+
+	self.position = stand
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	waitexec anim/pain.scr::painglobals
+
+	// default
+	if ( self.carryhitanim == NIL || self.carryhitanim == NULL)
+		self.carryhitanim = xxxxx_generic_box_carry_hit
+
+	self.blendtime = 0.25
+	self setmotionanim self.carryhitanim
+	self waittill flaggedanimdone
+
+end
+

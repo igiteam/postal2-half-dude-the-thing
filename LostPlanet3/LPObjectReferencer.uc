@@ -1,0 +1,1 @@
+class LPObjectReferencer extends SPObjectReferencer;

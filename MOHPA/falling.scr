@@ -1,0 +1,63 @@
+// -----------------------------------------------------------------------
+//	falling.scr
+//
+//	Implements falling animations...
+//
+// -----------------------------------------------------------------------
+
+
+main:
+
+	waitthread Fall
+
+end
+
+
+
+// -----------------------------------------------------------------------
+Fall:
+// -----------------------------------------------------------------------
+	// setting the death anim in case we need it
+	local.randomnum = randomint 2		//SC Make sure to have an equal number
+	if (local.randomnum == 0)
+	{
+		self.deathanim = xxsxx_landing_hard
+	}
+	else
+	if (local.randomnum == 1)
+	{
+		self.deathanim = xxsxx_land_idle
+	}
+	else
+	{
+		dprintln "not setting deathanim here"
+	}
+
+	// stop any upperbody animation
+	self endactionanim
+
+	local.offset = randomfloat 0.5
+	wait local.offset
+	dprintln "offset is: " local.offset
+
+	self dropitems
+
+	// play the start to fall animation
+	self setmotionanim xxsxx_stand_to_falling
+	self waittill flaggedanimdone
+	
+	// play the looping animation
+	self setmotionanim xxsxx_falling
+	self waittill flaggedanimdone
+
+	end
+
+// -----------------------------------------------------------------------
+LandGetUp:
+//
+// -----------------------------------------------------------------------
+	self setmotionanim xxsxx_getting_up
+	self waittill flaggedanimdone
+
+	end
+

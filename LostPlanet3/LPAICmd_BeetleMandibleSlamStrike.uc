@@ -1,0 +1,1 @@
+class LPAICmd_BeetleMandibleSlamStrike extends LPAICmd_BeetleBaseStrike within LPAIControllerBaseBeetle;

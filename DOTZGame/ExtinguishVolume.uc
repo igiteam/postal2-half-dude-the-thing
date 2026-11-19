@@ -1,0 +1,1 @@
+Class ExtinguishVolume Extends PhysicsVolume;

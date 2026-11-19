@@ -1,0 +1,250 @@
+// -------------------------------------------------------------------------
+//	grenade.scr
+//	
+//	Grenade-handling animations
+//
+// -------------------------------------------------------------------------
+
+main:
+
+end
+
+// -------------------------------------------------------------------------
+Init:
+// -------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	
+	//make sure we are standing...
+	waitexec anim/stand.scr::transition
+	
+
+	end
+
+
+// -------------------------------------------------------------------------
+Kick:
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+
+	//println "Entering grenadekick.scr"
+
+	
+	//self setmotionanim grenade_kick
+	//self waittill flaggedanimdone
+
+	if (self.kickdir != (0 0 0))
+	{
+		// jsl-->Just decide left or right and just do it... ( no need for blending )
+
+		local.dotvec = self.forwardvector * self.kickdir
+		local.sidevec = self.leftvector * self.kickdir
+
+//		dprintln "dotvec = " local.dotvec
+
+		if ( local.dotvec > 0.866 )		// ~30 degrees
+		{
+//			dprintln "Kick forward"
+			self setmotionanim (self getalias grenade kick)
+		}
+		else if ( local.sidevec > 0 )
+		{
+//			dprintln "kick left"
+			self setmotionanim (self getalias grenade kickleft)
+		}
+		else
+		{
+//			dprintln "kick right"
+			self setmotionanim (self getalias grenade kickright)
+		}
+
+		self waittill flaggedanimdone
+
+		/*
+			jsl-->Took out MOHAA blending since we didn't author our kicks this way...
+
+		// (Boon) Divide by forward+side since it's the "correct" thing to do.  Might not make any noticeable improvement though.
+		local.forwardbackblend = abs(local.dotvec) / ( abs(local.dotvec) + abs(local.sidevec) )
+		local.sideblend = 1.0 - local.forwardbackblend
+
+		//sanity checks
+		if (local.sideblend < 0.00)
+		{
+			println "GrenadeKick: sideblend is less than 0, how did that happen!?"
+			println "self.movedir " self.movedir
+			println "self.forward " self.forwardvector
+			local.sideblend = 0.00
+			local.forwardbackblend = 1.00
+		}
+
+		if (local.sideblend > 1.0)
+		{
+			println "GrenadeKick: sideblend is more than 1, how did that happen!?"
+			local.sideblend = 1.0
+			local.forwardbackblend = 0.005
+		}
+
+		if (local.forwardbackblend <= 0.0)
+		{
+			println "GrenadeKick: forwardbackblend is less than 0, how did that happen!?"
+			local.forwardbackblend = 0.005
+		}
+
+		//println "Forward: " local.forwardbackblend " Side: " local.sideblend
+
+		self.blendtime = 0.20
+
+		self setanim xxxxx_grenade_kick 0 local.forwardbackblend flagged
+
+		if (local.sidevec >= 0.00)
+		{
+			//move left
+			self setanim xxxxx_grenade_kickleft 1 local.sideblend
+		}
+		else
+		{
+			//move right
+			self setanim xxxxx_grenade_kickright 1 local.sideblend
+		}
+		
+		self waittill flaggedanimdone
+		*/
+	}
+	else
+	{
+		//println "~^~^ Kicking grenade with kick dir of " self.kickdir
+		self setmotionanim (self getalias grenade kick)
+		self waittill flaggedanimdone
+	}
+
+	end
+
+
+// -------------------------------------------------------------------------
+Martyr:
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self.deathanim = xxxxx_death_grenadedive
+
+	if ( isAlive(self) )
+		self.health = 1			// make sure we die here...
+
+	self.blendtime = 0.50
+
+	self setmotionanim (self getalias grenade dive)
+	self.position = prone			// in case we survive...?
+	self waittill flaggedanimdone
+
+	// this script shouldn't terminate, to keep it from looping
+	pause
+
+
+	end
+
+// -------------------------------------------------------------------------
+Return:
+//
+//	Throw grenade back at someone
+//
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+
+	self setmotionanim (self getalias grenade return)
+	self waittill flaggedanimdone
+
+	end
+
+// -------------------------------------------------------------------------
+Throw:
+//
+//	Throw a grenade over-hand
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+	self exec anim/say_grenade_thrown.scr
+
+	self waitthread PrimeGrenade
+
+	self setmotionanim (self getalias grenade throw)
+	self waittill flaggedanimdone
+
+	end
+
+
+// -------------------------------------------------------------------------
+Toss:
+//	Toss a grenade under-hand
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+
+
+	//TODO: need to override pain and death handlers for dropping grenade
+	self.blendtime = 0.3
+//	self setmotionanim xxxxx_grenade_pullout 
+//	self waittill flaggedanimdone
+
+	self exec anim/say_grenade_thrown.scr
+
+	self waitthread PrimeGrenade
+
+	self setmotionanim (self getalias grenade toss)
+	self waittill flaggedanimdone
+
+//	self.blendtime = 0.1	// This animation should blend perfectly with the previous one
+//	self setmotionanim xxxxx_grenade_rearm
+//	self waittill flaggedanimdone
+
+	end
+
+
+// -------------------------------------------------------------------------
+PrimeGrenade:
+//
+//	potentially "prime" our grenade before throwing it
+// -------------------------------------------------------------------------
+
+	if ( self.team=="american" )
+		end
+
+	local.rand = randomint 100
+
+	if ( local.rand < 75 && self.iswearinghelmet )
+	{
+		self setmotionanim (self getalias grenade primehelmet)
+	}
+	else
+	{
+		self setmotionanim (self getalias grenade primeweapon)
+	}
+		
+
+
+	self waittill flaggedanimdone
+
+
+	end
+
+
+
+// -------------------------------------------------------------------------
+TossSatchel:
+//
+//	Toss a Satchel under-hand style
+// -------------------------------------------------------------------------
+
+	self waitthread Init
+	//self.blendtime = 0.3
+
+	// This is a 7_1 sound, will need a global sound if we go global with satchel tossing
+	self say DFRUS_7_1b_S04_ENG001		// Fire in the hole
+
+	self setmotionanim xrsxx_satchel_toss
+	self waittill flaggedanimdone
+
+	end

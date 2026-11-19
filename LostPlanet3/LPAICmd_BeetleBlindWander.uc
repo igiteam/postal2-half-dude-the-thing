@@ -1,0 +1,1 @@
+class LPAICmd_BeetleBlindWander extends LPAICmd_Wander within LPAIControllerBaseBeetle;

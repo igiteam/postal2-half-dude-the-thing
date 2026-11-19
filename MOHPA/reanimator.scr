@@ -1,0 +1,606 @@
+//
+// Reanimator.scr
+//
+// By ccaron   5/23/2003
+//
+// spawn replacement guys when guys die
+// 
+// works like parades only a script_origin
+// targets guys that it repopulates.
+// the script origin has a trigger that starts
+// it. Trigger(s) that stop it.  and fields
+// that determine max number of guys to 
+// spawn and delay between spawns
+//
+// HOW TO USE:
+//
+// Provide:
+//   A trigger to activate the reanimator
+//   - $targetname reanimator_trigger
+//   - $target a script_origin control point
+//
+//   A Set of guys to reanimate
+//   - $targetname the same for each guy
+//
+//   A script_origin as a control point for guys you want to reanimate
+//   - $targetname (anything)
+//   - $target     (targetname of guys to reanimate)
+//
+// Optional fields for controller script_origin(s)
+//
+//   - #max		    default 20, max num of guys to spawn
+//
+//   - #delay       default 0, delay in seconds between spawns
+//
+//   - #control_ai  default 0, when true (1) disables ai of targeted guys
+//                             until triggered (ala enemyspawner except for convertion to script_o)
+//
+//   - $spawnpoints default NULL, optional array of spawnpoints.  If this field present then spawning
+//                                will occur at the spawnpt that is not visible by the player.  A
+//                                $spawnpoints[n] is visible if $player cansee $spawnpoints[n] 90 1000.
+//								  If this field not present then the controller origin is the spawn point.
+//
+//   - $completed_trigger (default NULL), optionalal array to trigger when
+//                                no more spawners left.                                  
+//
+// Special Fields for reanimated guys
+//   - $mg          default NULL (machine gun to man)
+//   
+//   Trigger(s) to Abort The Reanimator (optional)
+//   - $targetname $reanimator_abort_trigger
+//   - $target the script_origin control point
+//
+// Usage: automatic
+//
+// -----------------------------------------------------
+
+
+main:
+
+	level.last_spawn_spot = (0 0 0)
+	level.numclones = 0
+	level.test_spawn = spawn script_origin
+	
+	//println "Initializing Reanimator"
+
+	if ($reanimator_trigger)
+	{
+		println "REANIMATOR >>> found " $reanimator_trigger.size " reanimator triggers"
+		for (local.i = 1; local.i <= $reanimator_trigger.size; local.i++)
+		{
+			$reanimator_trigger[local.i] thread TriggerThread
+		}
+	}
+
+	if ($reanimator_abort_trigger)
+	{
+		println "REANIMATOR >>> found the reanimator abort trigger!"
+		for (local.i = 1; local.i <= $reanimator_abort_trigger.size; local.i++)
+		{
+
+			$reanimator_abort_trigger[local.i] thread AbortTriggerThread
+		}
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+FindTrigger local.find_name:
+// ----------------
+
+
+    if ($reanimator_trigger)
+    {
+		for (local.i=1; local.i<=$reanimator_trigger.size; local.i++)
+		{
+			if ($reanimator_trigger[local.i].find_name == local.find_name)
+			    end $reanimator_trigger[local.i]
+		}
+	}
+
+    if ($reanimator_abort_trigger)
+    {
+		for (local.i=1; local.i<=$reanimator_abort_trigger.size; local.i++)
+		{
+			if ($reanimator_abort_trigger[local.i].find_name == local.find_name)
+			    end $reanimator_abort_trigger[local.i]
+		}
+	}
+
+end NIL
+
+
+// ---------------------------------------------------------------------------
+TriggerThread:
+// ----------------
+
+	if (self == NIL || self == NULL || self.target == NIL || self.target == NULL)
+		end
+		
+	// if ai controller active then scroll through
+	// all the guys turn off their ai until the trigger hit
+	local.array = exec global/makearray.scr $(self.target)
+
+	//iprintln "REANIMATOR >>> Trigger " self " targeting " local.array.size " script_origins"
+
+	for (local.i=1; local.i<=local.array.size; local.i++)
+		local.array[local.i] thread AIControl self
+
+	self waittill trigger
+	
+	waitframe 
+
+	$(self.target) thread ControllerOriginThread
+
+end
+
+
+// ---------------------------------------------------------------------------
+AIControl local.trigger:
+// ----------------
+
+
+	//println "REANIMATOR >>> In script origin " self
+	if (self.processed != NIL && self.processed != NULL)
+	{
+		iprintln "already processed " self
+		end
+	}
+		
+	//self.processed = 1
+
+	if (!self.target)
+		end
+
+	//if (self.control_ai != 1)
+    //    end
+	
+    local.array = exec global/makearray.scr $(self.target)
+
+    //iprintln "REANIMATOR >>> " self " disableling " local.array.size " guys "
+
+    for (local.i=1; local.i<=local.array.size; local.i++)
+    {
+	    local.array[local.i] ai_off
+	    local.array[local.i] hide
+    }
+	
+    local.trigger waittill trigger
+	
+    //println "REANIMATOR >>> " self " enabling " local.array.size " guys"
+
+    for (local.i=1; local.i<=local.array.size; local.i++)
+    {
+		//println "REANIMATOR >>> Activating " local.array[local.i]
+		local.array[local.i] show
+		local.array[local.i] ai_on
+		if ((self.dontdropweapons == 1) || (local.array[local.i].dontdropweapons == 1))
+		{
+			local.array[local.i].dontdropweapons = 1
+			local.array[local.i] dontdropweapons
+		}
+		if ((self.dontdrophealth == 1) || (local.array[local.i].dontdrophealth == 1))
+		{
+			local.array[local.i].dontdrophealth = 1
+			local.array[local.i] thread DontDropHealth
+		}
+	}
+
+end
+
+// ---------------------------------------------------------------------------
+Activate:
+// ----------------
+
+
+	//println "REANIMATOR >>> Activating " self
+	self show
+	self ai_on
+	if (self.mg != NIL && self.mg != NULL)
+	{
+		//println "REANIMATOR >>> Ai_control guy has a mg, enabling ..." self.mg	
+		$(self.mg) thread global/mg42init.scr::AttachGuyToMG42 self 
+	}
+	if (self.dontdropweapons == 1)
+	{
+		self dontdropweapons
+	}
+	if (self.dontdrophealth == 1)
+	{
+		self thread DontDropHealth
+	}
+
+end
+
+
+// ---------------------------------------------------------------------------
+DontDropHealth:
+// ----------------
+
+
+	self waittill death
+	self takeall                      // IMPORTANT PART
+End
+
+
+// ---------------------------------------------------------------------------
+AbortTriggerThread:
+// ----------------
+
+
+	// Thread to wait for an abort trigegr to be used
+	
+	if (!self.target)
+	{
+		//println "ERROR: $reanimator_abort_trigger does not have a target!"
+		end
+	}
+
+	//println "REANIMATOR >>> Abort Trigger Active " self.target
+
+	self waittill trigger
+
+	//println "REANIMATOR >>> aborting reanimator"
+
+	for (local.i = 1; local.i <= $(self.target).size; local.i++)
+		$(self.target)[local.i].working = 0
+
+end
+
+// ---------------------------------------------------------------------------
+// This is the origin where reanimators spawn from
+// ----------------
+ControllerOriginThread: 
+
+	local.numprints=0
+	//if (self.processed == 2)
+	//	end
+		
+	//self.processed = 2
+	
+	if (!self.target)
+	{
+		println "ERROR: Reanimator control has no target(s)!"
+		end
+	}
+
+	if (self.max == NIL || self.max == NULL)
+	{
+		self.max = 20
+	}
+
+	self.count = 0
+
+	// spawn a trigger to activate a clone
+	local.trigger     = spawn trigger_multiple
+	
+	// get the array of guys pointed too by the script origin
+	local.guys_array  = $(self.target)
+	local.guys_array thread WaitForDeath local.trigger	
+	
+	// make a script origin to hold fileds of each guy
+	for (local.i=1; local.i<=local.guys_array.size; local.i++)
+		local.new_guys_array[local.i] = waitthread copy_guy_to_origin local.guys_array[local.i]
+	
+	//local.guys_targetname = local.guys_array[1].targetname
+	self.working = 1
+	
+	while (self && self.working == 1 && self.count < self.max)
+	{
+		local.trigger waittill trigger
+		//wait (1 + (randomfloat 4))
+
+		//if (self.working != 1)
+		//	break
+
+		self.count ++
+
+        // look for alternative spawn points
+		if (self.spawnpoints)
+		{
+			local.array = exec global/makearray.scr $(self.spawnpoints)
+			
+			if (!local.array || local.array.size < 1)
+			{
+				//println "REANIMATOR >>> Error: spawnpoints field points to invalid array!, quitting"
+				end
+			}
+								
+            local.start = $player.origin + (0 0 48) // compute position of player's head
+	 		for (local.i=1; local.i <= local.array.size; local.i++)
+			{
+				if (level.last_spawn_spot != local.array[local.i].origin)
+				{
+					level.test_spawn.origin = local.array[local.i].origin
+					local.result = $player waitthread can_see level.test_spawn
+					if (local.result == 0)
+					{
+						// found one
+						local.origin = local.array[local.i].origin
+						level.last_spawn_spot = local.origin
+						goto searchSuccess
+					}
+				}
+			}
+
+            //iprintln "REANIMATOR >>> " self " failed to find a spot"
+            goto searchFail
+        }
+        else // just use the script_origin as the spawn point
+        {
+            local.origin = self.origin
+            local.i = "script_origin"
+        }
+
+searchSuccess:
+
+        //iprintln "Spawning guy at " local.i " : "  local.origin
+
+		//local.ent = waitthread Clone local.trigger.type local.origin
+		local.guy_num = 1 + randomint local.new_guys_array.size
+		local.script_origin = local.new_guys_array[1 + (randomint local.new_guys_array.size)]
+		local.ent = waitthread spawn_guy_from_origin local.script_origin local.origin
+		local.ent thread WaitForDeath local.trigger
+		//local.trigger.type = NULL
+		
+searchFail:
+	}
+
+	// wait for the remianing guys to die
+	local.guys_left = local.guys_array.size
+	
+	for (local.i=1; local.i<=local.guys_array.size; local.i++)
+		if (local.guys_array[local.i]==NIL || local.guys_array[local.i]==NULL || !(isAlive local.guys_array[local.i]))
+			local.guys_left--
+			
+	//iprintln "waiting for " local.guys_left " more guys to die"
+
+	while (local.guys_left > 0)
+	{
+		local.trigger waittill trigger
+		local.guys_left --
+	}
+
+	local.trigger remove
+	
+	if (self.complete_trigger != NIL && self.complete_trigger != NULL)
+	{
+		local.done_trig = $(self.complete_trigger)
+		//iprintln ("triggering complete trigger" + local.done_trig)
+		trigger local.done_trig
+	}
+	
+	//println "REANIMATOR >>> Reanimator terminated"
+
+end
+
+
+// ---------------------------------------------------------------------------
+can_see local.ent:
+//-----------------
+
+	// usage : if (self waitthread can_see local.ent) ...
+	local.p0 = self.origin + (0 0 48)
+	local.p1 = local.ent.origin
+	
+	local.ang1 = self.angles
+	//local.forward = angles_toforward self.angles
+	local.between = local.p1 - local.p0
+	
+	// spawners must be a certain dist away
+	local.dist = vector_length local.between
+	if (local.dist < 500)
+		end 1	
+	
+	//if (local.dist > 3000)
+	//	end 0
+	
+	//local.forward[2]=0
+	//local.between[2]=0
+	local.ang2 = vector_toangles local.between
+	local.da = local.ang1[1] - local.ang2[1]
+
+	if (abs(local.da) > 60) // FOV == 120 
+		end 0 // player needs to be looking in direction of ent
+
+	// return 0 if simething hit
+	local.trace = sighttrace local.p0 local.p1 1
+	
+	if (local.trace == 0)
+		end 0
+				
+end 1
+
+
+// ---------------------------------------------------------------------------
+WaitForDeath local.trigger:
+//-----------------
+
+
+	self waittill death
+	trigger local.trigger
+
+end
+
+
+// ---------------------------------------------------------------------------
+RandInt local.i:
+//-----------------
+
+
+	if (local.i <= 1)
+		end 1
+
+end (1 + (randomint local.i))
+
+
+// ---------------------------------------------------------------------------
+copy_guy_to_origin local.dude:
+//-----------------
+
+
+	// return a script_origin with the dude's fields copied over
+
+	local.ent = spawn script_origin
+	
+	//local.ent.new_classname         = local.dude.classname
+	local.ent.new_targetname        = local.dude.targetname
+	local.ent.model                 = local.dude.model
+	local.ent.type_idle				= local.dude.type_idle
+	local.ent.type_attack			= local.dude.type_attack
+	local.ent.type_disguise			= local.dude.type_disguise
+	local.ent.type_grenade			= local.dude.type_grenade
+	local.ent.hearing				= local.dude.hearing
+	local.ent.sight					= local.dude.sight
+	local.ent.fov					= local.dude.fov
+	local.ent.leash					= local.dude.leash
+	local.ent.mindist				= local.dude.mindist
+	local.ent.maxdist				= local.dude.maxdist
+	local.ent.health				= local.dude.max_health
+	local.ent.sound_awareness		= local.dude.sound_awareness
+	local.ent.noticescale			= local.dude.noticescale
+	local.ent.fixedleash			= local.dude.fixedleash
+	local.ent.enemysharerange		= local.dude.enemysharerange
+	local.ent.voicetype				= local.dude.voicetype
+	local.ent.accuracy				= local.dude.accuracy
+	local.ent.ammo_grenade			= local.dude.ammo_grenade
+	local.ent.gren_awareness		= local.dude.gren_awareness
+	local.ent.nosurprise			= local.dude.nosurprise
+	local.ent.disguise_range		= local.dude.disguise_range
+	local.ent.disguise_period		= local.dude.disguise_period
+	local.ent.disguise_accept_thread = local.dude.disguise_accept_thread
+	local.ent.disguise_level		= local.dude.disguise_level
+	local.ent.patrolpath			= local.dude.patrolpath
+	local.ent.waittrigger			= local.dude.waittrigger
+	local.ent.turret				= local.dude.turret
+	local.ent.alarmnode				= local.dude.alarmnode
+	local.ent.alarmthread			= local.dude.alarmthread
+	local.ent.spawn_target			= local.dude.target
+	local.ent.spawn_angle			= local.dude.angle
+	local.ent.spawn_weapon			= local.dude.weapon
+	local.ent.set					= local.dude.set
+	local.ent.group					= local.dude.group
+	local.ent.healthchance			= local.dude.healthchance
+	local.ent.area					= local.dude.area
+	local.ent.enemyname				= local.dude.enemyname
+	local.ent.playerseek			= local.dude.playerseek
+	local.ent.fnum					= local.dude.fnum
+	local.ent.turndoneerror			= local.dude.turndoneerror
+	local.ent.threatbias			= local.dude.threatbias
+	local.ent.radnum				= local.dude.radnum
+	local.ent.balconyheight			= local.dude.balconyheight
+	local.ent.pause					= local.dude.pause
+	local.ent.origin				= local.dude.origin
+    //local.ent.mg                    = local.dude.mg
+	local.ent.dontdropweapons		= local.dude.dontdropweapons
+	local.ent.dontdrophealth		= local.dude.dontdrophealth
+	local.ent.target                = local.dude.target
+
+end local.ent
+
+
+//----------------------------------------------------------------------------
+spawn_guy_from_origin local.script_origin local.start_origin:
+//-----------------
+
+
+	level.numclones += 1
+	//iprintln ("REANIMATOR >>> Cloning guy " + level.numclones )
+
+	if (local.script_origin == NIL || local.script_origin == NULL)
+	{
+		//println "ERROR >>> Invalid script origin!"
+		end
+	}
+	
+	//iprintln "Building guy " local.script_origin.model " " local.script_origin.new_targetname
+	local.guy = spawn local.script_origin.model targetname local.script_origin.new_targetname
+	
+	local.guy.origin				= local.start_origin
+	local.guy.targtename            = local.script_origin.new_targetname
+	local.guy.type_idle				= local.script_origin.type_idle
+	local.guy.type_attack			= local.script_origin.type_attack
+	local.guy.type_disguise			= local.script_origin.type_disguise
+	local.guy.type_grenade			= local.script_origin.type_grenade
+	local.guy.hearing				= local.script_origin.hearing
+	local.guy.sight					= local.script_origin.sight
+	local.guy.fov					= local.script_origin.fov
+	local.guy.leash					= local.script_origin.leash
+	local.guy.mindist				= local.script_origin.mindist
+	local.guy.maxdist				= local.script_origin.maxdist
+	local.guy.health				= local.script_origin.max_health
+	local.guy.sound_awareness		= local.script_origin.sound_awareness
+	local.guy.noticescale			= local.script_origin.noticescale
+	local.guy.fixedleash			= local.script_origin.fixedleash
+	local.guy.enemysharerange		= local.script_origin.enemysharerange
+	local.guy.voicetype				= local.script_origin.voicetype
+	local.guy.accuracy				= local.script_origin.accuracy
+	local.guy.ammo_grenade			= local.script_origin.ammo_grenade
+	local.guy.gren_awareness		= local.script_origin.gren_awareness
+	local.guy.nosurprise			= local.script_origin.nosurprise
+	local.guy.disguise_range		= local.script_origin.disguise_range
+	local.guy.disguise_period		= local.script_origin.disguise_period
+	local.guy.disguise_accept_thread = local.script_origin.disguise_accept_thread
+	local.guy.disguise_level		= local.script_origin.disguise_level
+	local.guy.patrolpath			= local.script_origin.patrolpath
+	local.guy.waittrigger			= local.script_origin.waittrigger
+	local.guy.turret				= local.script_origin.turret
+	local.guy.alarmnode				= local.script_origin.alarmnode
+	local.guy.alarmthread			= local.script_origin.alarmthread
+	local.guy.spawn_target			= local.script_origin.target
+	local.guy.spawn_angle			= local.script_origin.angle
+	local.guy.spawn_weapon			= local.script_origin.weapon
+	local.guy.set					= local.script_origin.set
+	local.guy.group					= local.script_origin.group
+	local.guy.healthchance			= local.script_origin.healthchance
+	local.guy.area					= local.script_origin.area
+	local.guy.enemyname				= local.script_origin.enemyname
+	local.guy.playerseek			= local.script_origin.playerseek
+	local.guy.fnum					= local.script_origin.fnum
+	local.guy.turndoneerror			= local.script_origin.turndoneerror
+	local.guy.threatbias			= local.script_origin.threatbias
+	local.guy.radnum				= local.script_origin.radnum
+	local.guy.balconyheight			= local.script_origin.balconyheight
+	local.guy.pause					= local.script_origin.pause
+ 	local.guy.dontdropweapons		= local.script_origin.dontdropweapons
+	local.guy.dontdrophealth		= local.script_origin.dontdrophealth
+	local.guy.target                = local.script_origin.target
+
+	if (local.guy.dontdropweapons == 1)
+		local.guy dontdropweapons
+
+	if (local.guy.dontdrophealth == 1)
+		local.guy thread DontDropHealth
+
+	//if (local.guy.target != NIL && local.guy.target != NULL)
+	//	local.guy thread Go local.guy.target
+	//else
+	//	local.guy thread Go local.script_origin
+	
+	//local.guy hide
+	//local.guy ai_off
+	
+	local.guy thread Go $player
+		
+	//iprintln "built guy " local.guy
+
+end local.guy
+
+
+//----------------------------------------------------------------------------
+Go local.place:
+//-----------------
+
+	//wait (1 + (randomint 3))
+
+	//self show
+	//self ai_on
+	self safesolid
+	
+	if (local.place == NIL || local.place == NULL)
+		end
+		
+	self runto local.place
+
+end

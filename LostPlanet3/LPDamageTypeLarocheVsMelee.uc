@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsMelee extends LPDamageTypeVSMelee;

@@ -1,0 +1,1 @@
+class LPDamageTypePackHunterRam extends LPDamageTypePackHunterMelee;

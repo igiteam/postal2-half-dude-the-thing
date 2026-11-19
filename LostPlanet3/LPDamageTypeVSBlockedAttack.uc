@@ -1,0 +1,1 @@
+class LPDamageTypeVSBlockedAttack extends LPDamageType;

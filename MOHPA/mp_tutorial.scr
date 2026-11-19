@@ -1,0 +1,523 @@
+// ---------------------------------------------------------------------------
+//  mp_tutorial
+//
+//  a global script used to initialize tutorials
+//
+//  Scripted by scosgrave for TKO-software 5/2004 with direction from ccaron
+//
+// ---------------------------------------------------------------------------
+
+
+
+//-----------------
+player_tutorial:
+//-----------------
+
+	while (1)
+	{
+		wait 5
+		
+		for (local.i=1; local.i<=$player.size; local.i++)		
+		{
+			if ($player[local.i] == NIL || $player[local.i] == NULL)
+				continue
+		
+			if ($player[local.i].initTutorial != level.gametype)
+			{
+				if( level.gametype == 1 )
+					$player[local.i] thread do_dm_tutorial
+				
+				if( level.gametype == 2 )
+					$player[local.i] thread do_tdm_tutorial
+				
+				if( level.gametype == 6 )
+					$player[local.i] thread do_invader_tutorial				
+			}
+		}
+	}	
+end
+
+
+
+//-----------------
+do_dm_tutorial:
+//-----------------
+
+	self.initTutorial = level.gametype
+	
+	wait 3
+	
+	while(self != NIL && self != NULL)
+	{
+	
+		// if the gametype changes we need a different tutorial
+		if( self.initTutorial != level.gametype )
+		{
+			self.initTutorial = 0
+			break
+		}
+	
+		// if you are spectating, show a welcome message and
+		// remind player of their state
+		while (self != NIL && self != NULL && self.isSpectator)
+		{
+			wait 3
+			
+			self posttutorial u_r_spectating
+			wait 20
+			
+			self posttutorial dm_welcome
+			wait 17
+		}
+		
+		//dprintln "Not spectating anymore"				
+		
+		// tutorials for non-spectators
+		while (self != NIL && self != NULL && !self.isSpectator)
+		{		
+			
+			// so that not everyone is getting a tutorial at the same time
+			local.rand_wait = randomint 5
+			local.waittime = local.rand_wait + 1
+			wait local.waittime
+						
+			// if the player is incapacitated post tutorial text to inform
+			// them of their state
+			if (self.incapacitated==1)
+			{
+				self posttutorial u_r_incapacitated
+				self settutorial  incap_player 1000
+				
+				// don't show any other tutorials while incapacitated
+				// take away the incap_player tutorial once no longer
+				// incapacitated
+				while( self != NIL && self != NULL && self.incapacitated==1 )
+					wait 1
+				
+				self removetutorial
+				
+				continue
+			}
+			else if (self.isWounded == 1 && self.incapacitated != 1 && self.health > 0 && !(int(getcvar (sv_disablebleeding))))
+			{
+				self posttutorial u_r_injured
+				continue
+			}
+			else
+				self posttutorial gametype_dm
+				
+		}
+	}
+end
+
+
+//-----------------
+do_tdm_tutorial:
+//-----------------
+
+	self.initTutorial = level.gametype
+	
+	wait 3
+	
+	while(self != NIL && self != NULL){			
+		
+		// if the gametype changes we need a different tutorial
+		if( self.initTutorial != level.gametype )
+		{
+			self.initTutorial = 0
+			break
+		}
+	
+		// if you are spectating, show a welcome message and
+		// remind player of their state
+		while (self != NIL && self != NULL && self.isSpectator)
+		{
+			wait 3
+			
+			self posttutorial u_r_spectating
+			wait 20						
+			
+			self posttutorial tdm_welcome
+			wait 17
+			
+		}
+		
+		//dprintln "Not spectating anymore"
+					
+		// make sure this is not init'd to some weird number when we enter 
+		// the game, if we are leaving spectator mode we should not be wounded
+		self.wasWounded = 0
+					
+		// tutorials for non-spectators
+		while (self != NIL && self != NULL && !self.isSpectator)
+		{		
+			
+			// so that not everyone is getting a tutorial at the same time
+			local.rand_wait = randomint 5
+			local.waittime = local.rand_wait + 1
+			wait local.waittime								
+			
+			// if the player is incapacitated post tutorial text to inform
+			// them of their state
+			if (self.incapacitated == 1)
+			{
+				self posttutorial u_r_incapacitated
+				self settutorial  incap_player 1000
+				
+				// don't show any other tutorials while incapacitated
+				// take away the incap_player tutorial once no longer
+				// incapacitated
+				while( self != NIL && self != NULL && self.incapacitated==1 )
+					wait 1
+				
+				self removetutorial
+				
+				continue
+			}
+			// only show wounded tutorial if you are not incapacitated
+			else if (self.isWounded == 1 && self.incapacitated != 1 && self.wasWounded == 0 && !(int(getcvar (sv_disablebleeding))))
+			{
+				self posttutorial u_r_injured
+				self settutorial  injured_player 1000
+				self.wasWounded = 1
+				continue
+			}
+			
+			// turn off the wounded tutorial displayed to neighboring players once you
+			// are no longer wounded
+			if( self.wasWounded == 1 && self.isWounded == 0 )
+			{
+				self.wasWounded = 0
+				self removetutorial
+			}
+				
+			local.rand = randomint 3
+			
+			// show a random tutorial message from this list	
+			switch (local.rand)
+			{
+				case 1:			
+					// was for health < 50
+				break					
+	
+				case 2:
+					switch (self.combatclass)
+					{
+						case "engineer":
+							if (self.dmteam == level.attackers)
+							{
+								if(self.dmteam == "axis")
+									self posttutorial u_r_attk_engineer_axis
+								else
+									self posttutorial u_r_attk_engineer	
+							}
+							else
+							{
+								if(self.dmteam == "axis")
+									self posttutorial u_r_defn_engineer_axis
+								else
+									self posttutorial u_r_defn_engineer
+							}
+						break
+							
+						case "corpsman":
+							if(self.dmteam == "axis")
+								self posttutorial u_r_corpsman_axis
+							else
+								self posttutorial u_r_corpsman
+						break
+							
+						case "ammotech":
+							if(self.dmteam == "axis")
+								self posttutorial u_r_ammotech_axis
+							else
+								self posttutorial u_r_ammotech
+						break
+							
+						case "infantry":
+							if(self.dmteam == "axis")
+								self posttutorial u_r_infantry_axis
+							else
+								self posttutorial u_r_infantry
+						break
+							
+						default:
+							iprintln "Unknown combatclass " self.combatclass
+						break
+							
+					} // end switch
+				break
+	
+				default:																									
+					self posttutorial gametype_teamdm						
+				break
+									
+			}
+		}
+	}
+end
+
+
+//-----------------
+do_invader_tutorial:
+//-----------------
+
+	self.initTutorial = level.gametype
+	
+	wait 3
+	
+	while(self != NIL && self != NULL){			
+	
+		// if the gametype changes we need a different tutorial
+		if( self.initTutorial != level.gametype )
+		{
+			self.initTutorial = 0
+			break
+		}
+	
+		// if you are spectating, show a welcome message and
+		// remind player of their state
+		while (self != NIL && self != NULL && self.isSpectator)
+		{
+			wait 3
+			if (self != NIL && self != NULL && self.isSpectator)
+				self posttutorial u_r_spectating
+			wait 5			
+			
+			if (self != NIL && self != NULL && self.isSpectator)
+				self posttutorial invader_welcome
+			wait 5			
+		}
+		
+		//dprintln "Not spectating anymore"
+		
+		// make the current objective different than current so that 
+		// we see the current objective right away
+		local.currObj = 23	
+		
+		// make sure this is not init'd to some weird number when we enter 
+		// the game, if we are leaving spectator mode we should not be wounded
+		if (self != NIL && self != NULL)
+			self.wasWounded = 0	
+		
+		// tutorials for non-spectators
+		while ( self != NIL && self != NULL && !self.isSpectator )
+		{		
+			
+			// trying to catch why some people have NIL combat classes
+			if( self.combatclass == NIL )
+			{
+				dprintln "==Bad combat class=="
+				dprintln "player: " self.netname
+				dprintln "health: " self.health
+				dprintln "spectator?: " self.isSpectator
+				dprintln "incapacitated?: " self.incapacitated
+			}
+			
+			// so that not everyone is getting a tutorial at the same time
+			local.rand_wait = randomint 5
+			local.waittime = local.rand_wait + 1
+			wait local.waittime						
+			
+			// if the objective has progressed show the player
+			// the tutorial text for the next objective
+			if(local.currObj != level.currentObjective && level.currentObjective < 5 && self != NIL && self != NULL)
+			{								
+				self waitthread show_obj_tutorial
+				local.currObj = level.currentObjective					
+				continue	
+			}
+			
+			// if the player is incapacitated post tutorial text to inform
+			// them of their state
+			if (self != NIL && self != NULL)
+			{						
+				if (self.incapacitated == 1)
+				{
+					self posttutorial u_r_incapacitated
+					self settutorial  incap_player 1000
+				
+					// don't show any other tutorials while incapacitated
+					// take away the incap_player tutorial once no longer
+					// incapacitated
+					while( self != NIL && self != NULL && self.incapacitated==1 )
+						wait 1
+					
+					if (self != NIL && self != NULL)
+						self removetutorial
+				
+					continue
+				}											
+				else if (self.isWounded == 1&& self.incapacitated != 1 && self.wasWounded == 0 && !(int(getcvar (sv_disablebleeding))))
+				{
+					// only show wounded tutorial if you are not incapacitated
+					self posttutorial u_r_injured
+					self settutorial  injured_player 1000
+					self.wasWounded = 1
+					continue
+				}	
+				
+				// turn off the wounded tutorial displayed to neighboring players once you
+				// are no longer wounded
+				if ( self.wasWounded == 1 && self.isWounded == 0)
+				{
+					self.wasWounded = 0
+					self removetutorial
+				}
+			}
+		
+			local.rand = randomint 7
+			
+			// show a random tutorial message from this list	
+			switch (local.rand)
+			{
+				case 1:		
+					// was for health < 50 (u_r_injured)
+				break
+	
+				case 2:	
+					// trying to get rid of script errors
+					if( self == NIL || self == NULL )
+						end 
+					
+					if (self.dmteam == "axis")
+					{
+						if (level.axisspawnpool == 0)
+							self posttutorial spawn_pool_empty
+					}
+					else
+					{
+						if (level.alliesspawnpool == 0)
+							self posttutorial spawn_pool_empty
+					}
+				break
+	
+				case 3:	
+					// trying to get rid of script errors
+					if( self == NIL || self == NULL )
+						end
+				
+					self posttutorial view_objectives
+				break
+	
+				case 4:
+					// trying to get rid of script errors
+					if( self == NIL || self == NULL )
+						end 
+						
+					switch (self.combatclass)
+					{
+						case "engineer":
+							if (self.dmteam == level.attackers)
+								self posttutorial u_r_attk_engineer	
+							else
+								self posttutorial u_r_defn_engineer
+						break
+							
+						case "corpsman":
+							self posttutorial u_r_corpsman
+						break
+							
+						case "ammotech":
+							self posttutorial u_r_ammotech
+						break
+							
+						case "infantry":
+							self posttutorial u_r_infantry
+						break
+							
+						default:
+							dprintln "Unknown combatclass " self.combatclass
+						break
+							
+					} // end switch
+				break
+	
+				case 5:		
+					// trying to get rid of script errors
+					if( self == NIL || self == NULL )
+						end 
+																			
+					self posttutorial gametype_invader									
+				break
+					
+				case 6:	
+					// trying to get rid of script errors
+					if( self == NIL || self == NULL )
+						end
+						 				
+					self posttutorial win_by_attrition
+				break
+			}
+		}
+	}
+end
+
+
+//-----------------
+show_obj_tutorial:
+//-----------------
+
+	while( level.currentObjective < 1 )
+		wait 1
+
+	dprintln "In Obj Tutorials"
+
+	// if level is Gavutu, show Gavutu objective tutorial text
+	if( level.script == "maps/dm/mp_gavutu_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_gav_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}	
+
+	// if level is Airfield, show Airfield objective tutorial text
+	if( level.script == "maps/dm/mp_airfield_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_air_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+	// if level is Wake Island, show Wake Island objective tutorial text
+	if( level.script == "maps/dm/mp_wakeisland_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_wak_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+	// if level is Matanikau, show Matanikau objective tutorial text
+	if( level.script == "maps/dm/mp_matanikau_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_mat_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+
+	
+	// if level is Bougainville, show Bougainville objective tutorial text
+	if( level.script == "maps/dm/mp_bougainville_inv.scr" )	
+	{		
+		local.tutObjAlias = "tut_bou_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+	// if level is Corregidor, show Corregidor objective tutorial text
+	if( level.script == "maps/dm/mp_corregidor_inv.scr" )	
+	{		
+		local.tutObjAlias = "tut_cor_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+	// if level is Bridge, show Bridge objective tutorial text
+	if( level.script == "maps/dm/mp_bridge_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_bri_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+	// if level is Gifu, show Gifu objective tutorial text
+	if( level.script == "maps/dm/mp_gifu_inv.scr" )	
+	{
+		local.tutObjAlias = "tut_gif_obj" + level.currentObjective		
+		self posttutorial local.tutObjAlias
+	}
+	
+end

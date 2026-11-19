@@ -1,0 +1,1 @@
+class LPDamageTypeLeechTail extends LPDamageTypeLeechMelee;

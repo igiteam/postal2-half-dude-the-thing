@@ -1,0 +1,57 @@
+// LIGHTNING.SCR
+//-----------------------------------------------------------------------------
+
+
+
+
+//-----------------------------------------------------------------------------
+LightningStrike local.strike_target:
+//-----------------------------------------------------------------------------
+end
+
+	//
+	//-- Set defaults
+	//
+
+	if( NIL == local.strike_target || NULL == local.strike_target )
+	{
+		dprintln "SCRIPT ERROR: LightningStrike() must specify a target"
+		end
+	}
+
+	local.vfx01 = spawn script_model model "models/fx/LightningFlash_tko.tik"
+	local.vfx01 notsolid
+	local.vfx01.origin = local.strike_target.origin
+	local.vfx01.angles = local.strike_target.angles
+	//local.vfx01 svflags "+broadcast"
+	local.vfx01 anim start
+
+	local.soundDelay = randomfloat( 1.0 ) + 0.5
+	wait local.soundDelay
+
+	//$player playsound Thunder_Close01
+
+end
+
+
+//-----------------------------------------------------------------------------
+LightningLoop local.numTargets local.frequency:
+//-----------------------------------------------------------------------------
+end
+
+	// This assumes that the targets lightning will strike are
+	// info_notnull and have a targetname of "lightning_strike01"
+	// through "lightning_strike09"
+
+	while( 1 )
+	{
+
+		local.target		= randomint( local.numTargets ) + 1
+		local.strike_target	= "lightning_strike0" + local.target
+		waitthread global/Lightning.scr::LightningStrike $(local.strike_target)
+
+		local.randomWaitTime = randomfloat( local.frequency ) + 1.0
+		wait local.randomWaitTime
+	}
+
+end

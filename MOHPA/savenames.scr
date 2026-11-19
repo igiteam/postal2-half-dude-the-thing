@@ -1,0 +1,651 @@
+// --------------------------------------------------------------------------------
+//	global/savenames.scr
+//
+//	retrieves names of savegames
+//
+// --------------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------------
+main local.set:
+//
+// --------------------------------------------------------------------------------
+
+	if ( local.set == NIL )
+	{
+//		println "Adding autosave names"
+
+		if ( level.script != NIL )
+		{
+			for ( local.i = 1; local.i < $autosave.size + 1; local.i++ )
+			{
+				if ( $autosave[local.i].set != NIL )
+				{
+					local.string = thread getsave $autosave[local.i].set
+					$autosave[local.i] savename local.string
+				}
+				else
+				{
+					if ( $autosave[local.i].savename != NIL )
+					{
+						$autosave[local.i].savename = (level.script + " save NIL")
+						exec global/error.scr ("Error, Autosave at " + $autosave[local.i].origin + " has a savename and no #set. Delete the savename and put it in savenames.scr and give the autosave a #set.")
+					}
+					else
+						exec global/error.scr ("Error, Autosave at " + $autosave[local.i].origin + " has no #set")
+				}
+			}
+		}
+		else
+			println "Error: level.script is NIL is savenames.scr."
+	}
+	else
+	{
+		local.string = thread getsave local.set
+		end local.string
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+getsave local.set:
+//
+// --------------------------------------------------------------------------------
+
+	if ( local.set == -5 )
+	{
+		local.string = "Starting"
+		end local.string
+	}
+
+	if ( level.script != NIL )
+	{
+		local.script = tolower level.script
+
+		switch ( local.script )
+		{
+		// 1_1_Bootcamp
+		case "maps/1_1_bootcamp_chunk1.scr":
+			// 1_1_Bootcamp
+			switch (local.set)
+			{
+			case 1:
+				local.string = make_loc_text "M1_1_1:Autosave01"
+				break
+				
+			case 2:
+				local.string = make_loc_text "M1_1_1:Autosave02"
+				break
+				
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 1_1_Bootcamp_chunk2"
+				break
+			}
+
+				
+			break
+
+		case "maps/1_1_bootcamp_chunk2.scr":
+			switch (local.set)
+			{
+			case 1:
+				local.string = make_loc_text "M1_1_2:Autosave01"
+				break
+				
+			case 2:
+				local.string = make_loc_text "M1_1_2:Autosave02"
+				break
+				
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 1_1_Bootcamp_chunk2"
+				break
+			}
+			
+			break
+
+		// 2_1_Pearl_A
+		case "maps/2_1_pearl_a_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M2_1_1:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M2_1_1:Autosave02"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 2_1_pearl_a_chunk1"
+			}
+			break
+
+		// 2_1_Pearl_B
+		case "maps/2_1_pearl_b_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M2_1_b_1:Autosave01"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 2_1_pearl_b_chunk1"
+			}
+			break
+
+		case "maps/2_1_pearl_b_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M2_1_b_2:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M2_1_b_2:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M2_1_b_2:Autosave03"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 2_1_pearl_b_chunk2"
+			}
+			break
+
+		case "maps/2_1_pearl_b_chunk3.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M2_1_b_3:Autosave01"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 2_1_pearl_b_chunk3"
+			}
+			break
+
+		// 4_1_NightMoves
+		case "maps/4_1_nightmoves_chunk1.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_1_1:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_1_1:Autosave02"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_1_nightmoves_chunk1"
+			}
+			break
+
+		case "maps/4_1_nightmoves_chunk2.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_1_2:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_1_2:Autosave02"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_1_nightmoves_chunk2"
+			}
+			break
+
+		case "maps/4_1_nightmoves_chunk3.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_1_3:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_1_3:Autosave02"
+			}
+			else if ( local.set == 3 )
+			{
+				local.string = make_loc_text "M4_1_3:Autosave03"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_1_nightmoves_chunk3"
+			}
+			break
+
+		// 4_2_ManDown
+		case "maps/4_2_mandown_chunk1.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_2_1:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_2_1:Autosave02"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_2_mandown_chunk1"
+			}
+			break
+
+		case "maps/4_2_mandown_chunk2.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_2_2:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_2_2:Autosave02"
+			}
+			else if ( local.set == 3 )
+			{
+				local.string = make_loc_text "M4_2_2:Autosave03"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_2_mandown_chunk2"
+			}
+			break
+
+		case "maps/4_2_mandown_chunk3.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_2_3:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_2_3:Autosave02"
+			}
+			else if ( local.set == 3 )
+			{
+				local.string = make_loc_text "M4_2_3:Autosave03"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_2_mandown_chunk3"
+			}
+			break
+
+		// 4_4_SittingDucks
+		case "maps/4_4_sittingducks.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M4_4:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M4_4:Autosave02"
+			}
+			else if ( local.set == 3 )
+			{
+				local.string = make_loc_text "M4_4:Autosave03"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 4_4_sittingducks"
+			}
+			break
+
+		// 5_1_Henderson
+		case "maps/5_1_henderson_chunk1.scr":
+			switch( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_1_1:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_1_1:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_1_1:Autosave03"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in Henderson_chunk1"
+			}
+			break
+
+		case "maps/5_1_henderson_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_1_2:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_1_2:Autosave02"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in Henderson_chunk2"
+			}
+			break
+
+		case "maps/5_1_henderson_chunk3.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_1_3:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_1_3:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_1_3:Autosave03"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in Henderson_chunk3"
+			}
+			break
+
+		case "maps/5_1_henderson_chunk4.scr":
+			switch ( local.set )
+			{
+			case 1 :
+				local.string = make_loc_text "M5_1_4:Autosave01"
+				break
+			case 2 :
+				local.string = make_loc_text "M5_1_4:Autosave02"
+				break
+			case 3 :
+				local.string = make_loc_text "M5_1_4:Autosave03"
+				break
+			case 4 :
+				local.string = make_loc_text "M5_1_4:Autosave04"
+				break
+			case 5 :
+				local.string = make_loc_text "M5_1_4:Autosave05"
+				break
+			case 6 :
+				local.string = make_loc_text "M5_1_4:Autosave06"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in Henderson_chunk4"
+			}
+			break
+
+		// 5_2_BloodyRidge
+		case "maps/5_2_bloodyridge_chunk1.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M5_2_1:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M5_2_1:Autosave02"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_2_bloodyridge_chunk1"
+			}
+			break
+
+		case "maps/5_2_bloodyridge_chunk2.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M5_2_2:Autosave01"
+			}
+			else if ( local.set == 2 )
+			{
+				local.string = make_loc_text "M5_2_2:Autosave02"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_2_bloodyridge_chunk2"
+			}
+			break
+
+		case "maps/5_2_bloodyridge_chunk3.scr":
+			if ( local.set == 1 )
+			{
+				local.string = make_loc_text "M5_2_3:Autosave01"
+			}
+			else
+			{
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_2_bloodyridge_chunk3"
+			}
+			break
+
+		// 5_3_RiverWalk
+		case "maps/5_3_riverwalk_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_3_1:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_3_1:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_3_1:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_3_1:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_3_1:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_3_riverwalk_chunk1"
+			}
+			break
+
+		case "maps/5_3_riverwalk_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_3_2:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_3_2:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_3_2:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_3_2:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_3_2:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_3_riverwalk_chunk2"
+			}
+			break
+
+		// 5_5_Village
+		case "maps/5_5_village_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_5_1:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_5_1:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_5_1:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_5_1:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_5_1:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_5_village_chunk1"
+			}
+			break
+
+		case "maps/5_5_village_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_5_2:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_5_2:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_5_2:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_5_2:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_5_2:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_5_village_chunk2"
+			}
+			break
+
+		case "maps/5_5_village_chunk3.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_5_3:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_5_3:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_5_3:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_5_3:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_5_3:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_5_village_chunk3"
+			}
+			break
+			
+		// 5_6_Flyboys
+		case "maps/5_6_flyboys.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M5_6:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M5_6:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M5_6:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M5_6:Autosave04"
+				break
+			case 5:
+				local.string = make_loc_text "M5_6:Autosave05"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 5_6_Flyboys"
+			}
+			break			
+
+		// 7_1_Tarawa_A
+		case "maps/7_1_tarawa_a_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M7_1_1:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M7_1_1:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M7_1_1:Autosave03"
+				break
+			case 4:
+				local.string = make_loc_text "M7_1_1:Autosave04"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 7_1_tarawa_a_chunk1"
+			}
+			break
+
+		case "maps/7_1_tarawa_a_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M7_1_2:Autosave01"
+				break
+			case 2:
+				local.string = make_loc_text "M7_1_2:Autosave02"
+				break
+			case 3:
+				local.string = make_loc_text "M7_1_2:Autosave03"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 7_1_tarawa_a_chunk2"
+			}
+			break
+			
+		case "maps/7_1_tarawa_a_chunk3.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M7_1_3:Autosave01"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 7_1_tarawa_a_chunk3"
+			}
+			break
+
+		// 7_1_Tarawa_B
+		case "maps/7_1_tarawa_b_chunk1.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M7_2_1:Autosave01" //"Tarawa - First Encounter"
+				break
+			case 2:
+				local.string = make_loc_text "M7_2_1:Autosave02" //"Tarawa - The Command Center"
+				break
+			case 3:
+				local.string = make_loc_text "M7_2_1:Autosave03" //"Tarawa - Into The Tunnels"
+				break
+			case 4:
+				local.string = make_loc_text "M7_2_1:Autosave04" //"Tarawa - Halfway Through"
+				break
+			case 5:
+				local.string = make_loc_text "M7_2_1:Autosave05" //"Tarawa - The Ant Hill"
+				break
+			case 6:
+				local.string = make_loc_text "M7_2_1:Autosave06" //"Tarawa - Holding The Hill"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 7_1_tarawa_b_chunk1"
+			}
+			break
+
+		case "maps/7_1_tarawa_b_chunk2.scr":
+			switch ( local.set )
+			{
+			case 1:
+				local.string = make_loc_text "M7_2_2:Autosave01" //"Tarawa - X - X"
+				break
+			case 2:
+				local.string = make_loc_text "M7_2_2:Autosave02" //"Tarawa - X - X"
+				break
+			case 3:
+				local.string = make_loc_text "M7_2_2:Autosave03" //"Tarawa - X - X"
+				break
+			case 4:
+				local.string = make_loc_text "M7_2_2:Autosave04" //"Tarawa - X - X"
+				break
+			default:
+				dprintln "ERROR: global/savenames.scr -- Unhandled save set in 7_1_tarawa_b_chunk2"
+			}
+			break
+
+		default:
+			dprintln "ERROR: global/savenames.scr -- Unknown level.script: " local.script
+			break
+		}
+	}
+	else
+		println "Error: level.script is NIL in savenames.scr."
+
+	if ( local.string == NIL )
+		local.string = (level.script + " save " + local.set)
+
+end local.string
+

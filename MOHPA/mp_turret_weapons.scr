@@ -1,0 +1,495 @@
+//
+// mp_turret_weapons.scr
+//
+// invader code for aaguns and flak guns
+//
+// To place aa guns with explosives, reload, aim assist ect
+// perform the following steps:
+//
+// 1 > place an aagun targetname aagun(n), where n is any 
+//     int between 0 and 100.  Note that all aa guns need unique
+//     targetnames because of their relation to the turret.
+//
+// 2 > Place a trigger_use targetname aagun(n)_mount_trigger, 
+//     where n is the same value as the aagun.  
+//
+// 3 > Place a trigger multiple targetname aagun(n)_bomb_trigger
+//     in a location (not intersecting the other triggers) where
+//     the bomb will be located (No need to put the bomb in place
+//     because it will be spawned in)
+//
+// 4 > Place a trigger multiple targetname aagun(n)_reload_trigger
+//
+// None of the triggers should not lie on top of each other if possible
+//
+// if you want collision hulls, make sure they are in the map
+// and they will be found.  See 'main' for global attributes.
+//
+// 5 > Include the line : 
+//            waitexec global/pa_turret_weapons.scr
+//
+// To place a flak gun, perform the same steps as before, 
+// substituting 'flak' for 'aagun' in the targetnames.
+//
+// On success, when a gun has been initialized, the following 
+// fields have been set and are safe to modify during execution:
+//
+// - Public -
+// self.destroyedCallback ( called when the gun is destroyed )
+// self.bombArmedCallback ( called when the gun's bomb is planted )
+// self.bombDisarmedCallback ( called when the gun's bomb defused )
+// self.destroyedTrigger ( triggered when gun is destroyed )
+// self.team         = ["allies" | "axis" (default) ] ( set who can defuse )
+//
+// If a player is on the same 'team' as the a gun, then
+// they will only see the bomb when it has been planted.
+//
+// And the following entities will be spawned. It is not safe to 
+// modify the internal properties of the entities.
+//
+// $aagun(n)_bomb (in the cntr of the bomb_trigger, initially hidden)
+// $aagun(n)_turret0 
+//
+// the aagun's default behavior is to be drivable by all
+// And the bomb hidden.  When 'activate' called, the throbbing
+// box is visible to the opposing team.
+// 
+
+//-----------------------------------------------------------------------------
+main:
+//-----------------
+
+	// AA gun globals
+	level.aaGunBaseHull       = $aagun_hull
+	level.aaGunTurretHull     = $aagun_turret_hull
+	level.aaGunDestroyedModel = "models/statweapons/p_aagun_d.tik"
+	level.aaGunDestroyedHull  = $aagun_d_hull
+	level.aaGunStartHealth    = 500
+	
+	// Flak gun globals
+	level.flakGunBaseHull       = $flak88_hull
+	level.flakGunTurretHull     = $flak88_turret_hull
+	level.flakGunDestroyedModel = "models/statweapons/flak88_d.tik" 
+	level.flakGunDestroyedHull  = $flak88_d_hull
+	level.flakGunStartHealth    = 500
+
+	for (local.i=0; local.i<=100; local.i++)
+	{
+		local.base = $("aagun" + local.i)
+		if (local.base != NIL && local.base != NULL)
+		{
+			local.turret = $("aagun" + local.i + "_turret0")
+			local.reloadTrigger = $("aagun" + local.i + "_reload_trigger")
+			local.bombTrigger = $("aagun" + local.i + "_bomb_trigger")
+			local.mountTrigger = $("aagun" + local.i + "_mount_trigger")
+			local.base.collisionent = level.aaGunBaseHull
+			local.turret.collisionent = level.aaGunTurretHull
+			local.base.health = level.aaGunStartHealth
+			local.base.d_hull = level.aaGunDestroyedHull
+			local.base.d_model = level.aaGunDestroyedModel
+			waitthread init_gun local.base local.turret local.reloadTrigger local.bombTrigger local.mountTrigger
+		}
+		
+		local.base = $("flak" + local.i)
+		if (local.base != NIL && local.base != NULL)
+		{
+			local.turret = $("flak" + local.i + "_turret0")
+			local.reloadTrigger = $("flak" + local.i + "_reload_trigger")
+			local.bombTrigger = $("flak" + local.i + "_bomb_trigger")
+			local.mountTrigger = $("flak" + local.i + "_mount_trigger") 
+			local.base.collisionent = level.aaGunBaseHull
+			local.turret.collisionent = level.flakGunTurretHull
+			local.base.health = level.flakGunStartHealth
+			local.base.d_hull = level.flakGunDestroyedHull
+			local.base.d_model = level.flakGunDestroyedModel
+			waitthread init_gun local.base local.turret local.reloadTrigger local.bombTrigger local.mountTrigger
+		}
+	}
+	
+end
+
+
+//-----------------------------------------------------------------------------
+init_gun local.base local.turret local.reloadTrigger local.bombTrigger local.mountTrigger:
+//-----------------
+
+	if (!local.base || !local.turret)
+	{
+		dprintln ("ERROR >>> init_aagun : main components missing")
+		end
+	}
+	
+	if (local.base.team == NIL || local.base.team == NULL || (local.base.team != "allies" && local.base.team != "axis"))
+	{
+		//iprintln ("setting team to default")
+		local.base.team = "axis"
+	}
+	
+	dprintln ("initializing " + local.base)
+	
+	// assign pts to the base so we can just pass it around
+	local.base.turret = local.turret
+	local.base.reloadTrigger = local.reloadTrigger
+	local.base.bombTrigger = local.bombTrigger
+	local.base.mountTrigger = local.mountTrigger
+
+	// disable default behavior	
+	local.base setUsableScriptOnly 1
+	local.turret setUsableScriptOnly 1
+	
+	local.got_bomb = 0
+	if (!local.bombTrigger)
+		dprintln ("WARNING >>> " + local.base + " has no bomb_trigger!")
+	else
+	{
+		waitthread init_bomb local.base
+		local.got_bomb = 1
+	}
+
+	if (!local.reloadTrigger)
+		dprintln ("WARNING >>> " + local.base + " has no reload trigger!")
+	else
+		waitthread init_reload_trigger local.base
+		
+	if (!local.mountTrigger)
+		dprintln ("WARNING >>> " + local.base + " has no mounting trigger!")
+	else
+	{
+		waitthread init_mount_trigger local.base
+		if (local.got_bomb)
+			local.bombTrigger thread monitor_bomb_trigger local.base
+	}
+	local.base thread track_health
+	
+end
+
+
+//-----------------------------------------------------------------------------
+set_team local.string:
+//-----------------
+
+	// This function sets the team who 'ownes' the gun
+	// resulting in that team only being able to 
+	// see bomb that have been planted
+	// valid values for string are : "allies" | "axis"
+	
+	if (!self || (local.string != "allies" && local.string != " axis"))
+		end
+		
+	self.team = local.string
+	
+	if (self.team == "axis")
+	{
+		self.bomb visibleteamonly 1
+		self.bomb.alliesBomb = 1
+	}
+	else
+	{
+		self.bomb visibleteamonly 2
+		self.bomb.alliesBomb = 0
+	}
+	
+end
+
+
+
+//-----------------------------------------------------------------------------
+activate local.destroyedCallback local.destroyedTrigger:
+//-----------------
+
+	// 'self' refers to the aagun base
+	// destroyed callback is a thread to call when the 
+	// aagun health goes to 0
+
+	dprintln ("activating " + self)
+
+	if (!self)
+		end
+		
+	//self.bomb.debug = 1
+	self takedamage
+	self.turret takedamage
+	self.mountTrigger triggerable
+	self.reloadTrigger triggerable
+	self.bombTrigger triggerable
+	self.bomb waitthread global/defuse_bomb.scr::activate
+	self.destroyedCallback = local.destroyedCallback
+	self.destroyedTrigger  = local.destroyedTrigger
+	//self thread track_health
+	//self.trackingThread = parm.previousthread
+
+end
+
+
+//-----------------------------------------------------------------------------
+deactivate:
+//-----------------
+
+	// 'self' refers to the aagun base
+	if (!self)
+		end
+		
+	self nodamage
+	self.turret nodamage
+	self.mountTrigger nottriggerable
+	self.reloadTrigger nottriggerable
+	self.bombTrigger nottriggerable
+	self.bomb hide
+	
+	//if (self.trackingThread != NIL && self.trackingThread != NULL)
+	//	delete self.trackingThread
+
+end
+
+
+//-----------------------------------------------------------------------------
+// PRIVATE THREADS
+
+//-----------------
+init_bomb local.base:
+//-----------------
+
+	// PRIVATE 
+	// this spawns the bomb
+	// to activate call :
+	// chargename waitthread global/diffuse_bomb.scr::activate
+	
+	local.bombName = local.base.targetname + "_bomb"
+	local.bomb = spawn script_model model "items/pulse_explosive.tik" targetname local.bombName
+	
+	local.bomb notsolid
+
+	local.bomb.origin = local.base.bombTrigger.origin
+	local.bomb.target = local.base.bombTrigger
+	local.base.bomb = local.bomb
+	local.base.bombTrigger setthread global/defuse_bomb.scr::proximity
+	
+	//local.dv = local.base.bombTrigger.origin - local.base.origin
+	//local.bomb attach local.base.turret tag_seat 1 local.dv
+
+	//local.charge bind local.base.turret
+	//local.base.bombTrigger attach local.base.turret tag_seat 1 local.dv
+	local.bomb bind local.base.turret
+
+	local.bomb waitthread global/defuse_bomb.scr::init global/pa_turret_weapons.scr::bomb_explode 1 global/pa_turret_weapons.scr::bomb_armed_callback global/pa_turret_weapons.scr::bomb_disarmed_callback
+
+end
+
+
+//-----------------------------------------------------------------------------
+bomb_explode:
+//-----------------
+
+	iprintln ("bomb exploded")
+
+	radiusdamage self.origin 5000 200
+
+end
+
+
+//-----------------
+init_reload_trigger local.base:
+//-----------------
+
+	// PRIVATE 
+	local.base.reloadTrigger.ammoPercent = 34
+	local.base.reloadTrigger.ammoTime   = 2.5
+	local.base internalammo level.dm_mgInternalAmmo level.dm_mgSupplySize level.dm_mgSupplyMaxCount level.dm_mgSupplyCount
+	local.base.turret overheat 3 2 1.5
+	local.base.reloadTrigger setthread global/pa_guns.scr::reload_trigger
+	local.base.target = local.base.reloadTrigger
+	local.base.turret.target = local.base.reloadTrigger
+	local.base.reloadTrigger.gun = local.base
+	local.base.turret thread wait_for_aim_assist
+
+end
+
+
+//-----------------
+init_mount_trigger local.base:
+//-----------------
+
+	// PRIVATE 
+	local.base.mountTrigger setthread global/pa_guns.scr::use_weapon
+	local.base.mountTrigger.vehicle = local.base
+	local.base.mountTrigger.gun = local.base.turret
+	//local.base.mountTrigger bind local.base.turret
+
+end
+
+
+// ----------------
+track_health:
+// ----------------
+
+	// PRIVATE 
+	local.callback = self.destroyedCallback
+	local.trigger  = self.destroyedTrigger
+	
+	local.origin = self.origin
+	local.bomb   = self.bomb
+	local.d_model = self.d_model
+	local.d_hull  = self.d_hull
+	
+	while (self && self.health > 0)
+	{
+		self waittill damage
+		local.angles = self.angles
+		
+		// check if it's dead
+		if (self.health <= 0) 
+			break
+	}
+
+	thread blowup_gun local.origin local.angles local.d_model local.d_hull
+	
+	if (local.bomb != NIL && local.bomb != NULL)
+		local.bomb remove
+	
+	if (local.callabck)
+		waitthread local.callback
+		
+	if (local.trigger)
+		trigger local.trigger
+
+end
+
+
+//-----------------
+monitor_bomb_trigger local.base:
+//-----------------
+
+	// PRIVATE 
+	// monitor the bomb trigger, and deactivate mounting
+	// when someone in the bomb trigger 
+	while (local.base != NULL && local.base.health > 0)
+	{
+		self waittill trigger
+
+		local.inside = 1
+		while (local.inside == 1)
+		{
+			local.inside = 0
+		
+			for (local.i=1; local.i <= $player.size; local.i++)
+			{
+				if ($player[local.i] isinside self)
+				{
+					local.inside = 1
+					local.base.mountTrigger nottriggerable
+				}
+			}
+			waitframe
+		}
+		
+		local.base.mountTrigger triggerable
+	}
+
+end
+
+
+//-----------------
+blowup_gun local.origin local.angles local.d_model local.d_hull:
+//-----------------
+
+	// PRIVATE 
+	// This function blows up the aagun and puts a damaged model
+	// in its place
+	
+	local.dead = spawn script_object model local.d_model // level.aaGunDestroyedModel
+	local.dead.origin = local.origin
+	local.dead.angles = local.angles
+	local.dead.collisionent = local.d_hull
+	//local.dead setcollisionentity local.d_hull
+	//local.dead notsolid
+	exec global/earthquake.scr .2 4 0 0
+	local.dead playsound explode_aagun
+	//radiusdamage self.origin 4000 500
+	local.dead waitthread spawn_fx "models/fx/fx_truck_explosion.tik"
+
+end
+
+
+//-----------------
+spawn_fx local.fx:
+//-----------------
+
+	// PRIVATE 
+	// This function is used to spawn explosions
+	local.temp = spawn script_model model local.fx
+	local.temp notsolid
+	local.temp.origin = self.origin
+	local.temp anim start
+	local.temp notsolid
+	wait 5
+	local.temp remove
+
+end
+
+
+//-----------------
+bomb_armed_callback local.planter:
+//-----------------
+
+	// this is the default callback when a bomb has been planted
+	iprintln ("" + local.planter + " has planted a bomb!")
+	
+end
+
+
+//-----------------
+bomb_disarmed_callback local.disarmer:
+//-----------------
+
+	// this is the default callback when a bomb has been disarmed
+	iprintln ("" + local.disarmer + " disarmed a bomb")
+
+end
+
+
+//-----------------
+wait_for_aim_assist:
+//------------------
+
+	// Each fixed MG will have a thread running this
+	// function. When a player stands in the aim assist trigger
+	// multiple (held in the self.target attribute) then the gun
+	// sets itself to be aim assisted (plus it places the
+	// appropriate icon on the gun wielder's screen showing that
+	// someone is helping them aim).
+	// 
+	// Note that we used to also put an icon on the assisters
+	// screen, to show that they were assisting... but for right
+	// now aim assist triggers and reload triggers are the same,
+	// so they'll see a reload icon when they stand in the right
+	// spot.
+
+	while (self != NIL && self != NULL)
+	{
+		local.assistAim = NULL
+		for (local.i = 1; local.i <= $player.size; local.i++)
+		{
+			if ($player[local.i] isinside self.target)
+				if ($player[local.i] != self.wielder)
+					local.assistAim = $player[local.i]
+		}
+		if (local.assistAim == NIL)
+		{
+			self assistaim 0
+		}
+		else if (local.assistAim == NULL)
+		{
+			self assistaim 0
+			if (self.lastAssiter != NIL && self.lastAssister != NULL)
+			{
+				self.lastAssister = NULL
+			}
+		}
+		else
+		{
+			self assistaim 1
+			self.lastAssister = local.aim
+		}
+		wait 0.2
+	}
+end

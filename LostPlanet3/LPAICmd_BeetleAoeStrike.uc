@@ -1,0 +1,1 @@
+class LPAICmd_BeetleAoeStrike extends LPAICmd_BeetleBaseStrike within LPAIControllerBaseBeetle;

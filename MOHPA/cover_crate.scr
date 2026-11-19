@@ -1,0 +1,248 @@
+// ------------------------------------------------------------------------------------------
+//	cover_crate.scr
+//
+//
+//	This scripts handles all the crate-specific aggressive cover animations.
+//
+// ------------------------------------------------------------------------------------------
+
+
+main:
+	println "Cover.scr performing animation tests!"
+
+	self waitthread CrateTest
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateTest:
+// ------------------------------------------------------------------------------------------
+	/// todo::
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateInit:
+// ------------------------------------------------------------------------------------------
+
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+	waitexec anim/reload.scr::ReloadInit
+
+	self.painhandler = anim/overattack.scr::overattackpain
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateIdle:
+//
+//	Performs idle-cover animation(s)
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateInit
+
+	// crouch down (if needed)
+	self waitthread CrateCrouch
+
+	// For now, just loop the only idle animation we have....
+	self setmotionanim (self getalias idle crate)
+	pause
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+CrateAim:
+// ------------------------------------------------------------------------------------------
+
+	while ( 1 )
+	{
+		self setmotionanim (self getalias aim crate crouch)
+//		self setactionanim (self getalias aim crate crouch) -60 60
+		self waittill flaggedanimdone
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateStand:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateInit
+
+	local.curpos = self.origin
+
+	if (self.position != stand)
+	{
+		self.position = stand
+		self setmotionanim (self getalias cratestand "" "x")
+		self waittill flaggedanimdone
+		self.position = stand
+	}
+	else
+	{
+		waitframe
+	}
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateSearch:
+// ------------------------------------------------------------------------------------------
+
+	// for now, just use CrateStand
+	self waitthread CrateStand
+
+	self setmotionanim (self getalias aim crate crouch)	// put lower body in position
+//	self setactionanim (self getalias aim crate crouch)	-60 60 // get upper body aiming correctly
+
+	// the above anim will just loop
+	pause
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateShoot:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateInit
+
+	self.position = crouch
+	self.canshoot = 0
+	self setmotionanim (self getalias aim crate crouch)				// Ex: rifle_crouch_shoot_xx_xx_crate
+//	self setactionanim (self getalias aim crate crouch) -60 60
+
+	wait 0.2
+
+	if ( self.enemy )
+	{
+		while (self.canshoot==0)
+		{
+			waitthread anim/shoot.scr::CanShoot
+			if ( self.canshoot==0 )
+			{
+				wait 0.2
+			}
+		}
+	}
+
+	self setmotionanim (self getalias aim crate crouch)
+	self waittill flaggedanimdone
+
+	self setmotionanim (self getalias shoot crate crouch)
+	self waittill flaggedanimdone
+
+//	self setactionanim (self getalias shoot crate crouch) -60 60
+//	self waittill upperanimdone
+
+	waitframe
+
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CratePeek:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateStand
+	wait 1
+	self waitthread CrateCrouch
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateHide:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateInit
+
+	// crouch down (if needed)
+	self waitthread CrateCrouch
+
+	// do our crate idle (which means hiding) animation
+	self setmotionanim (self getalias idle crate)
+	pause
+
+	end
+
+
+// ------------------------------------------------------------------------------------------
+CrateCrouch:
+// ------------------------------------------------------------------------------------------
+
+		// make sure we're crouched.
+	if (self.position != crouch)
+	{
+		self.position = crouch
+		self setmotionanim (self getalias cratecrouch "" "x")
+		self waittill flaggedanimdone
+		self.position = crouch
+	}
+	else
+	{
+		waitframe
+	}
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateBlindfire:
+// ------------------------------------------------------------------------------------------
+
+	self waitthread CrateInit
+
+	local.curpos = self.origin
+  
+	// make sure we're crouched...
+	if (self.position != crouch)
+	{
+		waitthread CreateCrouch
+		/*
+		local.anim = self getalias stand 
+//		self setmotionanim (self.weapongroup + "_crate_standtocrouch")
+		self setmotionanim local.anim
+		self waittill flaggedanimdone
+		self.position = crouch
+		*/
+	}
+
+	self setmotionanim (self getalias blindfire crate)
+	self waittill flaggedanimdone
+	self.origin = local.curpos
+
+	end
+
+// ------------------------------------------------------------------------------------------
+CrateReload:
+// ------------------------------------------------------------------------------------------
+	self waitthread CrateInit
+
+	if ( self.position!=crouch )
+	{
+		self thread CrateCrouch
+	}
+	self endactionanim	// just in case
+	self setmotionanim (self getalias reload wall)
+	self waittill flaggedanimdone
+//	self setupperanim (self getalias reload crate)
+//	self waittill upperanimdone
+
+	end
+
+
+
+// ------------------------------------------------------------------------------------------
+CrateThrowGrenade:
+// ------------------------------------------------------------------------------------------
+
+	self exec anim/say_grenade_thrown.scr
+
+	self waitthread CrateInit
+
+	self waitthread CrateCrouch
+	self endactionanim
+	self setmotionanim (self getalias throwgrenade crate crouch)
+	self waittill flaggedanimdone
+
+
+	end

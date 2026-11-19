@@ -1,0 +1,13 @@
+//	-------------------------------------------------------------------
+//	curiouswalk.scr
+//	
+//		Forces the guy into cautious mood and then makes him walk.
+//
+//	-------------------------------------------------------------------
+
+
+self.mood = cautious
+self waitexec anim/motionblend.scr::PlayAnim walk
+
+
+end

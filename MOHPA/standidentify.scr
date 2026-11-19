@@ -1,0 +1,25 @@
+// --------------------------------------------------------------
+// standidentify.scr
+//
+//	We've spotted the enemy who kind of far away.. Point at him!
+//
+// --------------------------------------------------------------
+
+Start:
+	//println "Entering standshock.scr"
+	waitexec "anim/default_inithandler.scr"
+
+	// Initialise say manager
+	self waitthread anim/SayManager.scr::Init
+
+	self.blendtime = 0.25
+	//need to take into account current position here... will do it later...
+	
+	//self aid_sight
+
+	self waitthread anim/stand.scr::transition
+//	self setmotionanim (self getalias identify "" stand)
+	self setmotionanim (self getalias react identify stand)
+	self waittill flaggedanimdone
+
+end

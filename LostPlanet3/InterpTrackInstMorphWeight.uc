@@ -1,0 +1,1 @@
+class InterpTrackInstMorphWeight extends InterpTrackInst;

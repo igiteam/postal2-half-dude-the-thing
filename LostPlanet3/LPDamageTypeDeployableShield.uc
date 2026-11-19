@@ -1,0 +1,1 @@
+class LPDamageTypeDeployableShield extends LPDamageTypeFragGrenade;

@@ -1,0 +1,243 @@
+// ----------------------------------------------------------------------------
+// runto_dive.scr
+//
+//
+//	Implements running and diving for cover (if too close to dive, crouch down)
+//
+// ----------------------------------------------------------------------------
+
+start:
+	// This toggles debug printing on and off for this script.
+	group.debug = 0
+
+	thread DPrintln "Running runto_cover_dive.scr with move dir" self.movedir
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+	self weaponcommand mainhand attachtohand mainhand
+
+	if ( self.currpathdist==0 )
+	{
+		// no path, so just play the dive animation!
+		waitthread DoDive
+		end
+	}
+	
+	group.rundistance = 140
+	group.divedistance = 238.4
+
+	thread PlayRunAnimation
+	group.runAnimationThread = parm.previousthread
+
+	local.dived = waitthread MonitorForDive
+	
+	if (local.dived)
+	{
+		end	// If we dived, we're done.
+	}
+
+	wait 0.5
+end
+
+
+// ----------------------------------------------------------------------------
+// PlayRunAnimation calls a standard running script with a waitexec.  It's done from a seperate thread like this to 
+// keep all threads in the same threadgroup, so that they will all end together if the group is terminated.
+PlayRunAnimation:
+	waitexec anim/run.scr::InOpen
+end
+
+// ----------------------------------------------------------------------------
+// MonitorForDive watches the distance remaining and tries to find a good time to play an ending animation such as a 
+// dive.
+MonitorForDive:
+
+	/*
+	// Abort if we're so close we'll never be able to dive
+	if ( (self.pathdist < group.divedistance) && (self.pathdist < group.rundistance) )
+	{
+		thread DPrintln "Distance of " self.pathdist " is too small, no diving for me."
+		wait 0.1
+		group.runAnimationThread end
+		end 1
+	}
+	*/
+
+
+	// Now wait until we have a straight run for the target
+	thread DPrint "Waiting to get a straight run."
+	while(!self.hascompletelookahead)
+	{
+		thread DPrint "."
+		wait 0.25	// This number is fairly arbitrary, I just didn't want to check every single frame.
+	}
+	thread DPrintln
+
+	// Now decide what we want to do at the end
+	thread DPrintln "I have a straight run, deciding what to do next."
+	waitframe
+
+	local.bCrouch = false
+	local.bDive   = false
+
+//	if ( ( self.currpathdist > (400 + randomint 300) ) || ( self.currpathdist < group.divedistance && self.currpathdist > group.rundistance ) )
+	if ( self.currpathdist < group.divedistance && self.currpathdist > group.rundistance )
+	{
+		local.bCrouch = true
+	}
+	else if ( self.currpathdist > group.divedistance )
+	{
+		local.bDive = true
+	}
+
+//	local.bCrouch = false
+//	local.bDive = true
+
+	if (local.bCrouch==true )
+	{
+		thread DPrintln "Distance of " self.currpathdist ".  Decided to run/crouch."
+//		local.endAnim = ( self.weapongroup + "_standtocrouch_run" )
+		local.endAnim = self getalias standtocrouch run stand
+		local.endDist = group.rundistance
+	}
+	else if ( local.bDive==true )
+	{
+		thread DPrintln "Distance of " self.currpathdist ".  Decided to dive."
+//		local.endAnim = ( self.weapongroup + "_standtocrouch_dive" )
+		local.endAnim = self getalias standtocrouch dive stand
+		local.endDist = group.divedistance
+	}
+	else
+	{
+		local.endDist = 64
+		thread DPrintln "Distance of " self.currpathdist " is too small, no diving for me."
+		// jsl--> Make sure anim script doesn't end until we're at our destination...
+		while (self.currpathdist > local.endDist)
+		{
+			thread DPrintln "Not done running yet: " self.currpathdist
+			wait 0.25
+		}
+
+		thread DPrintln "Done with script!"
+		group.runAnimationThread end
+
+		end 1
+	}
+
+
+	// Now wait for my moment
+	local.speed = vector_length( self.velocity )
+	thread DPrint "Waiting for a good distance"
+	while ( self.currpathdist > (local.endDist + 0.25*local.speed) )
+	{
+		thread DPrint "."
+		wait 0.25	// 0.25 seconds, to correspond with the 0.25*local.speed in the if check.
+		local.speed = vector_length( self.velocity )
+	}
+	thread DPrintln
+	thread DPrint "Almost got the right distance"
+	while ( self.currpathdist > local.endDist )
+	{
+		thread DPrint "."
+		waitframe
+		// Assume that velocity won't change much in these few frames
+	}
+	thread DPrintln
+
+	thread DPrintln "Geronimo!"
+	group.runAnimationThread end
+
+	self endactionanim
+	self setMotionAnim local.endAnim
+	self waittill flaggedanimdone
+//	self.position = crouch
+//	self.position = prone
+
+end 1
+
+
+// ----------------------------------------------------------------------------
+DoDive:
+//
+//	todo: handle this with new system...
+// ----------------------------------------------------------------------------
+
+	// dprintln "Doing standing dive!"
+//	local.endAnim = ( self.weapongroup + "_standtocrouch_dive" )
+
+	/*
+	local.endAnim = Stnd_Atk_Dive2_PrnAlrt
+	
+	local.rand = randomint 5
+	local.endpos = prone
+
+	switch ( local.rand )
+	{
+		case	1:
+		local.endAnim = Stnd_Atk_Dive2_PrnAlrt
+		break;
+		case	2:
+		local.endAnim = StndAtk_FrwdRoll_2_KneelAlrt
+		local.endpos  = crouch
+		break;
+		case	3:
+		local.endAnim = StndAtk_DiveLft_2_PrnAlrt
+		break;
+		case	4:
+		local.endAnim = KneelAtk_RollRt_2_PrnAtk
+		break;
+//		case	5:
+//		local.endAnim = KneelAtk_RollLft_2_PrnAtk
+		break;
+	}
+	*/
+
+//	dprintln "-------------------------------------------->DIVE ANIM:" local.endAnim " rand=" local.rand
+
+	self endactionanim
+	self setMotionAnim (self getalias standtocrouch dive stand)
+	self waittill flaggedanimdone
+	self.position = local.endpos
+
+	end
+
+// ----------------------------------------------------------------------------
+// thread DPrintln - for debug prints
+DPrintln local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 1 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrint local.text1 local.text2 local.text3 local.text4 local.text5:
+	thread DPrintorPrintln 0 local.text1 local.text2 local.text3 local.text4 local.text5
+end
+
+DPrintorPrintln local.newline local.text1 local.text2 local.text3 local.text4 local.text5:
+	if (group.debug == 1)
+	{
+		if (local.text1 != NIL)
+		{
+			print local.text1
+			if (local.text2 != NIL)
+			{
+				print local.text2
+				if (local.text3 != NIL)
+				{
+					print local.text3
+					if (local.text4 != NIL)
+					{
+						print local.text4
+						if (local.text5 != NIL)
+						{
+							print local.text5
+						}
+					}
+				}
+			}
+		}
+		if (local.newline == 1)
+		{
+			println
+		}
+	}
+end

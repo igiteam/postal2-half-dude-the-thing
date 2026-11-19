@@ -1,0 +1,464 @@
+//
+// mp_flip_switch.scr
+// 
+// This script is used to monitor an objective where the attackers are supposed
+// to flip a switch and make sure it stays in that position for a specified amount
+// of time. Once the switch is flipped the defenders can flip the switch again to
+// cancel the countdown.
+//
+// The setup is as follows:
+//
+// - Create a trigger_use on the switch you want the attackers to throw and give it a 
+//   targetname, which will be passed to init
+// - Give the trigger_use a setthread of 'global/mp_flip_switch.scr::toggle_switch' or
+//   of another function which calls global/mp_flip_switch.scr::toggle_switch
+//  (with the trigger being the self in the thread call).
+// - Before the objective is to be used, call the init method to
+//   initialize the switch.
+// 
+// 06-15-04 SCOSGRAVE - created this script for Airfield Objective 1
+//
+// 07-24-04 SCOSGRAVE - Added custom message parameters. You may now supply any combination
+//                      of achieved, defended and attacked messages. Supplying a custom message
+//                      will over-ride the default message and the turn_on parameter. 
+//
+
+
+//-----------------------------------------------------------------------------
+init2 local.switchTrigger1 local.switchTrigger2 local.team local.timer local.objName local.dialog local.defended_callback local.attacked_callback local.achieved_callback local.turn_on local.attackedMsg local.defendedMsg local.achievedMsg local.useSlotIcon:
+//------------------
+
+	thread init local.switchTrigger1 local.team local.timer local.objName local.dialog local.defended_callback local.attacked_callback local.achieved_callback local.turn_on local.attackedMsg local.defendedMsg local.achievedMsg local.useSlotIcon
+	thread init local.switchTrigger2 local.team local.timer local.objName local.dialog local.defended_callback local.attacked_callback local.achieved_callback local.turn_on local.attackedMsg local.defendedMsg local.achievedMsg local.useSlotIcon
+
+	local.switchTrigger1.other_switch = local.switchTrigger2
+	local.switchTrigger1.obj_stat_line = 1
+	local.switchTrigger2.other_switch = local.switchTrigger1
+	local.switchTrigger2.obj_stat_line = 3
+
+end
+
+//-----------------------------------------------------------------------------
+init local.switchTrigger local.team local.timer local.objName local.dialog local.defended_callback local.attacked_callback local.achieved_callback local.turn_on local.attackedMsg local.defendedMsg local.achievedMsg local.useSlotIcon local.switchObject:
+//------------------
+
+	// initialize all the varaibles for the current multiple area occupation objective
+
+	// .switchTrigger - the targetname for the trigger that is to be flipped
+	// .team - the team that is attacking the evil switch of doom
+	// .timer - how long the switch needs to be flipped in order for the obj to be completed
+	// .objName - the name of the object effected by the switch (ie: Base Generator)
+	// .dialog - the sound to play after the objetive is reached	
+	// .defended_callback - the routine to be called when the switch has been flipped by the defenders
+	// .attacked_callback - the routine to be called when the switch has been attacked	
+	// .achieved_callback - the routine to be called when the switch has been flipped for the required amount of time
+	// .local.turn_on - are the attacker turning on the objective? (1 - turning on) (0 - turning off)
+	// .attackedMsg - a localized message to be used in place of the default attacked message
+	// .defendedMsg - a localized message to be used in place of the default defended message
+	// .achievedMsg - a localized message to be used in place of the default achieved message
+	
+	
+	// add the triggers to the manager and give them some values	
+	local.switchTrigger.isThreatened = 0
+	local.switchTrigger.team = local.team
+	local.switchTrigger.timer = local.timer * 10	
+	local.switchTrigger.objName = local.objName			
+	local.switchTrigger.defended_callback = local.defended_callback
+	local.switchTrigger.attacked_callback = local.attacked_callback
+	local.switchTrigger.achieved_callback = local.achieved_callback		
+	
+	//if we have an object we have to be looking at, set it here
+	if (local.switchObject != NULL && local.switchObject != NIL)
+	{
+		local.switchTrigger.switchObject = local.switchObject
+	}
+	
+	//otherwise we just have to be looking at the switchTrigger
+	else
+	{
+		local.switchTrigger.switchObject = local.switchTrigger
+	}
+	 
+	// if a use slot icon is specified, save it here
+	if( local.useSlotIcon != NIL && local.useSlotIcon != NULL && local.useSlotIcon != "" )
+		local.switchTrigger.useSlotIcon = local.useSlotIcon
+	//else
+	//	local.switchTrigger.useSlotIcon = none
+	
+	// Store any custom messages that are provided
+	if( local.attackedMsg != NIL && local.attackedMsg != NULL && local.attackedMsg != "" )
+		local.switchTrigger.attackedMsg = local.attackedMsg
+		
+	if( local.defendedMsg != NIL && local.defendedMsg != NULL && local.defendedMsg != "" )
+		local.switchTrigger.defendedMsg = local.defendedMsg
+	
+	if( local.achievedMsg != NIL && local.achievedMsg != NULL && local.achievedMsg != "" )
+		local.switchTrigger.achievedMsg = local.achievedMsg
+			
+	// Whether you are turning on a switch, or turning it off. This affects the default msg displayed.
+	if (local.turn_on == NIL || local.turn_on == NULL)
+		local.switchTrigger.turn_on = 0
+	else
+		local.switchTrigger.turn_on = local.turn_on
+	
+	// Save dialog for later use if there is any supplied
+	if (local.dialog == NIL)
+		local.switchTrigger.dialog = NULL
+	else
+		local.switchTrigger.dialog = local.dialog
+	
+	local.switchTrigger.obj_stat_line = 1
+	local.switchTrigger.other_switch = NULL
+	
+	local.switchTrigger.objectiveStatus = waitthread global/mp_objective_status.scr::flip_switch_initialize local.switchTrigger
+	
+end 
+
+
+//-----------------------------------------------------------------------------
+toggle_switch local.player:
+//------------------
+
+	//someone flipped the switch		
+	
+	if(local.player.using == 1)
+		end
+
+	// flag - don't run this thread more than once on any player in the trigger		
+	local.player.using = 1
+																
+	// While the player is still in the trigger volume
+	while ((self != NULL) && (local.player != NULL) && (IsAlive local.player) && (local.player isinside self)  && (local.player canseenoents self.switchObject 45) )
+	{
+		
+		// if the player is on the attacking team and the switch has not been thrown, show a use icon
+		if( local.player.dmteam == self.team && self.isThreatened == 0 && self.useSlotIcon)
+			local.player useslot self.useSlotIcon		
+		// if the player is a defender and the switch has been thrown, show a use icon
+		else if( local.player.dmteam != self.team && self.isThreatened != 0 && self.useSlotIcon)
+			local.player useslot self.useSlotIcon
+		// if neither of the 2 conditions are met, don't show use icon
+		else if (self.useSlotIcon)
+			local.player removeuseslot self.useSlotIcon
+		
+		// if player hits use while in trigger
+		if( local.player.useheld )
+		{		
+			//if the switch has not been thrown, and it is an attacker toggling...
+			if( local.player.dmteam == self.team && self.isThreatened == 0 )
+			{
+				//update the objective status
+				if (self.turn_on)
+					self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Threatened"
+				else
+					self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Secure"
+				self.objectiveStatus waitthread global/mp_objective_status.scr::set_icon self.objectiveStatus.statusNum 1 1 self.objectiveStatus.switch
+				if(self.other_switch == NULL)
+				{	
+					self waitthread attackers_flipped
+					break
+				}
+				else if( self.other_switch.isThreatened == 1)
+				{
+					self waitthread attackers_flipped
+					break
+				}
+				else 
+				{
+					//first of 2 switches toggled
+					self.isThreatened = 1
+					thread notify_of_attack
+					if( self.attacked_callback != NIL && self.attacked_callback != NULL )
+						thread self.attacked_callback
+					
+					break
+				}
+			}	
+			//if the switch has been thrown, and it is a defender toggling...
+			else if( local.player.dmteam != self.team && self.isThreatened != 0 )
+			{
+				self waitthread defenders_flipped
+				break
+			}
+			else
+			{
+				//the switch is already in a state that the actor wants it in
+				dprintln "Your team has already flipped the switch"		
+			}
+		}
+		waitframe
+	}																
+	
+	if (self.useSlotIcon)
+		local.player removeuseslot self.useSlotIcon
+	local.player.using = 0
+		
+	
+	//////////////////////////////////////BLAR
+	
+	
+	
+//	
+//	//if the switch has not been thrown, and it is an attacker toggling...
+//	///dprintln "self.other_switch= "  self.other_switch
+//	if( local.player.dmteam == self.team && self.isThreatened == 0 ){
+//		if(self.other_switch == NULL)
+//			{
+//			//dprintln "other_switch is null"
+//			self waitthread attackers_flipped}
+//		else if( self.other_switch.isThreatened == 1)
+//			self waitthread attackers_flipped
+//		else {
+//			dprintln "first switch toggled"
+//			self.isThreatened = 1
+//			thread notify_of_attack
+//			if( self.attacked_callback != NIL && self.attacked_callback != NULL )
+//				thread self.attacked_callback
+//		}
+//	}
+//	//if the switch has been thrown, and it is a defender toggling...
+//	else if( local.player.dmteam != self.team && self.isThreatened != 0 )			
+//		self waitthread defenders_flipped
+//	else
+//	{
+//		//the switch is already in a state that the actor wants it in
+//		dprintln "Your team has already flipped the switch"		
+//	}
+
+		
+end
+
+
+//------------------
+attackers_flipped:
+//------------------
+
+	//sound the alarm
+//	self.soundmaker = spawn script_model model "fx/dummy.tik"
+//	self.soundmaker.origin = self.origin
+//	self.soundmaker notsolid 
+//	self.soundmaker loopsound occupy_alarm_sound
+
+	//let the switch watcher know the attackers reached the switch
+	// NW must be before notify_of_attack for wake
+	self.isThreatened = 1
+
+	//notify players the switch has been flipped
+	self thread notify_of_attack	
+	
+	
+	//start timer
+	self thread start_countdown	
+	
+	//do attacked callback if there is one
+	if( self.attacked_callback != NIL && self.attacked_callback != NULL )
+		thread self.attacked_callback
+
+end
+
+
+//------------------
+defenders_flipped:
+//------------------
+
+	//turn off the alarm
+//	self.soundmaker stoploopsound				
+//	self.soundmaker remove			
+	
+	if (self.turn_on)
+		self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Secure"
+	else
+		self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Threatened"	
+		
+	if (self.other_switch)
+	{
+		if (self.other_switch.isThreatened == 1){
+			if (self.other_switch.turn_on)
+				self.other_switch.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Threatened"
+			else
+				self.other_switch.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Secure"	
+		}
+		else
+		{
+			if (self.other_switch.turn_on)
+				self.other_switch.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Secure"
+			else
+				self.other_switch.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_flipped "MPOBJSTATUS:Threatened!"
+		}
+		
+		
+	}
+		
+	//notify players the attack failed
+	self thread notify_failed_attempt	
+		
+	//stop timer
+	self.isThreatened = 0
+
+	//do the defended callback if there is one
+	if( self.defended_callback != NIL && self.defended_callback != NULL )
+		thread self.defended_callback
+
+end
+
+
+//-----------------------------------------------------------------------------
+start_countdown local.player :
+//------------------
+
+	//start this thread once the objective switch has been flipped by an attacker
+
+	self.countdown = self.timer
+
+	// set the objective status
+	self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_start_countdown (self.countdown * .1)
+	if (self.other_switch)
+		self.other_switch.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_start_countdown (self.countdown * .1)
+
+	if (self.other_switch == NIL || self.other_switch==NULL){
+	// countdown while the switch is flipped
+		while (self.countdown > 0 && self.isThreatened == 1)
+		{							
+			self.countdown--
+			wait 0.1
+		}
+	} else
+	{
+		while (self.countdown > 0 && self.isThreatened == 1 && self.other_switch.isThreatened == 1)
+		{							
+			self.countdown--
+			wait 0.1
+		}
+	}
+		
+	//dprintln "checking to see if this is threatened"
+	//if the switch was flipped, don't complete the objective
+	if( self.isThreatened == 0 )
+		end
+	if( self.other_switch != NIL && self.other_switch != NULL)
+		if( self.other_switch.isThreatened == 0)
+			end
+
+	//turn off the alarm upon successful attack
+//	self.soundmaker stoploopsound				
+//	self.soundmaker remove	
+	
+	//turn off the trigger, but don't remove yet, we still need it's info
+	self nottriggerable
+		
+	//dprintln "notifying of successfull attempt"
+	//the attempt succeeded, time for cleanup	
+	self thread notify_successful_attempt	
+	
+	//dprintln "calling callback"
+	if( self.achieved_callback != NIL || self.achieved_callback != NULL )
+		thread self.achieved_callback
+	//dprintln "this should be done now"
+	if (self.dialog != NULL)
+		self.soundmaker playsound self.dialog
+	
+	// actually removes the trigger
+	self remove	
+
+end
+
+
+//------------------
+notify_of_attack:
+//------------------
+
+	local.timeLeft = self.timer * .1
+	local.timeLeft = int(local.timeLeft)   //from float to int
+	local.timeLeft = "~" + local.timeLeft  //prep to turn off localization
+	
+	// display the custom message if it is present, then end the thread
+	if( self.attackedMsg != NIL && self.attackedMsg != NULL && self.attackedMsg != "" )
+	{
+		thread global/mp_bigtext.scr::post_bigtext 0 self.attackedMsg self.objName local.timeLeft
+		end
+	}
+	
+	if (self.turn_on)
+		local.bigtextMsg = "INVADER:SwitchOn" 
+	else
+		local.bigtextMsg = "INVADER:SwitchOff"
+	thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.objName
+	
+	if (self.other_switch == NULL)
+	{
+		if (self.turn_on)
+			local.bigtextMsg = "INVADER:SwitchPowerUp"
+		else
+			local.bigtextMsg = "INVADER:SwitchPowerDown"
+		thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.objName local.timeLeft //int(local.timeLeft)
+	}
+	else 
+	{ 
+		if (self.other_switch.isThreatened == 1)
+		{
+			if (self.turn_on)
+				local.bigtextMsg = "INVADER:SwitchPowerUp"
+			else
+				local.bigtextMsg = "INVADER:SwitchPowerDown"
+			thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.objName local.timeLeft //int(local.timeLeft)
+		}
+	}
+	
+end
+
+
+//------------------
+notify_failed_attempt:
+//------------------
+
+
+	// display the custom message if it is present, then end the thread
+	if( self.defendedMsg != NIL && self.defendedMsg != NULL && self.defendedMsg != "" )	
+		thread global/mp_bigtext.scr::post_bigtext 0 self.defendedMsg self.objName
+	else
+	{		
+		if (self.turn_on)
+			local.bigtextMsg = "INVADER:SwitchFailedUp"
+		else
+			local.bigtextMsg = "INVADER:SwitchFailedDown"
+		if( self.team == "axis" )			
+			thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.objName// tell allies
+		else
+			thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.objName// tell axis
+		
+		if (self.turn_on)
+			local.bigtextMsg = "INVADER:SwitchFailedUp"
+		else
+			local.bigtextMsg = "INVADER:SwitchFailedDown"
+		if( self.team == "axis" )			
+			thread global/mp_bigtext.scr::post_bigtext 2 local.bigtextMsg self.objName
+		else
+			thread global/mp_bigtext.scr::post_bigtext 1 local.bigtextMsg self.objName
+	}
+	
+	// set the objective status
+	self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_notify_failed_attempt
+	
+end
+
+
+//------------------
+notify_successful_attempt:
+//------------------
+
+	// display the custom message if it is present, then end the thread
+	if( self.achievedMsg != NIL && self.achievedMsg != NULL && self.achievedMsg != "" )	
+		thread global/mp_bigtext.scr::post_bigtext 0 self.achievedMsg self.objName
+	else
+	{	
+		if (self.turnon)
+			local.bigtextMsg = "INVADER:SwitchSuccessUp" 
+		else
+			local.bigtextMsg = "INVADER:SwitchSuccessDown"
+		
+		thread global/mp_bigtext.scr::post_bigtext 0 local.bigtextMsg self.objName
+	}
+	
+	// set the objective status
+	self.objectiveStatus waitthread global/mp_objective_status.scr::flip_switch_notify_successful_attempt
+end

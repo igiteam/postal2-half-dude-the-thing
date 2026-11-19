@@ -1,0 +1,1 @@
+class LPNametagManager extends Object;

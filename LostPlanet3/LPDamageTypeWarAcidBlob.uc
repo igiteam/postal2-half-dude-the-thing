@@ -1,0 +1,1 @@
+class LPDamageTypeWarAcidBlob extends LPDamageTypeAcidBlob;

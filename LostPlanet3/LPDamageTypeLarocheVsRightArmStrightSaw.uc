@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsRightArmStrightSaw extends LPDamageTypeLarocheVsMelee;

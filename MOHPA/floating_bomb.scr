@@ -1,0 +1,162 @@
+// floating_bomb.scr
+//
+// Written by CCARON for TKO Software, project MOHPA 3/04
+//
+// To use : place an explosive charge in the map as defined
+//          in mp_defuse_bomb.scr
+//
+// place any number of trigger_multiple(s) in alternative spots
+// for the explosive charge.  Give all theses triggers
+// the same $targetname.  The orientation of the trigger is important;
+// the position of the bomb for each trigger is computed using the 
+// the offset of the bomb to the original trigger in relation to
+// the orientaion of the original trigger.
+//
+// Pass the trigger, the bomb and the alternate trigger_multiple array to0 :
+// waitthread global/floating_bomb.scr::init local.bomb local.trigger local.array (1|0) [default 0]
+//
+// The final argument is alliesbomb flag, the same as the alliesBomb 
+// arg too mp_defuse_bomb.scr::init
+//
+
+
+//-----------------
+main:
+//-----------------
+
+	// do not execute this script
+
+	dprintln "!!!!!!!!!!! DO NOT EXECUTE FLOATING_BOMB.SCR !!!!!!!!!!!!"
+end
+
+
+//----------------------------------------------------------------------------
+init local.bomb local.trigger local.t_array local.alliesBomb:
+//-----------------
+
+	// local.bomb is the throbbing box
+	// local.trigger is the original trigger
+	// local.t_array is the alternative trigger array
+	// local.alliesBomb is 1 for "allies or 0 for "axis" (default)
+	// this is identical for the value passed too global/mp_defuse_bomb.scr::init
+
+	local.array = exec global/makearray.scr local.t_array
+
+	// compute the vector between bomb and trigger
+	local.dv  = local.bomb.origin - local.trigger.origin
+	local.da  = vector_toangles local.dv
+	local.l   = vector_length local.dv
+	
+	if (local.alliesBomb == 1)
+		local.team = "allies"
+	else
+		local.team = "axis"
+	
+	// compute the position of the bomb relative to this trigger
+	for (local.i=1; local.i<=local.array.size; local.i++)
+	{
+		local.array[local.i] setthread floating_setthread
+		local.array[local.i].bomb = local.bomb
+		
+		local.v = local.da
+		local.v[1] += local.array[local.i].angles[1] - local.da[1]
+		local.v  = angles_toforward local.v
+		local.v  = vector_normalize local.v
+		local.v  = vector_scale local.v local.l
+
+		local.array[local.i].bombOrigin = local.array[local.i].origin + local.v
+		local.array[local.i].team = local.team
+	}
+
+	// override the defuse bomb setthread
+	local.trigger setthread floating_setthread
+	local.trigger.bombOrigin = local.trigger.origin + local.dv
+	local.trigger.team = local.team
+
+	// flag the bomb as unowned
+	local.bomb.owned = 0
+	local.bomb hide
+
+	// append the originial trigger to the array	
+	local.array[local.array.size+1] = local.trigger
+
+end
+
+
+//-----------------
+floating_setthread local.player:
+//-----------------
+
+	local.bomb = self.bomb
+	local.spot = self.bombOrigin
+
+	// look for removing this trigger when bomb gone
+	if (local.bomb == NIL || local.bomb == NULL || local.spot == NIL || local.spot == NULL)
+	{
+		self nottriggerable
+		self remove
+		end
+	}
+
+	if (local.bomb.owned == 1)
+		end
+
+
+	if (local.player == NULL || !(isalive local.player) || (local.player.dmteam != self.team) || (local.player.backpacktype != "engineer" && getcvar("dm_combatClassesEnabled") == "1"))
+		end
+
+	local.bomb.owned = 1
+
+	local.bomb.origin = local.spot
+	local.bomb.angles = self.angles
+
+	local.bomb show
+	local.bomb notsolid
+
+	self thread player_entered_thread local.player
+
+end
+
+
+//-----------------
+player_entered_thread local.player:
+//-----------------
+
+	self nottriggerable
+
+	while ((isalive local.player) && (local.player isinside self))
+	{
+		self waitthread global/mp_defuse_bomb.scr::proximity local.player
+		waitframe
+	}
+
+	if (self.bombPlanted == 1)
+	{
+		self triggerable
+		self setthread global/mp_defuse_bomb.scr::proximity
+		self waitthread wait_for_unplant_or_explode
+		self setthread floating_setthread
+		
+		if (self.bombExploded == 1)
+		{
+			self.bomb remove
+			self remove
+		}
+	}
+
+	self triggerable
+	self.bomb.owned = 0
+	self.bomb hide
+	//self notsolid
+
+end
+
+
+//-----------------
+wait_for_unplant_or_explode:
+//-----------------
+
+	while (self.bombPlanted == 1)
+		waitframe
+
+end

@@ -1,0 +1,816 @@
+// --------------------------------------------------------------------------------
+//	vod.scr
+//
+//	verge of death effects
+//
+//	static cvar_t		*g_VODPitchBase					= Cvar_Get ( "g_VODPitchBase" , "-90" , 0 );
+//	static cvar_t		*g_VODPitchUp					= Cvar_Get ( "g_VODPitchUp" , "30" , 0 );
+//	static cvar_t		*g_VODPitchDown					= Cvar_Get ( "g_VODPitchDown" , "30" , 0 );
+//	static cvar_t		*g_VODYawBase					= Cvar_Get ( "g_VODYawBase" , "-90" , 0 );
+//	static cvar_t		*g_VODYaw						= Cvar_Get ( "g_VODYaw" , "30" , 0 );
+//
+//
+// --------------------------------------------------------------------------------
+
+main:
+
+	local.rand_heal = getcvar vod_rand_heal
+	if ( local.rand_heal == "" )
+		setcvar vod_rand_heal 60
+
+	local.rand_kill = getcvar vod_rand_kill
+	if ( local.rand_kill == "" )
+		setcvar vod_rand_kill 40
+
+	if ( level.no_vod_death==NIL )
+		level.no_vod_death	= 0
+
+end
+
+// --------------------------------------------------------------------------------
+start:
+// --------------------------------------------------------------------------------
+
+	$player invokewaittill death
+
+	level.DEBUG_VOD = 0
+
+	if ( level.no_vod_death==NIL )
+		level.no_vod_death	= 0
+
+	if ( level.DEBUG_VOD )
+		dprintln " DOING VERGE OF DEATH!! "
+
+	if ( level.fade==NIL )
+		level.fade	= 1
+
+	local.vod_override = int( getcvar vod_override )
+
+	drawhud 0
+
+	setcvar r_cc_sat 0.4
+
+	$player safeholster 1
+
+	if ( (level.vod_thread != NIL) && (level.vod_thread != NULL) )
+	{
+//		dprintln " Killing previous vod_thread! "
+		level.vod_thread delete
+	}
+
+	level.vod_thread = local
+
+	thread WatchdogTimer 15
+
+	thread PlayVoiceOver
+
+	setcvar sv_playerKnockEnable 0
+	waitthread fadeout 7
+
+	wait 3.0
+
+	while (1)
+	{
+		waitthread fadein 4.0 0.7
+		waitthread fadeout 2.0 0.7
+		wait 0.5
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+stop:
+// --------------------------------------------------------------------------------
+
+//	dprintln " STOPPING VOD!"
+	waitthread KillVODThread
+
+	$player nodamage
+	wait 1
+
+	waitthread fadein 3
+
+	$player vergeofdeath kill_heartbeat
+	$player stopsound 8
+
+	drawhud 1
+
+	wait 2
+
+	$player safeholster 0
+
+	// hack for demo
+	$player postfx_blend_to_default 0 0.25
+	wait 0.3
+
+	$player postfx_blend_to_default 1 0.5
+	wait 0.5
+
+// NOTE: Grace period after VOD
+	$player thread GracePeriod
+
+end
+
+
+// --------------------------------------------------------------------------------
+GracePeriod:
+// --------------------------------------------------------------------------------
+
+	wait 3.0
+
+	// Player can take damage again
+	$player takedamage
+	setcvar sv_playerKnockEnable 1
+
+end
+
+
+// --------------------------------------------------------------------------------
+WaterDeath:
+//
+//	We died in water, let's just go dark and play a sound...
+//
+// --------------------------------------------------------------------------------
+
+	$player vergeofdeath kill_heartbeat
+	$player stopsound 8
+
+	fadeout 0.1 0 0 0 1
+
+	if ( level.no_vod_death==NIL )
+		level.no_vod_death	= 0
+
+	$player playsound player_drown
+
+	wait 2
+
+	if ( level.no_vod_death==0 )
+		$player vergeofdeath die
+
+end
+
+
+// --------------------------------------------------------------------------------
+WatchdogTimer local.delay:
+//
+//	When local.delay seconds has gone by...let the player die (unless this thread has been destroyed)
+// --------------------------------------------------------------------------------
+
+	if ( level.DEBUG_VOD )
+		dprintln "~~~~~~~~~~~~~~ watchdog timer thread started"
+
+	if ( (level.vod_watchdog_thread != NIL) && (level.vod_watchdog_thread != NULL) )
+	{
+		if ( level.DEBUG_VOD )
+			dprintln "~~~~~ vod.scr warning: stopping other watchdog thread that may be running"
+
+		level.vod_watchdog_thread remove
+	}
+	level.vod_watchdog_thread = local
+
+	wait local.delay
+
+	if ( level.DEBUG_VOD )
+		dprintln "~~~~~~~~~~~~~~ watchdog timer expired"
+
+	thread LetPlayerDie
+
+	level.vod_watchdog_thread = NULL
+
+end
+
+
+// --------------------------------------------------------------------------------
+KillWatchdogThread:
+// --------------------------------------------------------------------------------
+
+	if ( level.DEBUG_VOD )
+		dprintln "~~~~~~~~~~~~~~ killing watchdog timer thread"
+
+	if ( (level.vod_watchdog_thread != NIL) && (level.vod_watchdog_thread != NULL) )
+	{
+		level.vod_watchdog_thread remove
+		level.vod_watchdog_thread = NULL
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+KillVODThread:
+// --------------------------------------------------------------------------------
+
+	if ( (level.vod_thread != NIL) && (level.vod_thread != NULL) )
+	{
+		level.vod_thread delete
+		level.vod_thread = NULL
+	}
+
+	if ( (level.vod_monoblur_thread != NIL) && (level.vod_monoblur_thread != NULL) )
+	{
+		level.vod_monoblur_thread delete
+		level.vod_monoblur_thread = NULL
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+PlayVoiceOver:
+// --------------------------------------------------------------------------------
+
+	level.vod_voice_over_thread = local
+
+	wait 0.25
+
+	wait 6
+
+	if ( level.DEBUG_VOD )
+	{
+		local.vpu = ($player queryviewconstraint pitch_up)
+		local.vpd = ($player queryviewconstraint pitch_down)
+		local.vy = ($player queryviewconstraint yaw)
+		dprintln "~~~~~~~~~~~~~~~~~~ viewconstraints: pitch_up = " local.vpu ", pitch_down = " local.vpd ", yaw = " local.vy
+	}
+
+	local.vod_override = getcvar vod_override
+
+//	dprintln "vod override=" local.vod_override
+
+	thread KillAxis
+
+	if ( local.vod_override != NIL )
+	{
+		switch ( int( local.vod_override ) )
+		{
+			case	1:
+				local.success = waitthread HealPlayer
+				break
+			case	2:
+				local.success = waitthread FinishPlayer
+				break
+			case	3:
+				waitthread KillWatchdogThread
+				wait 5
+				local.success = waitthread LetPlayerDie
+				break
+			default:
+				// for E3, re-enable random
+				local.success = waitthread DoRandomEnding
+				break
+		}
+
+		if ( local.success == 0 )
+		{
+			waitthread KillWatchdogThread
+			waitthread LetPlayerDie
+		}
+		end
+	}
+
+	// for E3, re-enable random
+	waitthread DoRandomEnding
+
+end
+
+
+// --------------------------------------------------------------------------------
+DoRandomEnding:
+// --------------------------------------------------------------------------------
+
+//	dprintln "~~~~~ DoRandomEnding:"
+
+	local.vod_override = int( getcvar vod_override )
+
+	local.rand_heal = int (getcvar vod_rand_heal)
+	local.rand_kill = int (getcvar vod_rand_kill)
+
+	local.rand	= randomint 100
+
+	if ( level.DEBUG_VOD )
+		dprintln "~~~~~~~~~~~~~~~~ local.rand_heal is " local.rand_heal ", local.rand_kill is " local.rand_kill ", local.rand is " local.rand
+
+	if ( local.rand < local.rand_heal )
+	{
+		if ( level.DEBUG_VOD )
+			dprintln "~~~~~~~~~~~~~~~~~~ VOD random: Heal"
+		local.success = waitthread HealPlayer
+
+		if ( local.success==1 )
+			end 1
+//		else
+//			dprintln "~~~~~~~~~~~~~~ CANNOT HEAL HIM"
+
+	}
+
+	if ( local.rand < (local.rand_heal + local.rand_kill) )
+	{
+		if ( level.DEBUG_VOD )
+			dprintln "~~~~~~~~~~~~~~~~~~ VOD random: Finishing Move"
+		local.success = waitthread FinishPlayer
+
+		if ( local.success==1 )
+			end 1
+//		else
+//			dprintln "~~~~~~~~~~~~~~ CANNOT KILL HIM"
+	}
+
+////	dprintln "~~~~~~~~~~~~~~ FADING TO BLACK!"
+
+	if ( level.DEBUG_VOD )
+		dprintln "~~~~~~~~~~~~~~~~~~ VOD random: Fade2Black"
+
+	waitthread KillWatchdogThread
+	wait 5
+	waitthread LetPlayerDie
+
+end 1
+
+
+// --------------------------------------------------------------------------------
+LetPlayerDie:
+//
+//		Just fade him out ( not doing finishing move )
+//
+// --------------------------------------------------------------------------------
+
+	local.vod_override = int( getcvar vod_override )
+
+//	dprintln "~~~~~ LetPlayerDie:"
+
+	waitthread KillVODThread
+
+//	dprintln "Letting player die!"
+
+//	$player vergeofdeath kill_heartbeat
+	$player stopsound 8
+
+	level.VODAudio = waitthread ComputeVODAudio 
+
+	waitframe
+
+//	dprintln "VOD Audio: " level.VODAudio
+	$player playsound level.VODAudio
+	$player ducked_volume_target 0.2 1.0	// duck the volume even further when the VOD death audio plays
+
+	wait 2.0
+
+	// check if Player has been healed in the 2 seconds we were waiting (above)
+//	if ( $player.normal_health > 5 )
+//	{
+//		end 0
+//	}
+	
+	fadeout 3 0 0 0 1
+	wait 4
+
+	if ( level.DEBUG_VOD )
+	{
+		thread RevivePlayer
+		end 1
+	}
+
+	if ( level.no_vod_death==0 )
+		$player vergeofdeath die
+
+end 1
+
+
+// --------------------------------------------------------------------------------
+FinishPlayer:
+//
+//		Perform finishing move to kill player
+//
+// --------------------------------------------------------------------------------
+
+//	dprintln "~~~~~ FinishPlayer:"
+
+	local.vod_override = int( getcvar vod_override )
+
+	if ( local.vod_override != 2 )
+	{
+		local.EnemysNearby = $player  enemy_nearby 4096
+		if ( 0 == local.EnemysNearby )
+		{
+			if (level.DEBUG_VOD)
+			{
+				dprintln "No enemys are nearby to finish off the player."
+			}
+			end 0
+		}
+	}
+
+	if ( (level.VOD_AXIS_HAG != NIL) && (level.VOD_AXIS_HAG != NULL) )
+	{
+		local.dude = spawn level.VOD_AXIS_HAG
+	}
+	else
+	{
+		local.dude = spawn "models/characters/axis/axis_armyinfantry.hag"
+	}
+
+	local.dude threatbias ignoreme
+	local.dude.enableEnemy = 0
+	local.dude.enablePain = 0
+	local.dude nodamage
+
+	if ( level.DEBUG_VOD )
+		local.dude.movedoneradius = 155
+
+	local.success = (local.dude finishhim $player)
+
+	if  ( local.success==0 )
+	{
+		if ( level.DEBUG_VOD )
+		{
+			dprintln "soldier unable to finish player"
+			local.dude hide
+			waitframe
+			local.dude remove
+			thread RevivePlayer
+			end 1
+		}
+
+		end 0
+	}
+
+	local.dude waittill taskdone
+
+	waitthread KillWatchdogThread
+
+	if ( level.DEBUG_VOD )
+	{
+		local.dude hide
+		waitframe
+		local.dude remove
+		thread RevivePlayer
+		end 1
+	}
+
+	$player vergeofdeath kill_heartbeat
+	$player stopsound 8
+	
+	if ( level.no_vod_death==0 )
+		$player vergeofdeath die
+
+end 1
+
+
+// --------------------------------------------------------------------------------
+HealPlayer:
+//
+//		Spawn or teleport medic and have him save the player.
+//
+// --------------------------------------------------------------------------------
+
+//	dprintln "~~~~~ HealPlayer"
+
+	local.alive = 1
+
+	if ( level.medic==NIL || level.medic==NULL )
+	{
+		local.alive = 0
+	}
+	else
+	{
+		local.alive = isAlive(level.medic)
+
+		if ( local.alive==0 && isUndead(level.medic) )
+		{
+			local.alive = 1
+		}
+	}
+
+	if ( local.alive==0 )
+	{
+//		dprintln "SPAWNING NEW MEDIC!  "
+		level.medic = waitthread SpawnMedic
+	}
+
+	level.medic heal
+
+	level.medic addwaittill heal_begin
+	level.medic addwaittill heal_done
+
+	waitthread CheckMedicThreads
+
+	// Now see if medic can get to the player...
+
+	local.bCanHeal = (level.medic heal_vod)
+
+	if ( local.bCanHeal==0 )
+	{
+//		dprintln "Medic is unable to help the player!"
+		end 0
+	}
+
+	level.medic threatbias ignoreme
+	level.medic.enablePain = 0
+	level.medic.enableEnemy = 0
+	level.medic nodamage
+
+	local.current_pitch_down = ($player queryviewconstraint pitch_down)
+	thread adjust_pitch_down_constraint local.current_pitch_down 60.0
+
+	level.medic waittill heal_begin
+
+	thread WatchdogTimer 15			// stop the initial watchdog timer and start another in case the Medic can't complete healing
+
+	level.medic waittill heal_done
+
+	level.medic threatbias 0
+	level.medic.enablePain = 1
+	level.medic.enableEnemy = 1
+	level.medic takedamage
+
+	waitthread KillWatchdogThread
+
+	waitthread KillCheckMedicThreads
+
+	// This will play the animation of the player getting up and what not...
+	$player nodamage
+	$player vergeofdeath wakeup
+	$player stopsound 8
+
+	thread DoAID
+
+	waitthread stop
+
+end 1
+
+
+// --------------------------------------------------------------------------------
+CheckMedicThreads:
+// --------------------------------------------------------------------------------
+
+	level.medic thread CheckMedicDeath
+	level.medicdeathcheckthread = parm.previousthread
+
+	level.medic thread CheckMedicUndead
+	level.medicundeadcheckthread = parm.previousthread
+
+end
+
+
+// --------------------------------------------------------------------------------
+KillCheckMedicThreads:
+// --------------------------------------------------------------------------------
+
+	if ( (level.medicdeathcheckthread != NIL) && (level.medicdeathcheckthread != NULL) )
+	{
+		level.medicdeathcheckthread delete
+		level.medicdeathcheckthread = NULL
+	}
+
+	if ( (level.medicundeadcheckthread != NIL) && (level.medicundeadcheckthread != NULL) )
+	{
+		level.medicundeadcheckthread delete
+		level.medicundeadcheckthread = NULL
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+CheckMedicDeath:
+// --------------------------------------------------------------------------------
+
+	self waittill death
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~ medic went dead, killing player quickly"
+	thread LetPlayerDie
+
+end
+
+
+// --------------------------------------------------------------------------------
+CheckMedicUndead:
+// --------------------------------------------------------------------------------
+
+	self waittill undead
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~ medic went undead, killing player quickly"
+	thread LetPlayerDie
+
+end
+
+
+// --------------------------------------------------------------------------------
+adjust_pitch_down_constraint local.start local.end:
+// --------------------------------------------------------------------------------
+
+	local.thresh = 1.0
+
+	if ( local.start < local.end )
+	{
+		local.sign = 1.0
+	}
+	else
+	{
+		local.sign = -1.0
+	}
+
+	while ( ((local.end - local.start) * local.sign) > local.thresh )
+	{
+		local.start = local.start + (local.thresh * local.sign)
+		$player setviewconstraint pitch_down local.start
+		waitframe
+	}
+
+	$player setviewconstraint pitch_down local.end
+
+end
+
+
+// --------------------------------------------------------------------------------
+SpawnMedic:
+// --------------------------------------------------------------------------------
+
+	local.dude = spawn "models/characters/allied/allied_jimmy.hag"
+	local.dude.actorname = "sullivan"
+
+end local.dude
+
+
+// --------------------------------------------------------------------------------
+RevivePlayer:
+//
+//	Revive the player for debugging purposes
+// --------------------------------------------------------------------------------
+
+	dprintln "~~~~~~~~~~~~~~~~~~~~ reviving player"
+	$player vergeofdeath wakeup
+	$player vergeofdeath kill_heartbeat
+	$player stopsound 8
+	$player safeholster 0
+
+	drawhud 2
+
+	wait 2.0
+
+	fadein 2.0 1 1 1 1
+
+end
+
+
+// --------------------------------------------------------------------------------
+//	fadeout
+//	fade out to black/white
+// --------------------------------------------------------------------------------
+fadeout local.fadetime local.fade_from:
+
+	if ( local.fade_from==NIL )
+		local.fade_from	= 0
+
+	if ( (level.vod_monoblur_thread != NIL) && (level.vod_monoblur_thread != NULL) )
+	{
+		dprintln "~~~~~ vod.scr warning: stopping other fade thread that may be running"
+		level.vod_monoblur_thread remove
+	}
+	level.vod_monoblur_thread = local
+
+	local.interval = 0.05
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~~~~~ fading out over " local.fadetime
+
+	level.fade = local.fade_from
+	while ( level.fade < 1.0 )
+	{
+		level.fade += ( local.interval / local.fadetime )
+		if ( level.fade > 1.0 )
+		{
+			level.fade = 1.0
+		}
+
+		local.mono_blur = 0.75*level.fade
+	//	setcvar r_mono_blur local.mono_blur
+		$player postfx_blend 7 local.mono_blur local.mono_blur 0.01
+		
+		local.cc_sat = ( 0.4 - 0.2*level.fade )
+	//	setcvar r_cc_sat local.cc_sat
+		$player postfx_blend 7 local.cc_sat local.cc_sat 0.01 1
+		waitframe
+	}
+	level.vod_monoblur_thread = NULL
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~~~~ fadeout done"
+
+end
+
+
+// --------------------------------------------------------------------------------
+//	fadein
+//	fade in to color
+// --------------------------------------------------------------------------------
+fadein local.fadetime local.fade_to:
+
+	if ( local.fade_to==NIL )
+		local.fade_to = 0
+
+	if ( (level.vod_monoblur_thread != NIL) && (level.vod_monoblur_thread != NULL) )
+	{
+		dprintln "~~~~~ vod.scr warning: stopping other fade thread that may be running"
+		level.vod_monoblur_thread remove
+	}
+	level.vod_monoblur_thread = local
+
+	local.interval = 0.05
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~~~~~ fading from " level.fade " to " local.fade_to " over " local.fadetime
+
+	while ( level.fade > local.fade_to )
+	{
+		level.fade -= ( local.interval / local.fadetime )
+		if ( level.fade < local.fade_to )
+		{
+			level.fade = local.fade_to
+		}
+		if ( level.fade < 0.0 )
+		{
+			level.fade = 0.0
+		}
+		local.mono_blur = 0.75*level.fade
+	//	setcvar r_mono_blur local.mono_blur
+		$player postfx_blend 7 local.mono_blur local.mono_blur 0.01 
+
+		local.cc_sat = (  0.4 - 0.2*level.fade )
+	//	setcvar r_cc_sat local.cc_sat
+		$player postfx_blend 7 local.cc_sat local.cc_sat 0.01 1
+		waitframe
+	}
+	level.vod_monoblur_thread = NULL
+//	dprintln "~~~~~~~~~~~~~~~~~~~~~~~~ fadein done"
+
+end
+
+
+// --------------------------------------------------------------------------------
+//	DoAID
+//	Play the VOD AID event when the player is healed
+// --------------------------------------------------------------------------------
+DoAID:
+
+	wait 3
+
+	//Do the aid event with a priority of 1(always play)
+	$player aid_voddone 1
+
+end
+
+
+// --------------------------------------------------------------------------------
+KillAxis:
+// --------------------------------------------------------------------------------
+
+//	dprintln "KILL AXIS STARTED.."
+	while ( $player.invod && isAlive $player )
+	{
+		local.wait = randomfloat 0.8
+		local.wait += 0.5
+		wait local.wait
+
+//		dprintln "Killing Axis..."
+
+		kill_axis $player.origin 300 1
+	}
+
+//	dprintln "KILL AXIS STOPPED!"
+
+end
+
+// --------------------------------------------------------------------------------
+ComputeVODAudio: 
+// --------------------------------------------------------------------------------
+
+	// Mission 2
+	if ( contains_string level.script "2_1" )
+		end "DFRUS_PLAYER_2_1_VOD"
+	
+	// Mission 4
+	if ( contains_string level.script "4_1" )
+		end "DFRUS_PLAYER_4_1_VOD"
+	
+	if ( contains_string level.script "4_2" )
+		end "DFRUS_PLAYER_4_2_VOD"
+
+	if ( contains_string level.script "4_4" )
+		end "DFRUS_PLAYER_4_4_VOD"
+	
+	// Mission 5
+	if ( contains_string level.script "5_1" )
+		end "DFRUS_PLAYER_5_1_VOD"
+	
+	if ( contains_string level.script "5_2" )
+		end "DFRUS_PLAYER_5_2_VOD"
+	
+	if ( contains_string level.script "5_3" )
+		end "DFRUS_PLAYER_5_3_VOD"
+	
+	if ( contains_string level.script "5_5" )
+		end "DFRUS_PLAYER_5_5_VOD"
+	// ???
+	if ( contains_string level.script "5_6" )
+		end "DFRUS_PLAYER_5_6_VOD"
+	
+	// Mission 7
+	if ( contains_string level.script "7_1" )
+		end "DFRUS_PLAYER_7_1_VOD"
+
+end "none"
+

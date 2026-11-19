@@ -1,0 +1,143 @@
+// ------------------------------------------------------------------------------------
+// anim/turns.scr
+//
+// ------------------------------------------------------------------------------------
+main:
+end
+
+// ------------------------------------------------------------------------------------
+Turn45L:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 45 "" left local.mood)
+	self waittill flaggedanimdone
+
+end
+
+// ------------------------------------------------------------------------------------
+Turn45R:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 45 "" right local.mood)
+	self waittill flaggedanimdone
+
+end
+
+
+// ------------------------------------------------------------------------------------
+Turn90L:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 90 "" left local.mood)
+	self waittill flaggedanimdone
+
+end
+
+
+// ------------------------------------------------------------------------------------
+Turn90R:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 90 "" right local.mood)
+	self waittill flaggedanimdone
+
+end
+
+
+// ------------------------------------------------------------------------------------
+Turn180L:
+// ------------------------------------------------------------------------------------
+
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 180 "" left local.mood)
+	self waittill flaggedanimdone
+
+end
+
+
+// ------------------------------------------------------------------------------------
+Turn180R:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn 180 "" right local.mood)
+	self waittill flaggedanimdone
+
+end
+
+
+// ------------------------------------------------------------------------------------
+TurnAnimated:
+// ------------------------------------------------------------------------------------
+	self waitthread DecideGetup
+
+	local.mood = self waitthread GetMood
+
+	self setmotionanim (self getalias turn "" "" "" local.mood)
+	self waittill flaggedanimdone
+
+end
+
+// ------------------------------------------------------------------------------------
+GetMood:
+// ------------------------------------------------------------------------------------
+
+	if ( self.forcefacemotion && self.weapongroup==pistol )
+	{
+		if ( self.mood=="alert" )
+		{
+			end "cautious"
+		}
+	}
+
+	switch ( self.mood )
+	{
+	case	alert:
+	case	cautious:
+		end self.mood
+	default:
+		end "ease"
+	}
+
+	end self.mood
+
+// ------------------------------------------------------------------------------------
+DecideGetup:
+// ------------------------------------------------------------------------------------
+
+	switch ( self.position )
+	{
+	case	prone:
+	case	pronewalk:
+		break
+	default:
+		end
+	}
+
+	waitexec anim/cover.scr::GetCoverSet
+
+	// don't stand up if we're on a prone covernode.
+	if ( self.cover_set==prone )
+		end
+
+	// go ahead and stand up before performing our turn animation.
+	self waitthread anim/crouch.scr::transition
+
+	end

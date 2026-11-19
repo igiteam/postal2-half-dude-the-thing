@@ -1,0 +1,1 @@
+class ForcedReachSpec extends ReachSpec;

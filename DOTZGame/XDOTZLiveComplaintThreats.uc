@@ -1,0 +1,36 @@
+//-----------------------------------------------------------
+//
+//-----------------------------------------------------------
+class XDOTZLiveComplaintThreats extends XDOTZLiveComplaintConfirmBase;
+
+/*****************************************************************
+ * Button A pressed
+ *****************************************************************
+ */
+
+function DoButtonA ()
+{
+/*
+    GREAT_SESSION = 0
+	GOOD_ATTITUDE = 1
+	BAD_NAME = 2
+	CURSING = 3
+	SCREAMING = 4
+	CHEATING = 5
+	THREATS = 6
+*/
+    class'UtilsXbox'.static.Friends_Send_Feedback(Gamertag, Xuid, 6);
+    BBGuiController(Controller).CloseTo ('XDOTZLivePlayerSelectIG');
+}
+
+/*****************************************************************
+ * Default properties
+ *****************************************************************
+ */
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    OnKeyEvent=XDOTZLiveComplaintThreats.HandleKeyEvent
+}

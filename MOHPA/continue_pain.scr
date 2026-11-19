@@ -1,0 +1,83 @@
+start:
+
+self.blendtime = 0.25
+
+switch (self.position)
+{
+// Pain positions
+// This is actually the main pain handling script.  People in pain will go through 
+// this script in an attempt to stand back up, and should, in the process, do lots 
+// of cool, agonized-looking stuff.  There is also a section in crouch.scr to handle 
+// going from knees to the crouch pose.
+knees:
+	// Try to stand up - allow for the fact that chances are we're in too much 
+	// pain and we'll just fall about on the floor some more.
+	local.randnum = randomint 100
+	if ( self.normal_health > local.randnum )
+	{
+		// Recover - stand up
+
+		self setmotionanim (self getalias pain kneestostand)
+		self waittill flaggedanimdone
+		self.position = stand
+	}
+	else if ( self.normal_health < local.randnum - 30 )
+	{
+		// I'm in so much pain!  I can't even stay on my knees, I'm so weak.
+
+		self setmotionanim (self getalias pain kneestocrawl)
+		self waittill flaggedanimdone
+		self.position = crawl
+		goto start
+	}
+	// Don't do kneestofloor, that's only for when you get shot.
+	else 
+	{
+		self setmotionanim (self getalias pain kneesidle)
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+crawl:
+	// Falling to the floor from crawl could be considered a recovery, or the 
+	// opposite, so let's just do it randomly.
+	local.randnum = randomint 100
+	if ( local.randnum > 50 )
+	{
+		self setmotionanim (self getalias pain crawltofloor)
+		self waittill flaggedanimdone
+		self.position = floor
+		goto start
+	}
+	else
+	{
+		self setmotionanim (self getalias pain crawl)
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+floor:
+	// Try to stand up - allow for the fact that chances are we're in too much 
+	// pain and we'll just fall about on the floor some more.
+	local.randnum = randomint 100
+	if ( self.normal_health > local.randnum )
+	{
+		self setmotionanim (self getalias pain floortoknees)
+		self waittill flaggedanimdone
+		self.position = knees
+		goto start
+	}
+	else
+	{
+		self setmotionanim (self getalias pain flooridle)
+		self waittill flaggedanimdone
+		goto start
+	}
+	break
+
+default:
+	waitexec anim/idle.scr
+	break
+}

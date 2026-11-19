@@ -1,0 +1,1 @@
+class LPDamageTypeThermalPostExplosion extends LPDamageTypeFragGrenade;

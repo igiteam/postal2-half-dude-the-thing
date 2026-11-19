@@ -1,0 +1,1 @@
+class LPHeadTrackComponent extends SPHeadTrackComponent;

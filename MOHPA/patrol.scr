@@ -1,0 +1,122 @@
+//------
+// Patrol
+//------
+// This is just a copy of the walk script. It needs to be altered to provide proper
+// patrolling behaviour, like looking around and stuff.
+
+//println "patrol.scr"
+
+
+//----------------------------------------------------------------------------------
+PatrolMain:
+//----------------------------------------------------------------------------------
+
+	waitexec anim/default_inithandler.scr
+	waitexec anim/smoking.scr::SmokeCigaretteInit
+
+	
+	while (1)
+	{
+///		waitexec anim/smoking.scr::SmokeCigarette
+		
+		// Patrol 3-6 cycles so we don't smoke every second.
+		local.numcycles = (randomint 4) + 3
+		for (local.i=0 ; local.i < local.numcycles ; local.i += 1)
+		{
+			waitexec anim/patrol.scr::PatrolWalkOneCycle
+		}
+
+		waitexec anim/patrol.scr::PatrolIdle
+	}
+
+end
+
+
+//----------------------------------------------------------------------------------
+PatrolWalkOneCycle:
+//----------------------------------------------------------------------------------
+	self.blendtime = 0.5
+	if (self.normal_health < 60)
+	{
+		self waitexec anim/motionblend.scr::PlayAnim walk
+
+		//println "Patrol.scr using injured motion blend with movedir: " self.movedir
+		local.stepdonetime = level.time + 2	// Let's arbitrarily decide that a step is two seconds.
+		while (level.time < local.stepdonetime)
+		{
+			//jsl-->waitexec anim/motionblend.scr::PlayAnim "walk_injured_"
+/////			waitthread anim/stand.scr::transition
+			waitexec anim/motionblend.scr::PlayAnim walkinjured
+		}
+	}
+	else
+	{
+		local.stepdonetime = level.time + 2	// Let's arbitrarily decide that a step is two seconds.
+		while (level.time < local.stepdonetime)
+		{
+			
+////			waitthread anim/stand.scr::transition
+			// waitexec anim/motionblend.scr::PlayAnim (self.weapongroup + "_walk_patrol_")
+			waitexec anim/motionblend.scr::PlayAnim walk
+		}
+	}
+
+//	self.position = walk
+end
+
+//----------------------------------------------------------------------------------
+PatrolIdle:
+//----------------------------------------------------------------------------------
+
+
+	local.rand = randomint 3
+	local.rand += 1
+
+	for (local.i=1;local.i<=local.rand;local.i++)
+	{
+		waitexec anim/patrol.scr::IdleCycle
+	}
+
+	end
+
+//----------------------------------------------------------------------------
+IdleCycle:
+//----------------------------------------------------------------------------
+	local.rand = randomint 2
+
+	switch ( local.rand )
+	{
+		case	0:
+			local.set = "a"
+			break
+		default:
+		case	1:
+			local.set = "b"
+			break
+	}
+
+
+	self setmotionanim (self getalias idle local.set)
+
+	wait 1
+//	self waittill flaggedanimdone
+
+	self waitexec anim/patrol.scr::LookAround local.set
+
+	self setmotionanim (self getalias idle local.set)
+	wait 0.5
+
+
+	end
+
+//----------------------------------------------------------------------------
+LookAround local.set:
+//----------------------------------------------------------------------------
+
+	local.string = ("patrol_" + local.set)
+
+	self setmotionanim (self getalias idle local.string)
+	self waittill flaggedanimdone
+
+
+	end

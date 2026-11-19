@@ -1,0 +1,15 @@
+//==================================================================
+// Attract Mode
+//
+// This script is call when Attract Mode begins.
+
+
+main:
+	// Debug
+	//dprintln "Attract Mode Script"
+
+	// Execute Script - E3
+	waitthread maps/5_1/5_1_E3_sellscreen.scr::DoSellSequence 
+
+end
+	

@@ -1,0 +1,89 @@
+//
+// spline_path_creator.scr by Victor Dods
+//
+// Used in the mapping process, to create camera paths from in-game,
+// rather than the drudgery of manually creating and linking each
+// spline path node by hand in radiant.  This is strictly a developer's
+// tool, and not a game script.
+//
+// To use this, make sure to execute global/spline_path_creator.scr in your 
+// map's script.  Set the targetname of the path (the first pathnode) by 
+// setting the cvar "spline_path_name" to contain your desired path name.  
+// In order to actually take snapshots, go into noclip mode and fly around, 
+// pressing the use button whereever you would like a snapshot (in order).  
+// You may change the "spline_path_name" cvar to start a new path (or continue 
+// an old one).  Once you are done creating path nodes, you must now extract
+// the data from qconsole:
+// 
+// ./moh_spline_path_parser.exe < path/to/qconsole.log >> path/to/yourmap.map
+//
+// The above command will parse out every single spline path created with this
+// tool, which may be very many, so you may optionally specify a specific
+// path name:
+// 
+// ./moh_spline_path_parser.exe dumbPathName < path/to/qconsole.log >> path/to/yourmap.map
+//
+// using the tool in this manner is more controlled, so it is recommended that
+// it be used only in this manner.  What the command does is directs the
+// contents of qconsole.log into a scanner which parses the lines with the
+// special moh_spline_path tag, and produces formatted radiant map output.
+// The resulting text is then appended to path/to/yourmap.map.  You then
+// reload your map, and the spline paths will magically be in there, with the
+// correct targetnames and all linked up.
+//
+// The second (non-cygwin loser) way is to run:
+//
+// moh_spline_path_parser.exe dumbPathName < path/to/qconsole.log > blah.pfb
+//
+// The output of the parser is actually the same as the prefab format so you
+// may save it as such.  Save it into your prefab directory and you may load
+// it up like a normal prefab.
+//
+
+//----------------------------------------------------------------------------
+main:
+//--------------------
+	// indicate the script is init'ed and what to do
+	iprintln "--------------------------------------------------------------------------------"
+	iprintln "spline_path_creator.scr initialized - you must now set the spline_path_name cvar"
+	iprintln "use the sv_runspeed cvar to change the movement speed for higher/lower precision"
+	iprintln "--------------------------------------------------------------------------------"
+	// set the enabled flag to true
+	level.enableSplinePathSnapshots = 1
+	// set the default (invalid) path name
+	setcvar "spline_path_name" "changeme"
+	// start the use key monitor
+	$player[1] thread monitor_use_key
+end
+
+
+//--------------------
+monitor_use_key:
+//--------------------
+	// self is player 1.
+
+	while (1) {
+		if ((self.useheld) && level.enableSplinePathSnapshots) {
+			if ((getcvar "spline_path_name") == "changeme") {
+				iprintln "you must set the spline_path_name cvar to a unique targetname"
+			} else {
+				// get the path name
+				local.splinePathName = getcvar "spline_path_name"
+				// print out the path name, the origin and the angles
+//				iprintln ("moh_spline_path " + local.splinePathName + " origin: " + (self gettagposition "eyes bone") + " angles: " + self.viewangles)
+				iprintln ("moh_spline_path " + local.splinePathName + " origin: " + (self.origin + (0 0 70)) + " angles: " + self.viewangles)
+					
+				// add sound like a camera taking a picture
+					
+				// add visible spline path nodes and lines connecting them for better feedback
+	
+			}
+			// wait for useheld to go low
+			while (self.useheld)
+				waitframe
+		}
+		waitframe
+	}
+end
+
+

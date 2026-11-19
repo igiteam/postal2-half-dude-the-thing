@@ -1,0 +1,77 @@
+// --------------------------------------------------------------------------------
+//	idletask.scr
+//		
+//		This script handles simple idle tasks that require a special exit animation
+//	to be played.
+//
+// --------------------------------------------------------------------------------
+
+
+main:
+
+end
+
+// --------------------------------------------------------------------------------
+Init:
+// --------------------------------------------------------------------------------
+	waitexec anim/default_inithandler.scr
+
+end
+
+// --------------------------------------------------------------------------------
+IdleTask:
+// --------------------------------------------------------------------------------
+	self waitthread Init
+
+	if ( self.customidleanim==NIL || self.customidleanim==NULL )
+	{
+		println "Idle task started up with invalid custom idle anim:" self.customidleanim
+		waitframe
+		end
+	}
+
+	if ( self.customidleanim_exit )
+		self.idletaskexitthread			= "anim/smoking.scr::SmokingInterrupt"
+
+	if ( self.customidleanim_pain )
+		self.painhandler				= anim/idletask.scr::IdleTaskPain
+
+	if ( self.customidleanim_death )
+		self.deathhandler				= anim/idletask.scr::IdleTaskDeath
+
+
+	self waitthread anim/idle.scr::DoCustomAnim
+
+end
+
+
+// --------------------------------------------------------------------------------
+IdleTaskInterrupt:
+//
+//	Play this animation prior to exiting this state....
+// --------------------------------------------------------------------------------
+
+	self setmotionanim self.customidleanim_exit
+	self waittill flaggedanimdone
+
+	end
+
+
+// --------------------------------------------------------------------------------
+IdleTaskPain:
+// --------------------------------------------------------------------------------
+		
+	self setmotionanim self.customidleanim_pain
+	self waittill flaggedanimdone
+
+	end
+
+
+// --------------------------------------------------------------------------------
+IdleTaskDeath:
+// --------------------------------------------------------------------------------
+	self setmotionanim self.customidleanim_death
+	self waittill flaggedanimdone
+
+	end
+	

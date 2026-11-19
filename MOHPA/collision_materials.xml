@@ -1,0 +1,236 @@
+<PERSISTENT class="CollisionMaterialList" id="0000">
+  <PROP name="coll_mats" type="PersistentList">
+      <PERSISTENT class="CollisionMaterial" id="2">
+          <PROP name="name" type="emb_string">Cloth</PROP>
+          <PROP name="density_factor" type="float">1.1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.25</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="3">
+          <PROP name="name" type="emb_string">Glass</PROP>
+          <PROP name="density_factor" type="float">2</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.5</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="4">
+          <PROP name="name" type="emb_string">Body</PROP>
+          <PROP name="density_factor" type="float">3</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="5">
+          <PROP name="name" type="emb_string">Dirt</PROP>
+          <PROP name="density_factor" type="float">1.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="6">
+          <PROP name="name" type="emb_string">Gravel</PROP>
+          <PROP name="density_factor" type="float">1.6</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="7">
+          <PROP name="name" type="emb_string">Metal Hollow</PROP>
+          <PROP name="density_factor" type="float">4</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="8">
+          <PROP name="name" type="emb_string">Metal Solid</PROP>
+          <PROP name="density_factor" type="float">6</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="9">
+          <PROP name="name" type="emb_string">Water</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="10">
+          <PROP name="name" type="emb_string">Wood Hollow</PROP>
+          <PROP name="density_factor" type="float">0.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.85</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="11">
+          <PROP name="name" type="emb_string">Wood Solid</PROP>
+          <PROP name="density_factor" type="float">1.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="12">
+          <PROP name="name" type="emb_string">Wood Fragile</PROP>
+          <PROP name="density_factor" type="float">0.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.85</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="13">
+          <PROP name="name" type="emb_string">Beach Sand</PROP>
+          <PROP name="density_factor" type="float">1.8</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="14">
+          <PROP name="name" type="emb_string">Mud</PROP>
+          <PROP name="density_factor" type="float">1.8</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="15">
+          <PROP name="name" type="emb_string">Stone Light</PROP>
+          <PROP name="density_factor" type="float">2</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="16">
+          <PROP name="name" type="emb_string">Stone Dark</PROP>
+          <PROP name="density_factor" type="float">2.2</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="17">
+          <PROP name="name" type="emb_string">Foliage Dense</PROP>
+          <PROP name="density_factor" type="float">1.9</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.75</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="18">
+          <PROP name="name" type="emb_string">Foliage Sparse</PROP>
+          <PROP name="density_factor" type="float">1.7</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.25</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="19">
+          <PROP name="name" type="emb_string">Feathers</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="20">
+          <PROP name="name" type="emb_string">Rice Bag</PROP>
+          <PROP name="density_factor" type="float">1.2</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0.5</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="21">
+          <PROP name="name" type="emb_string">Thick Metal</PROP>
+          <PROP name="density_factor" type="float">7</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="22">
+          <PROP name="name" type="emb_string">Thick Glass</PROP>
+          <PROP name="density_factor" type="float">2.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="23">
+          <PROP name="name" type="emb_string">Nothing</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="24">
+          <PROP name="name" type="emb_string">Air</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="25">
+          <PROP name="name" type="emb_string">Foliage Permeable</PROP>
+          <PROP name="density_factor" type="float">1.7</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">0</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="26">
+          <PROP name="name" type="emb_string">Vehicle</PROP>
+          <PROP name="density_factor" type="float">0.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="27">
+          <PROP name="name" type="emb_string">Swamp Water</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="28">
+          <PROP name="name" type="emb_string">Body Dust</PROP>
+          <PROP name="density_factor" type="float">3</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="29">
+          <PROP name="name" type="emb_string">Player Aircraft</PROP>
+          <PROP name="density_factor" type="float">0.5</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+      <PERSISTENT class="CollisionMaterial" id="30">
+          <PROP name="name" type="emb_string">Water Flight</PROP>
+          <PROP name="density_factor" type="float">1</PROP>
+          <PROP name="friction_coeff" type="float">1</PROP>
+          <PROP name="restitution_coeff" type="float">1</PROP>
+          <PROP name="penetration" type="float">1</PROP>
+          <PROP name="owner" type="no_ref_ptr"><REF>0000</REF></PROP>
+      </PERSISTENT>
+  </PROP>
+</PERSISTENT>

@@ -1,0 +1,232 @@
+//----------------------------------------------------------------------------
+SpawnTankWithGuys local.tank_hag local.gunner_hag local.spawn_target:
+// Spawns a tank with a gunner at each turret and places it at the spawn target
+// The spawn target is the targetname of the object place in Radiant
+// For example:
+// local.tank_hag = "models/vehicles/Type97_ChiHa.hag"
+// local.gunner_hag = "models/characters/axis/axis_soldier.hag"
+// local.tank = waitthread global/Tank.scr::SpawnTankWithGuys local.tank_hag local.gunner_hag "spawnpoint"
+//----------------------------------------------------------------------------
+
+	local.tank = waitthread SpawnTank local.tank_hag local.spawn_target
+	
+	if( local.tank QueryTurretSlotEntity 0 )
+	{
+		local.tank waitthread SpawnAndAddGunner local.gunner_hag 0	
+	}
+	if( local.tank QueryTurretSlotEntity 1 )
+	{
+		local.tank waitthread SpawnAndAddGunner local.gunner_hag 1	
+	}
+
+end local.tank
+
+//----------------------------------------------------------------------------
+SpawnTank local.tank_hag local.spawn_target:
+// Spawns a tank and places it at the spawn target
+// The spawn target is the targetname of the object place in Radiant
+// For example:
+// local.tank_hag = "models/vehicles/Type97_ChiHa.hag"
+// local.tank = waitthread global/Tank.scr::SpawnTank local.tank_hag "spawnpoint"
+//----------------------------------------------------------------------------
+
+	local.tank = spawn local.tank_hag spawntarget local.spawn_target
+	local.tank thread OnDeath
+
+end local.tank
+
+//----------------------------------------------------------------------------
+SpawnAndAddGunner local.gunner_hag local.turret_slot:
+// Spawns a gunner and adds him to one of the tanks turrets
+// For example:
+// local.gunner_hag = "models/characters/axis/axis_soldier.hag"
+// local.gunner = $tank waitthread global/Tank.scr::SpawnAndAddGunner local.gunner_hag 0
+//----------------------------------------------------------------------------
+
+	local.gunner = spawn local.gunner_hag 
+	self waitthread SetGunner local.gunner local.turret_slot
+
+end local.gunner
+	
+//----------------------------------------------------------------------------
+SetGunner local.gunner local.turret_slot:
+// Adds a gunner to one of the tanks turrets
+// For example:
+// $tank waitthread global/Tank.scr::SetGunner $gunner 0
+//----------------------------------------------------------------------------
+
+	local.gunner hide
+	local.gunner notsolid
+	local.gunner nodamage
+	local.gunner takeall
+	local.gunner.enablePain = 0
+	
+	local.gunner waitthread global/actor_utils.scr::EnableFastMode 1 1 1 1 0
+
+	self AttachTurretSlot local.turret_slot local.gunner 1
+
+end
+	
+//----------------------------------------------------------------------------
+RemoveGunner local.turret_slot:
+// Removes the gunner from the tank and the game
+// For example:
+// $tank waitthread global/Tank.scr::RemoveGunner 0
+//----------------------------------------------------------------------------
+
+	local.gunner = self QueryTurretSlotGunner local.turret_slot
+	
+	if( local.gunner != NULL )
+	{
+		self DetachGunnerFromTurretSlot local.turret_slot
+		local.gunner remove
+	}
+
+end
+
+//----------------------------------------------------------------------------
+GetGunner local.turret_slot:
+// Returns the gunner at the specified slot of the tank. 
+// Null if gunner does not exist
+// For example:
+// local.gunner = $tank waitthread global/Tank.scr::GetGunner 0
+//----------------------------------------------------------------------------
+
+	local.gunner = self QueryTurretSlotGunner local.turret_slot
+
+end local.gunner
+	
+//----------------------------------------------------------------------------
+RemoveTank:
+// Removes the tank and the people in the tank from the game
+// For example:
+// $tank waitthread global/Tank.scr::RemoveTank
+//----------------------------------------------------------------------------
+
+	self remove
+
+end
+	
+//----------------------------------------------------------------------
+OnDeath:
+// Removes the the people in the tank from the game when the tank dies
+// For example:
+// $tank thread global/Tank.scr::OnDeath
+//----------------------------------------------------------------------
+
+	self waittill death
+	self removepeople
+	self stop
+
+end
+	
+//----------------------------------------------------------------------
+DrivePath local.path local.speed:
+// The tank will drive a spline path at a set speed 
+// For example:
+// $tank thread global/Tank.scr::DrivePath $path 100
+//----------------------------------------------------------------------
+
+	self drive local.path local.speed
+	self waittill drive
+
+end
+
+//----------------------------------------------------------------------------
+SetTargetType local.type local.turret_slot:
+// Sets the targeting type of the tank's turret to be "none" or "auto"
+// If "none" is set then the tank's turret won't automatically attack
+// If "auto" is set then the tank's turret will attack the current enemy
+// For example:
+// $tank waitthread global/Tank.scr::SetTargetType "auto" 0
+//----------------------------------------------------------------------------
+
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret targettype local.type
+	}
+
+end
+
+//----------------------------------------------------------------------------
+SetAimTarget local.enemy local.turret_slot:
+// Tells the tanks turret to aim at something
+// TargetType should be set to "none"
+// For example:
+// $tank waitthread global/Tank.scr::SetAimTarget $barrel 0
+//----------------------------------------------------------------------------
+
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret setaimtarget local.enemy
+	}
+
+end
+
+//----------------------------------------------------------------------------
+ClearAimTarget local.turret_slot:
+// Stops the turret from aiming at the aim target
+// For example:
+// $tank waitthread global/Tank.scr::ClearAimTarget 0
+//----------------------------------------------------------------------------
+
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret clearaimtarget
+	}
+
+end
+
+//----------------------------------------------------------------------------
+ShootAt local.enemy local.turret_slot:
+// Tells the tank's turret to shoot at an enemy
+// TargetType should be set to "auto"
+// For example:
+// $tank waitthread global/Tank.scr::ShootAt $barrel 0
+//----------------------------------------------------------------------------
+
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret setenemy local.enemy
+	}
+
+end
+
+//----------------------------------------------------------------------------
+Shoot local.turret_slot:
+// Tells the tank's turret to shoot once 
+// For example:
+// $tank waitthread global/Tank.scr::Shoot 0
+//----------------------------------------------------------------------------
+
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret shoot
+	}
+
+end
+
+//----------------------------------------------------------------------------
+PlayFakeFireAnim local.turret_slot:
+// Tell's tank turret to play fire animation once
+// For Example:
+// $tank waitthread global/Tank.scr::PlayFakeFireAnim 0
+//----------------------------------------------------------------------------
+	local.turret = self QueryTurretSlotEntity local.turret_slot
+	
+	if( local.turret != NULL )
+	{
+		local.turret anim fakefire
+	}
+
+end

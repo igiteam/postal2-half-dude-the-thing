@@ -1,0 +1,21 @@
+//-------------------------------------------------------------------------------------
+//	dive_to_prone_left.scr
+//
+//	
+//-------------------------------------------------------------------------------------
+
+waitexec "anim/default_inithandler.scr"
+waitexec anim/smoking.scr::SmokeRemoveCigarette
+
+
+self setmotionanim xrsax_PlaneDive_Left		
+
+self waittill flaggedanimdone
+self.position = prone
+
+//self setmotionanim Prone_Atk_2_Stand_Atk
+//self waittill flaggedanimdone
+//self.position = stand
+
+end
+

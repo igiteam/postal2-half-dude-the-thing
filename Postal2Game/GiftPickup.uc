@@ -1,0 +1,26 @@
+///////////////////////////////////////////////////////////////////////////////
+// GiftPickup
+// Copyright 2002 Running With Scissors, Inc.  All Rights Reserved.
+//
+// Gift pickup.
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+
+class GiftPickup extends KrotchyPickup;
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Default properties
+///////////////////////////////////////////////////////////////////////////////
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    bPaidFor=false
+    LegalOwnerTag="UncleDave"
+    BounceSound=Sound'MiscSounds.PickupSounds.BookDropping'
+    InventoryType=Class'GiftInv'
+    PickupMessage="You picked up your Gift for Uncle Dave."
+    StaticMesh=StaticMesh'stuff.stuff1.Gift'
+}

@@ -1,0 +1,2 @@
+class DOTZBigBulletDamage extends DOTZDamageTypeBase;
+

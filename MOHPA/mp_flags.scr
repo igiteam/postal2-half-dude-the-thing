@@ -1,0 +1,75 @@
+// mp_flags.scr
+// flag script that will replace defender flags when objectives are completed
+// created 8-12-04  NW
+
+//-----------------------------------------
+main local.flag_name:
+//-----------------------------------------
+	thread init local.flag_name
+end
+
+
+//-----------------------------------------
+init local.flag_name:
+//-----------------------------------------
+	if (local.flag_name == NIL || local.flag_name == NULL)
+		local.flag_name = "objflag"
+
+	if (level.alliedAttackers == 1) 
+	{
+		local.defender_flag_hag = "models/MP_common/manmade/flag_jpnse.hag"
+		local.attacker_flag_hag = "models/MP_common/manmade/flag_allies.hag"
+	}
+	else
+	{
+		local.defender_flag_hag = "models/MP_common/manmade/flag_allies.hag"
+		local.attacker_flag_hag = "models/MP_common/manmade/flag_jpnse.hag"
+	}		
+		
+
+	for (local.i=1; local.i<=$(local.flag_name).size; local.i++)
+		$(local.flag_name)[local.i] thread init_flag local.defender_flag_hag local.attacker_flag_hag
+end
+
+
+//-----------------------------------------
+init_flag local.flag_D local.flag_A:
+//-----------------------------------------
+	local.defender_flag = spawn script_origin model local.flag_D
+	local.defender_flag.origin = self.origin
+	local.defender_flag.angles = self.angles
+	local.defender_flag.targetname = ("objflag" + self.obj)
+	local.defender_flag.attacker_hag = local.flag_A
+	local.defender_flag thread animate_flag
+	self remove
+end
+
+//-----------------------------------------
+flag_change local.cur_obj:
+//-----------------------------------------
+	local.defender_flag_name = "objflag" + local.cur_obj
+	local.defender_flag = $(local.defender_flag_name)
+	for (local.i=1; local.i<=local.defender_flag.size; local.i++)
+	{
+		local.attacker_flag = spawn script_origin model local.defender_flag[local.i].attacker_hag
+		local.attacker_flag.origin = local.defender_flag[local.i].origin
+		local.attacker_flag.angles = local.defender_flag[local.i].angles
+		local.attacker_flag.targetname = ("objflag" + (local.cur_obj) )
+		local.defender_flag[local.i] remove
+		local.attacker_flag thread animate_flag	
+	}
+	
+end
+
+
+//-----------------------------------------
+animate_flag:
+//-----------------------------------------
+
+	while( self )
+	{
+		self anim idle
+		self waittill animdone	
+	}
+
+end

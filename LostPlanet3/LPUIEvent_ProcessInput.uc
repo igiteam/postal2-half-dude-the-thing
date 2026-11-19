@@ -1,0 +1,1 @@
+class LPUIEvent_ProcessInput extends SPUIEvent_ProcessInput;

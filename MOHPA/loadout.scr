@@ -1,0 +1,659 @@
+// --------------------------------------------------------------------------------
+// global/loadout.scr
+//
+// This now fits the weapon slot system put in by Mike Goodwin, thus (I believe) all
+// items need to be loaded through
+// --------------------------------------------------------------------------------
+
+main:
+
+	if ( level.loadout_script_run == 1 )
+	{
+		end
+	}
+
+level waittill spawn
+
+	exec global/autosave.scr -5
+
+	if ( game.loadout == NIL )
+	{
+		// Always give the player the empty grenade weapons
+		// so that he can use grenade ammo if he gets it.
+		// Note that in single player, "grenade" ammo is
+		// only steilhandgranate ammo, and "agrenade" ammo
+		// is american Frag Grenade ammo.
+		// MJG: removed under new player_weapon_slots system
+//		$player item weapons/m2frag_grenade_sp.hag
+	}
+
+	// Default Player particle effect for knockback
+	$player knockback_effect "models/vfx/shockandawe.tik"
+
+	// set up storage for all ammo
+	$player ammo pistol			0	50
+	$player ammo rifle			0	150
+	$player ammo smg			0	250
+	$player ammo shotgun			0	50
+	$player ammo mg				0	150
+	
+
+	$player ammo jpn_pistol			0	50
+	$player ammo jpn_rifle			0	150
+	$player ammo jpn_smg			0	250
+	$player ammo jpn_mg			0	150
+
+	// Note: Grenades are considered to have 1 "extra" because of how the "clip" works
+	// The values below really mean 4 grenades 
+	$player ammo grenade			0	3
+	$player ammo agrenade			0	3
+	$player ammo satchel			0	3
+	$player ammo jpn_grenade		0	3
+
+	// Level-based load-out decision
+	// MJG: note that all 'case' strings must be in lowercase to match properly
+	local.script = tolower level.script
+	println "*********** Loadout for: " local.script
+
+	switch ( local.script )
+	{
+////////Boot Camp
+	case "maps/1_1_bootcamp_chunk1.scr":
+		waitthread Loadout_1_1
+		break
+	case "maps/1_1_bootcamp_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_1_1
+		}
+		break
+		
+////////Pearl
+	case "maps/2_1_pearl_a_chunk1.scr":
+		waitthread Loadout_Pearl
+		break
+	case "maps/2_1_pearl_b_chunk1.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Pearl
+		}
+		break
+	case "maps/2_1_pearl_b_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Pearl
+		}
+		break
+	case "maps/2_1_pearl_b_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Pearl
+		}
+		break
+		
+////////Makin
+	case "maps/4_1_nightmoves_chunk1.scr":
+		// Not loaded on startup b/c must wait for rafts to
+		// reach shore and do briefing.  DO NOT UNCOMMENT.
+		//waitthread Loadout_4_1
+		break
+	case "maps/4_1_nightmoves_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_4_1
+		}
+		break
+	case "maps/4_1_nightmoves_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_4_1
+		}
+		break
+	case "maps/4_2_mandown_chunk1.scr":
+		waitthread Loadout_4_2
+		break
+	case "maps/4_2_mandown_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_4_2
+		}
+		break
+	case "maps/4_2_mandown_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_4_2
+		}
+		break
+	case "maps/4_4_sittingducks.scr":
+		waitthread Loadout_4_4
+		break
+		
+////////Guadalcanal
+	case "maps/5_1_henderson_chunk1.scr":
+		waitthread Loadout_5_1_henderson
+		break
+	case "maps/5_1_henderson_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_5_1_henderson
+		}
+		break
+	case "maps/5_1_henderson_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_5_1_henderson
+		}
+		break
+	case "maps/5_1_henderson_chunk4.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_5_1_henderson
+		}
+		break
+	case "maps/5_2_bloodyridge_chunk1.scr":
+		waitthread Loadout_5_2_bloodyridge
+		break
+	case "maps/5_2_bloodyridge_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_5_2_bloodyridge
+		}
+		break
+	case "maps/5_2_bloodyridge_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_5_2_bloodyridge
+		}
+		break
+	case "maps/5_3_riverwalk_chunk1.scr":
+		if (level.directorsedition == 1)
+		{
+			waitthread Loadout_DirectorsEd 0
+		}
+		
+		else
+	
+		waitthread Loadout_5_3_riverwalk_chunk1
+		
+		break
+	case "maps/5_3_riverwalk_chunk2.scr":
+		if( ($player.transitioned_to_current_map != 1 ) && (level.directorsedition != 1) )
+		{
+			waitthread Loadout_5_3_riverwalk_chunk2
+		}
+		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition == 1) )
+		{
+			waitthread Loadout_DirectorsEd 1
+		}
+		
+		break
+	case "maps/5_5_village_chunk1.scr":
+		if (level.directorsedition == 1)
+		{
+			waitthread Loadout_DirectorsEd 1
+		}
+		else
+			waitthread Loadout_5_5_village
+		
+		break
+	case "maps/5_5_village_chunk2.scr":		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition != 1) )
+		{
+			waitthread Loadout_5_5_village
+		}
+		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition == 1) )
+		{
+			waitthread Loadout_DirectorsEd 1
+		}
+		break
+	case "maps/5_5_village_chunk3.scr":		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition != 1) )
+		{
+			waitthread Loadout_5_5_village
+		}
+		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition == 1) )
+		{
+			waitthread Loadout_DirectorsEd 1
+		}
+		
+		break
+	case "maps/5_5_village_chunk4.scr":		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition != 1) )
+		{
+			waitthread Loadout_5_5_village
+		}
+		
+		if( ($player.transitioned_to_current_map != 1) && (level.directorsedition == 1) )
+		{
+			waitthread Loadout_DirectorsEd 1
+		}
+		
+		break
+	case "maps/5_6_flyboys.scr":	
+		waitthread Loadout_5_6_Flyboys
+		break
+			
+////////Tarawa
+	case "maps/7_1_tarawa_a_chunk1.scr":
+		waitthread Loadout_Tarawa
+		break
+	case "maps/7_1_tarawa_a_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Tarawa
+		}
+		break
+	case "maps/7_1_tarawa_a_chunk3.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Tarawa
+		}
+		break		
+	case "maps/7_1_tarawa_b_chunk1.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Tarawa
+		}
+		break
+	case "maps/7_1_tarawa_b_chunk2.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Tarawa
+		}
+		break		
+////////Demo
+	case "maps/mohpa_demo.scr":
+		if ($player.transitioned_to_current_map != 1)
+		{
+			waitthread Loadout_Demo
+		}
+		break	
+		
+	default:
+		waitthread Loadout_Default
+	}
+	$player activatenewweapon
+	level.loadout_script_run = 1
+
+end
+
+
+// -----------------------------------------------------
+Loadout_1_1:
+// Player weapons for "Basic Training" Mission
+// -----------------------------------------------------
+
+	dprintln "1_1 loadout"
+
+	// equipped weapons
+	$player takeall
+	waitframe
+	$player weapon weapons/US_Springfield_bootcamp.hag 0 0 1
+//	$player weapon weapons/US_Springfield.hag		0	0	1
+
+	$player ammo pistol 0
+	$player ammo rifle 0
+	$player ammo smg 0
+	$player ammo shotgun 0
+	$player ammo mg 0
+
+	$player useweaponslot 0
+
+end
+
+// -----------------------------------------------------
+Loadout_Pearl:
+// Player weapons for Pearl Harbor
+// -----------------------------------------------------
+
+	// equipped weapons
+
+	$player ammo pistol	0	
+	$player ammo rifle	0		
+	$player ammo smg	0	
+	$player ammo shotgun	0	
+	$player ammo mg		0	
+
+	$player safeholster 1	
+//	$player useweaponslot 	0
+
+end
+
+// -----------------------------------------------------
+Loadout_4_1:
+//
+// -----------------------------------------------------
+	$player weapon weapons/US45.hag						0	0	1
+	$player weapon weapons/US_Springfield.hag			1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag		2	0	1
+	$player weapon weapons/satchel_charge_base.hag		3	0	1
+	$player weapon items/binoculars.hag					4	0	1	
+
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			100	
+	$player ammo smg			250	
+	$player ammo shotgun			40	
+	$player ammo mg				120	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+
+	$player useweaponslot 1
+
+end
+
+
+
+// -----------------------------------------------------
+Loadout_4_2:
+//
+// -----------------------------------------------------
+	$player weapon weapons/US45.hag					0	0	1
+	$player weapon weapons/Reising.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1
+	$player weapon items/binoculars.hag				4	0	1	
+
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			100	
+	$player ammo smg			250	
+	$player ammo shotgun			40	
+	$player ammo mg				120	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+
+	$player useweaponslot 1
+end
+
+// -----------------------------------------------------
+Loadout_4_4:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US45.hag					0	0	1
+	$player weapon weapons/Reising.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1
+	$player weapon items/binoculars.hag				4	0	1	
+
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			100	
+	$player ammo smg			200	
+	$player ammo shotgun			40	
+	$player ammo mg				120	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+	$player useweaponslot 1
+
+end
+
+
+// -----------------------------------------------------
+Loadout_5_1_henderson:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Colt45.hag				0	0	1
+	$player weapon weapons/US_thompson_30.hag			1	0	1	
+	$player weapon weapons/m2frag_grenade_sp.hag		2	0	1
+	$player weapon weapons/satchel_charge_base.hag		3	0	1
+	$player weapon items/binoculars.hag					4	0	1	
+	
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			50	
+	$player ammo smg			250	
+	$player ammo shotgun			40
+	$player ammo mg				120	
+	$player ammo agrenade	3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50	
+	$player useweaponslot 1
+
+end
+
+
+// -----------------------------------------------------
+Loadout_5_2_bloodyridge:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Colt45.hag				0	0	1
+	$player weapon weapons/us_garand.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag			2	0	1
+	$player weapon weapons/satchel_charge_base.hag			3	0	1
+	
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			50	
+	$player ammo smg			200						// 100	
+	$player ammo shotgun			50	
+	$player ammo mg				150	
+	$player ammo agrenade	3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+	$player useweaponslot 1
+
+end
+
+
+
+// -----------------------------------------------------
+Loadout_DirectorsEd local.explosives:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Colt45.hag			0	0	1
+	$player weapon weapons/johnson.hag				1	0	1
+	$player weapon items/binoculars.hag				4	0	1
+	
+	if ( local.explosives != 0 )
+	{
+		$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+		$player weapon weapons/satchel_charge_base.hag	3	0	1		
+	}
+	
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			50	
+	$player ammo smg			180	
+	$player ammo shotgun			50	
+	$player ammo mg				100	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50	
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_5_3_riverwalk_chunk1:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Colt45.hag			0	0	1
+	$player weapon weapons/thompson.hag				1	0	1
+	$player weapon items/binoculars.hag				4	0	1
+	
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			50	
+	$player ammo smg			180	
+	$player ammo shotgun			50	
+	$player ammo mg				100	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50	
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_5_3_riverwalk_chunk2:
+//
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Colt45.hag			0	0	1
+	$player weapon weapons/thompson.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1
+	$player weapon items/binoculars.hag				4	0	1
+	
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			50
+	$player ammo smg			180	
+	$player ammo shotgun			50	
+	$player ammo mg				100	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50	
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_5_5_village:
+// Player weapons for 5_5_village
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Garand.hag		0	0	1
+	$player weapon weapons/US_Riot.hag		1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1
+	$player weapon items/binoculars.hag		4	0	1	
+		
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			100	
+	$player ammo smg			200	
+	$player ammo shotgun			50
+	$player ammo mg				100	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_5_6_Flyboys:
+// Player weapons for 5_6 - (No weapons)
+// -----------------------------------------------------
+
+	println "5_6 Weapon Loadout"
+
+	$player takeall
+	waitframe
+
+	$player ammo pistol	0	
+	$player ammo rifle	0		
+	$player ammo smg	0	
+	$player ammo shotgun	0	
+	$player ammo mg		0	
+
+	$player safeholster 1	
+
+end
+
+// -----------------------------------------------------
+Loadout_Tarawa:
+// Player weapons for 7_1
+// -----------------------------------------------------
+
+	$player weapon weapons/US_Riot.hag				0	0	1
+	$player weapon weapons/US_bar.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1	//commented out for campEA
+//	$player weapon items/binoculars.hag				4	0	1
+		
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			150	
+	$player ammo smg			250	
+	$player ammo shotgun			50
+	$player ammo mg				150	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_Demo:
+// Player weapons for single player demo
+// -----------------------------------------------------
+
+	$player weapon weapons/m1_carbine.hag			0	0	1
+	$player weapon weapons/thompson.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	
+	$player ammo rifle			90
+	$player ammo smg			300	
+	$player ammo agrenade	3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50	
+	$player useweaponslot 1
+
+end
+
+// -----------------------------------------------------
+Loadout_Default:
+//
+// -----------------------------------------------------
+
+	println "*********** NOTE: No specific loadout set, using *Loadout_Default*"
+
+	// equipped weapons
+	$player weapon weapons/m1_carbine.hag			0	0	1
+	$player weapon weapons/thompson.hag				1	0	1
+	$player weapon weapons/m2frag_grenade_sp.hag	2	0	1
+	$player weapon weapons/satchel_charge_base.hag	3	0	1
+	$player weapon items/binoculars.hag				4	0	1
+		
+//should start player with ammo for all US weapons
+	$player ammo pistol			50	
+	$player ammo rifle			150	
+	$player ammo smg			250	
+	$player ammo shotgun			50	
+	$player ammo mg				200	
+	$player ammo agrenade	3			// grenade weapon comes with 1 grenade, so we only want to add 3
+	$player ammo jpn_pistol		20
+	$player ammo jpn_rifle		20
+	$player ammo jpn_smg		50
+	$player ammo jpn_mg		50
+	$player ammo heavy 4
+	$player useweaponslot 1
+
+end

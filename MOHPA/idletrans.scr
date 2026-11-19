@@ -1,0 +1,75 @@
+//======================================================================
+// anim/idletrans.scr
+//
+// script used to transition from locomotion to idle
+// based on anim/idle.scr, so some positions may do exactly the same animation as idle.scr
+//
+//======================================================================
+main:
+
+	waitexec "anim/default_inithandler.scr"
+
+	self.blendtime = 0.5	// Slow blendtime to avoid popping during idles.
+
+	switch ( self.position )
+	{
+		crouch:
+		crouchwalk:
+		crouchrun:
+			while (1)
+			{
+				waitexec anim/turret.scr::CheckIntervalDir 0
+				waitexec anim/crouch.scr
+			}
+
+		stand:
+			while (1)
+			{
+				waitexec anim/turret.scr::CheckIntervalDir 0
+				waitexec anim/stand.scr
+			}
+
+		walk:
+			local.anim = self getalias walk2idle
+			self setmotionanim local.anim
+			self waittill flaggedanimdone
+			while (1)
+			{
+				waitexec anim/stand.scr
+			}
+
+		run:
+			local.anim = self getalias run2idle
+			self setmotionanim local.anim
+			self waittill flaggedanimdone
+			while (1)
+			{
+				waitexec anim/stand.scr
+			}
+
+		prone:
+		pronewalk:
+			while (1)
+			{
+				waitexec anim/turret.scr::CheckIntervalDir 0
+				waitexec anim/prone.scr
+			}
+
+		dead:
+			println "^~^~^ Dead guy trying to idle."
+			waitframe
+			break
+		knees:
+		crawl:
+		floor:
+			waitexec anim/continue_pain.scr
+			goto IdleMain
+
+		default:
+			println ("~~~~~~~~~~ default case for position " self.position " - fix idletrans.scr")
+			self.position = stand
+			waitframe
+			break
+	}
+
+end

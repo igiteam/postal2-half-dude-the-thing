@@ -1,0 +1,84 @@
+// --------------------------------------------------------------------------------
+//	playerprompts.scr
+//
+//	Player prompts
+//
+// --------------------------------------------------------------------------------
+
+main:
+
+	thread health_check
+
+end
+
+
+// --------------------------------------------------------------------------------
+notify_player_to_bandage:
+// --------------------------------------------------------------------------------
+
+	// tell player to call press key to bandage
+	local.keyText = getboundkey1 "bandage"
+	alert user $player "Slugline:PressKeyToBandage" local.keyText
+
+end
+
+
+// --------------------------------------------------------------------------------
+notify_player_to_bandage_loop:
+// --------------------------------------------------------------------------------
+
+	while (1)
+	{
+		if ( !$player.isbleeding || $player.invod || ($player.health <= 0.0) )
+		{
+			end
+		}
+		waitthread notify_player_to_bandage
+		wait 8
+	}
+
+end
+
+
+// --------------------------------------------------------------------------------
+health_check:
+// --------------------------------------------------------------------------------
+
+	local.bleedstartpercent = 0.75
+
+	local.lasthealth = ($player.health / $player.max_health)
+	while (1)
+	{
+		local.health = ($player.health / $player.max_health)
+
+		if ( (local.lasthealth > local.bleedstartpercent) && (local.health <= local.bleedstartpercent) )
+		{
+			thread notify_player_to_bandage_loop
+
+			while ( $player.isbleeding && !$player.invod )
+			{
+				wait 0.1
+			}
+
+			if ( $player.invod )
+			{
+			}
+			else
+			{
+				if ( (level.medic != NIL) && (level.medic != NULL) && (level.medic.isenabled != 0) )
+				{
+					// tell player to call the medic
+					local.keyText = getboundkey1 "callmedic"
+					alert user $player "Slugline:PressKeyToCallMedic" local.keyText
+				}
+			}
+		}
+
+		local.lasthealth = local.health
+
+		wait 0.1
+	}
+
+end
+ 
+

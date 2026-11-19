@@ -1,0 +1,42 @@
+//
+// mp_bigtext.scr
+//
+// This script is used to display big text as defined in the MP GDD.
+// To display bigtext, use the post_bigtext function with the following
+// parameters:
+// 
+//	local.channel - an integer indicating which team you want to see the message
+// 		0 - all players
+// 		1 - allies players
+//   		2 - axis players
+//  
+//   	local.message - a string with the text to be displayed
+// 
+//
+// 5-15-04 SCOSGRAVE - original version
+//
+//
+
+//-----------------------------------------------------------------------------
+post_bigtext local.channel local.message local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8:
+//------------------
+
+	// in case the function call was done with a string rather than an integer
+	if( local.channel == "all" || local.channel == 0)
+		//local.channel = 0
+		waitthread global/mp_message.scr::general local.message local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+	if( local.channel == "allies" || local.channel == 1)
+		//local.channel = 1	
+		waitthread global/mp_message.scr::allies_message local.message local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+		
+	if( local.channel == "axis" || local.channel == 2)
+		//local.channel = 2
+		waitthread global/mp_message.scr::axis_message local.message local.arg1 local.arg2 local.arg3 local.arg4 local.arg5 local.arg6 local.arg7 local.arg8
+
+	// send the message to the team indicated
+	// in local.channel
+	
+	//bigprintlnteam local.channel local.message
+end

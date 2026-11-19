@@ -1,0 +1,55 @@
+// global/bleeding_manager.scr
+
+//--------------------------------------------------------------
+PerformGrunt:
+//--------------------------------------------------------------
+	// Play grunt sound
+	self playsound "DFRUS_HITS_TOMMY"		
+end
+
+
+//--------------------------------------------------------------
+PlayHeartBeat:
+//--------------------------------------------------------------
+	self playsound heartbt_normal	
+end
+
+//--------------------------------------------------------------
+PlayBreath:
+//--------------------------------------------------------------
+	self playsound sniper_breath_cycle
+end
+
+// --------------------------------------------------------------------------------
+TerrainFallthroughCheck:
+// Sanity check for the demo.
+// --------------------------------------------------------------------------------
+
+	if (level.TerrainSanityThread != NULL && level.TerrainSanityThread != NIL)
+	{
+		end
+	}
+	level.TerrainSanityThread = local
+
+//	dprintln "Running terrain check on " self
+	while (NULL != self && NIL != self)
+	{
+		if (self.origin[2] < -150.0)
+		{
+//			dprintln "Killing.. " self
+			
+//			setcvar vod_override 3
+			self playsound explo_metal
+			fadeout .001 0 0 0 1
+			wait .1
+			$player hurt 10000
+			
+			level.TerrainSanityThread = NULL
+			end
+		}
+		wait 0.2
+	}
+
+	level.TerrainSanityThread = NULL
+
+end

@@ -1,0 +1,1 @@
+class LPUIEvent_Initialized extends SPUIEvent_Initialized;

@@ -1,0 +1,1 @@
+class LPDamageTypeLarocheVsTwoHandBash extends LPDamageTypeLarocheVsMelee;

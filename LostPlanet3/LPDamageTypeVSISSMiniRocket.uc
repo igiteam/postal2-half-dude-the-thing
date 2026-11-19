@@ -1,0 +1,1 @@
+class LPDamageTypeVSISSMiniRocket extends LPDamageTypeVSISSExplosion;

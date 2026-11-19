@@ -1,0 +1,2990 @@
+// -----------------------------------------------------------------------------
+//
+// global/vehicle_utils.scr
+//
+// copyright: (c) 2000-2004 Electronic Arts Inc.
+//
+// synopsis:
+//	common functions for the passenger vehicles
+//	currently supported:
+//		Axis Truck
+//		Axis Jeep
+//		Axis Tank Type97 - Chiha
+//		Axis Tank Type95 - Hago
+//		Axis Tank Type87 - Light Armored Truck
+//
+// usage:
+//	Use the external funtions only
+//	NO TOUCHY the internals
+//
+//	NOTE:	If you add commands to this script, PLEASE DOCUMENT THEM.
+//
+// -----------------------------------------------------------------------------
+
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//			EXTERNAL FUNCTIONS
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+
+//===========================================================================================
+//			INIT FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+Init:
+//
+//	sets default values for the vehicle scripts
+// -----------------------------------------------------------------------------------
+
+	//--- init default axis character hags
+	level.VEHICLE_UTILS_DEFAULT_AXIS_DRIVER_HAG				= "models/characters/axis/axis_marineinfantry.hag"
+	level.VEHICLE_UTILS_DEFAULT_AXIS_FRONT_PASSENGER_HAG	= "models/characters/axis/axis_marineinfantry.hag"
+	level.VEHICLE_UTILS_DEFAULT_AXIS_BACK_PASSENGER_HAG		= "models/characters/axis/axis_marineinfantry.hag"
+	level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG				= "models/characters/axis/axis_marineinfantry.hag"
+		
+	//--- default allied character hags
+	level.VEHICLE_UTILS_DEFAULT_ALLIED_DRIVER_HAG			= "models/characters/allied/allied_marinenormal1.hag"
+	level.VEHICLE_UTILS_DEFAULT_ALLIED_FRONT_PASSENGER_HAG	= "models/characters/allied/allied_marinenormal3.hag"
+	level.VEHICLE_UTILS_DEFAULT_ALLIED_BACK_PASSENGER_HAG	= "models/characters/allied/allied_marinenormal2.hag"
+	level.VEHICLE_UTILS_DEFAULT_ALLIED_GUNNER_HAG			= "models/characters/allied/allied_marinenormal2.hag"
+		
+	//--- default riders counts
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_NUM					= 1
+	level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_NUM			= 2
+	
+	//--- init vehicle hags
+	level.VEHICLE_UTILS_AXIS_TRUCK_HAG		= "models/vehicles/model_94.hag"
+	level.VEHICLE_UTILS_AXIS_JEEP_HAG		= "models/vehicles/t_95scout.hag"
+	level.VEHICLE_UTILS_AXIS_TANK_TYPE97	= "models/vehicles/type97_chiha.hag"
+	level.VEHICLE_UTILS_AXIS_TANK_TYPE95	= "models/vehicles/type95_hago.hag"
+	level.VEHICLE_UTILS_AXIS_TANK_TYPE87	= "models/vehicles/type87_lght_armor.hag"
+	
+	level.VEHICLE_UTILS_ALLIED_JEEP_HAG		= "models/vehicles/willys_jeep.hag"
+
+	//--- init misc values
+	level.VEHICLE_FOLLOW_THRESHOLD			= 400
+	level.VEHICLE_UTILS_UNIQUE_ID			= 0
+
+end
+
+
+//===========================================================================================
+//			VEHICLE SPAWN FUNCTIONS
+//===========================================================================================
+
+//===================  AXIS VEHICLES  ===============================
+
+// -----------------------------------------------------------------------------------
+SpawnAxisTruck local.entSpawnTarget local.strTargetname local.strDriverHag local.strFrontRiderHag local.intBackRiders local.strBackRidersHag local.bPlayStartSounds:
+//
+//	Spawn an axis truck with optional driver and riders
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entSpawnTarget	= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname		= REQUIRED - string, the targetname to give the vehicle.
+//	local.strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+//	local.strBackRidersHag	= OPTIONAL - string, the hag for the riders
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelBackPassenger		- hag file for the back passenger(s)
+//	#numBackPassenger		- number of back passenger(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn axis truck: The spawn target entity that was passed in is invalid" )
+	
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_AXIS_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_BACK_PASSENGER_HAG
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_AXIS_TRUCK_HAG local.entSpawnTarget[ local.i ] local.strTargetname local.bPlayStartSounds
+	
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle local.strDriverHag
+	
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle local.strFrontRiderHag
+		
+		//--- calculate the limit of back passengers
+		local.intLimitBackPassengers = local.entVehicle.intNumPassengerSlots - 1
+	
+		//--- if set, spawn and attach the back passenger(s)
+		waitthread GetAndSpawnBackPassenger local.entVehicle local.intBackRiders local.strBackRidersHag local.intLimitBackPassengers
+	}
+
+end local.entVehicle
+
+
+// -----------------------------------------------------------------------------------
+SpawnAxisJeep local.entSpawnTarget local.strTargetname local.strDriverHag local.strFrontRiderHag local.intBackRiders local.strBackRidersHag local.bPlayStartSounds:
+//
+//	Spawn an axis jeep with optional driver and riders
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired (you can spawn an empty vehicle if you want this way).
+//
+//	local.entSpawnTarget	= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname		= REQUIRED - string, the targetname to give the vehicle.
+//	local.strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+//	local.strBackRidersHag	= OPTIONAL - string, the hag for the riders
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelBackPassenger		- hag file for the back passenger(s)
+//	#numBackPassenger		- number of back passenger(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn axis jeep: The spawn target entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_AXIS_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_BACK_PASSENGER_HAG
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{	
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_AXIS_JEEP_HAG local.entSpawnTarget[ local.i ] local.strTargetname local.bPlayStartSounds
+	
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle local.strDriverHag
+	
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle local.strFrontRiderHag
+
+		//--- calculate the limit of back passengers
+		local.intLimitBackPassengers = local.entVehicle.intNumPassengerSlots - 1
+			
+		//--- if set, spawn and attach the back passenger(s)
+		waitthread GetAndSpawnBackPassenger local.entVehicle local.intBackRiders local.strBackRidersHag local.intLimitBackPassengers
+	}
+	
+end local.entVehicle
+
+
+// -----------------------------------------------------------------------------------
+SpawnAxisTank_Type97 local.entSpawnTarget local.strTargetname local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Spawn an axis tank (Type97 - Chiha) with optional gunners.
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired (you can spawn an empty vehicle if you want this way).
+//
+//	local.entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname			= REQUIRED - string, the targetname to give the vehicle.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of gunner(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn axis type97 chiha: The spawn target entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{	
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_AXIS_TANK_TYPE97 local.entSpawnTarget[ local.i ] local.strTargetname
+	
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle local.intGunnerRiders local.strGunnerRidersHag local.entVehicle.intNumGunnerSlots 1
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+SpawnAxisTank_Type95 local.entSpawnTarget local.strTargetname local.intGunnerRiders local.strGunnerRidersHag local.bPlayStartSounds:
+//
+//	Spawn an axis tank (Type95 - Hago) with optional gunners.
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired (you can spawn an empty vehicle if you want this way).
+//
+//	local.entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname			= REQUIRED - string, the targetname to give the vehicle.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of gunner(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn axis type95 hago: The spawn target entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{	
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_AXIS_TANK_TYPE95 local.entSpawnTarget[ local.i ] local.strTargetname local.bPlayStartSounds
+
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle local.intGunnerRiders local.strGunnerRidersHag local.entVehicle.intNumGunnerSlots 1
+	}
+	
+end local.entVehicle
+
+
+// -----------------------------------------------------------------------------------
+SpawnAxisTank_Type87 local.entSpawnTarget local.strTargetname local.intGunnerRiders local.strGunnerRidersHag local.bPlayStartSounds:
+//
+//	Spawn an axis tank (Type87 - light armored thing) with optional gunners.
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired (you can spawn an empty vehicle if you want this way).
+//
+//	local.entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname			= REQUIRED - string, the targetname to give the vehicle.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of gunner(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn axis type87 thingy: The spawn target entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{	
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_AXIS_TANK_TYPE87 local.entSpawnTarget[ local.i ] local.strTargetname local.bPlayStartSounds
+	
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle local.intGunnerRiders local.strGunnerRidersHag local.entVehicle.intNumGunnerSlots 1
+	}
+	
+end local.entVehicle
+
+
+//===================  ALLIED VEHICLES  ===============================
+
+// -----------------------------------------------------------------------------------
+SpawnAlliedJeep local.entSpawnTarget local.strTargetname local.strDriverHag local.strFrontRiderHag local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Spawn an allied jeep with optional driver and riders
+//	All these passed in values can be set on the spawntarget entity as well (see below).
+//	To use the values set on the spawntarget entity, pass a "" value into the
+//	optional parameters.  This will also work with the strTargetname value as well.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the spawntarget entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the spawntarget entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired (you can spawn an empty vehicle if you want this way).
+//
+//	local.entSpawnTarget		= REQUIRED - entity, the object to spawn the vehicle at
+//	local.strTargetname			= REQUIRED - string, the targetname to give the vehicle.
+//	local.strDriverHag			= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag		= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the spawntarget entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	spawntarget entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of gunner(s)
+//	$spawnTargetname		- targetname for the vehicle upon spawning
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entSpawnTarget = waitthread SetupSelf self local.entSpawnTarget
+
+	assert( local.entSpawnTarget[ 1 ] != NIL && local.entSpawnTarget[ 1 ] != NULL && "VEHICLE UTILS: Spawn allied jeep: The spawn target entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_ALLIED_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_ALLIED_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG				= level.VEHICLE_UTILS_DEFAULT_ALLIED_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entSpawnTarget.size ; local.i++ )
+	{	
+		//--- spawn the vehicle
+		local.entVehicle = waitthread SpawnVehicle level.VEHICLE_UTILS_ALLIED_JEEP_HAG local.entSpawnTarget[ local.i ] local.strTargetname
+	
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle
+	
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle local.strDriverHag
+				   
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle local.strFrontRiderHag
+	
+		//--- if set, spawn and attach the gunner(s)
+		waitthread GetAndSpawnGunner local.entVehicle local.intGunnerRiders local.strGunnerRidersHag local.entVehicle.intNumGunnerSlots
+	}
+	
+end
+
+
+
+
+//===========================================================================================
+//			VEHICLE POPULATE FUNCTIONS
+//===========================================================================================
+
+//===================  AXIS VEHICLES  ===============================
+
+// -----------------------------------------------------------------------------------
+PopulateAxisTruck local.entVehicle local.strDriverHag local.strFrontRiderHag local.intBackRiders local.strBackRidersHag:
+//
+//	Takes an existing vehicle and populates it with driver and passengers.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle		= REQUIRED - entity, the vehicle to be populated.
+//	local.strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+//	local.strBackRidersHag	= OPTIONAL - string, the hag for the riders
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelBackPassenger		- hag file for the back passenger(s)
+//	#numBackPassenger		- number of back passenger(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate axis truck: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_AXIS_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_BACK_PASSENGER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle[ local.i ] local.strDriverHag
+	
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle[ local.i ] local.strFrontRiderHag
+
+		//--- calculate the limit of back passengers
+		local.intLimitBackPassengers = local.entVehicle.intNumPassengerSlots - 1
+			
+		//--- if set, spawn and attach the back passenger(s)
+		waitthread GetAndSpawnBackPassenger local.entVehicle[ local.i ] local.intBackRiders local.strBackRidersHag local.intLimitBackPassengers
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+PopulateAxisJeep local.entVehicle local.strDriverHag local.strFrontRiderHag local.intBackRiders local.strBackRidersHag:
+//
+//	Takes an existing vehicle and populates it with driver and passengers.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle		= REQUIRED - entity, the vehicle to be populated.
+//	local.strDriverHag		= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag	= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intBackRiders		= OPTIONAL - integer, the number of back seat riders to spawn.  Pass NIL or 0 for no back passengers
+//	local.strBackRidersHag	= OPTIONAL - string, the hag for the riders
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelBackPassenger		- hag file for the back passenger(s)
+//	#numBackPassenger		- number of back passenger(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate axis jeep: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_AXIS_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_AXIS_BACK_PASSENGER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle[ local.i ] local.strDriverHag
+	
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle[ local.i ] local.strFrontRiderHag
+
+		//--- calculate the limit of back passengers
+		local.intLimitBackPassengers = local.entVehicle.intNumPassengerSlots - 1
+			
+		//--- if set, spawn and attach the back passenger(s)
+		waitthread GetAndSpawnBackPassenger local.entVehicle[ local.i ] local.intBackRiders local.strBackRidersHag local.intLimitBackPassengers
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+PopulateAxisTank_Type97 local.entVehicle local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Type97 - Chiha
+//	Takes an existing vehicle and populates it with gunners.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle			= REQUIRED - entity, the vehicle to be populated.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of back gunner(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate axis type97 chiha: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle[ local.i ] local.intGunnerRiders local.strGunnerRidersHag local.entVehicle[ local.i ].intNumGunnerSlots 1
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+PopulateAxisTank_Type95 local.entVehicle local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Type95 - HaGo
+//	Takes an existing vehicle and populates it with gunners.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle			= REQUIRED - entity, the vehicle to be populated.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of back gunner(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate axis type95 hago: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle[ local.i ] local.intGunnerRiders local.strGunnerRidersHag local.entVehicle[ local.i ].intNumGunnerSlots 1
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+PopulateAxisTank_Type87 local.entVehicle local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Type87 - light armored thingy
+//	Takes an existing vehicle and populates it with gunners.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle			= REQUIRED - entity, the vehicle to be populated.
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of back gunner(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate axis type 87 thingy: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG			= level.VEHICLE_UTILS_DEFAULT_AXIS_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the gunner(s) - vehicle entity, number of gunners, gunner hag, total number of gunner slots for this vehicle, bool flag for if this vehicle is a tank
+		waitthread GetAndSpawnGunner local.entVehicle[ local.i ] local.intGunnerRiders local.strGunnerRidersHag local.entVehicle[ local.i ].intNumGunnerSlots 1
+	}
+
+end
+
+
+//===================  ALLIED VEHICLES  ===============================
+
+// -----------------------------------------------------------------------------------
+PopulateAlliedJeep local.entVehicle local.strDriverHag local.strFrontRiderHag local.intGunnerRiders local.strGunnerRidersHag:
+//
+//	Takes an existing vehicle and populates it with driver and passengers.
+//	All these passed in values can be set on the vehicle entity as well (see below).
+//	To use the values set on the vehicle entity, pass a "" value into the
+//	optional parameters.
+//	All passed in values will override the set values on the entity.
+//
+//	There are default hag files that will be used if none are specified in the parameter
+//	or on the vehicle entity.  So if you pass in a "" value for a hag file parameter,
+//	and no hag file value was put on the vehicle entity, then the defaults will be used.
+//
+//	To not have any of the optional parameters take effect, pass a NIL value into each
+//	parameter that is not desired.
+//
+//	local.entVehicle			= REQUIRED - entity, the vehicle to be populated.
+//	local.strDriverHag			= OPTIONAL - string, the hag file for the driver.  Pass NIL for no driver
+//	local.strFrontRiderHag		= OPTIONAL - string, the hag file for the front passenger slot.  Pass NIL for no front passenger
+//	local.intGunnerRiders		= OPTIONAL - integer, the number of gunner riders to spawn.  Pass NIL or 0 for no gunners
+//	local.strGunnerRidersHag	= OPTIONAL - string, the hag for the gunners
+//
+//	Values can also be set on the vehicle entity directly instead of passed.  Just pass
+//	in a "" value into the parameter for each value you want taken from the
+//	vehicle entity.  Passed in values will override the values on the entity:
+//	
+//	$modelDriver			- hag file for the driver
+//	$modelFrontPassenger	- hag file for the front passenger
+//	$modelGunner			- hag file for the gunner(s)
+//	#numGunner				- number of back gunner(s)
+//	NOT WORKING - $threadOnDriverDeath	- script thread to run when an associated driver is killed
+//	NOT WORKING - $threadOnVehicleDeath	- script thread to run when an associated driver is killed
+//
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: populate allied jeep: The vehicle entity that was passed in is invalid" )
+
+	//--- set the default rider hags for this vehicle
+	level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG				= level.VEHICLE_UTILS_DEFAULT_ALLIED_DRIVER_HAG
+	level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG		= level.VEHICLE_UTILS_DEFAULT_ALLIED_FRONT_PASSENGER_HAG
+	level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG				= level.VEHICLE_UTILS_DEFAULT_ALLIED_GUNNER_HAG
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- setup the vehicles slot counts
+		waitthread SetupVehicle local.entVehicle[ local.i ]
+
+		//--- if set, spawn and attach the driver
+		waitthread GetAndSpawnDriver local.entVehicle[ local.i ] local.strDriverHag
+	
+		//--- if set, spawn and attach the front passenger
+		waitthread GetAndSpawnFrontPassenger local.entVehicle[ local.i ] local.strFrontRiderHag
+	
+		//--- if set, spawn and attach the back passenger(s)
+		waitthread GetAndSpawnGunner local.entVehicle[ local.i ] local.intGunnerRiders local.strGunnerRidersHag local.entVehicle[ local.i ].intNumGunnerSlots
+	}
+
+end
+
+
+
+
+//===========================================================================================
+//			AI EXIT FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+AIExit_All local.entVehicle:
+//
+//	tells the all the AI to get out of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: AI exit all: A NULL vehicle was passed in for telling all riders to exit" )
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- call the individual exit functions, set to all
+		thread AIExit_Driver	local.entVehicle
+		thread AIExit_Front		local.entVehicle
+		thread AIExit_Back		local.entVehicle
+		thread AIExit_Gunner	local.entVehicle
+	}	
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIExit_Driver local.entVehicle:
+//
+//	tells the AI to get out of the driver seat of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: AI exit driver: A NULL vehicle was passed in for telling drivers to exit" )
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- call the exit vehicle function: vehicle, numPassengersSlots, numGunnersSlots, numDriversSlots, [indexStart]
+		thread AIExitVehicle local.entVehicle[ local.i ] 0 0 1
+	}	
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIExit_Front local.entVehicle:
+//
+//	tells the AI to get out of the front seat of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: AI exit front: A NULL vehicle was passed in for telling riders to exit from the front" )
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- call the exit vehicle function: vehicle, numPassengersSlots, numGunnersSlots, numDriversSlots, [indexStart]
+		thread AIExitVehicle local.entVehicle[ local.i ] 1 0 0
+	}	
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIExit_Back local.entVehicle local.intNumAIToExit:
+//
+//	tells the passed in number of AI to get out of the back seat/area of the passed in vehicle.
+//	If either NIL or 0 (because why would you call this function with 0 people to get out),
+//	it will make all of the back passengers get out of the vehicle.
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: AI exit back: A NULL vehicle was passed in for telling riders to exit from the back" )
+
+	//--- if no number of AI to exit was passed, or zero, convet to mean exit all
+	if( local.intNumAIToExit == NIL || local.intNumAIToExit == 0 )
+	{
+		local.intNumAIToExit = -1
+	}
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- call the exit vehicle function: vehicle, numPassengersSlots, numGunnersSlots, numDriversSlots, [indexStart]
+		thread AIExitVehicle local.entVehicle[ local.i ] local.intNumAIToExit 0 0 1
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIExit_Gunner local.entVehicle local.intNumAIToExit:
+//
+//	tells the AI to get out of the gunner seats of the passed in vehicle
+//	If either NIL or 0 (because why would you call this function with 0 people to get out),
+//	it will make all of the gunner passengers get out of the vehicle.
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle[ 1 ] != NULL && "VEHICLE UTILS: AI exit gunner: A NULL vehicle was passed in for telling riders to exit from the front" )
+
+	//--- if no number of AI to exit was passed, or zero, convet to mean exit all
+	if( local.intNumAIToExit == NIL || local.intNumAIToExit == 0 )
+	{
+		local.intNumAIToExit = -1
+	}
+		
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- call the exit vehicle function: vehicle, numPassengersSlots, numGunnersSlots, numDriversSlots, [indexStart]
+		thread AIExitVehicle local.entVehicle[ local.i ] 0 local.intNumAIToExit 0
+	}	
+
+end
+
+
+//===========================================================================================
+//			AI ENTER FUNCTIONS - THESE CAN NOT BE CALLED ON ARRAY'S OF VEHICLES!!!
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+AIEnter_All local.entAI local.entVehicle local.boolGoDriver local.boolGoFrontPassenger local.boolGoBackPassenger local.boolGoGunner:
+//
+//	This will tell an AI, or an array of AI to enter a vehicle in the specified way.  There are 4
+//	flags for driver, front passenger, back passenger, and gunner.  The flags tell whether or not
+//	an AI will go to those positions.  The order in which AI will get on vehicles is:
+//
+//	driver, front passenger, back passenger, gunner
+//
+//	If NIL is passed, everything defaults to on.  Pass a 0 to not allow that position
+// -----------------------------------------------------------------------------------
+
+	assert( local.entAI[ 1 ] != NULL && "VEHICLE UTILS: AI enter all: The passed in AI was invalid" )
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: AI enter all: The passed in vehicle to have all AI enter on was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: AI enter all: The passed in vehicle to have all AI enter on was an array larger than 1" )
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entAI.size ; local.i++ )
+	{
+		local.boolBackPassengerSuccess	= 0
+		local.boolGunnerSuccess			= 0
+		
+		//--- first the driver
+		if( local.boolGoDriver != 0 )
+		{
+			//--- check the slot
+			local.entTestSlot = waitthread GetVehicleSlotEntity local.entVehicle "driver" 0
+			
+			//dprintln "GOING FOR DRIVER, STATUS: " local.entTestSlot " - sending index: " local.i
+			
+			//--- if the slot was full, skip this section
+			if( local.entTestSlot == NULL )
+			{
+				thread AIEnter_Driver local.entAI[ local.i ] local.entVehicle
+				wait .5
+			}
+			
+			//--- after checking set the flag for no more of this class
+			local.boolGoDriver = 0
+			continue
+		}
+
+		//--- second the front passenger
+		if( local.boolGoFrontPassenger != 0 )
+		{
+			//--- check the slot
+			local.entTestSlot = waitthread GetVehicleSlotEntity local.entVehicle "passenger" 0
+			
+			//dprintln "GOING FOR FRONT, STATUS: " local.entTestSlot " - sending index: " local.i
+			
+			//--- if the slot was full, skip this section
+			if( local.entTestSlot == NULL )
+			{
+				thread AIEnter_Front local.entAI[ local.i ] local.entVehicle
+				wait .5
+			}
+			
+			//--- after checking set the flag for no more of this class
+			local.boolGoFrontPassenger = 0
+			continue
+		}
+
+		//--- third the back passengers
+		if( local.boolGoBackPassenger != 0 )
+		{
+			//dprintln "GOING FOR BACK ON INDEX: " local.i
+			
+			//--- check the slot
+			local.boolBackPassengerSuccess = waitthread AIEnter_Back local.entAI[ local.i ] local.entVehicle
+			
+			//dprintln "GOING FOR BACK STATUS: " local.boolBackPassengerSuccess " - sending index: " local.i
+			
+			//--- if the return value is NIL, then the AI couldn't get to a slot
+			if( local.boolBackPassengerSuccess == NIL )
+			{
+				//--- there are no more free back passengers, so bug out of this part of the loop
+				local.boolGoBackPassenger = 0
+			}
+			
+			continue
+		}
+		
+		//--- fourth the gunner passengers
+		if( local.boolGoGunner != 0 )
+		{
+			//dprintln "GOING FOR GUNNER ON INDEX: " local.i
+			
+			//--- check the slot
+			local.boolGunnerSuccess = waitthread AIEnter_Gunner local.entAI[ local.i ] local.entVehicle
+			
+			//dprintln "GOING FOR GUNNER STATUS: " local.boolGunnerSuccess " - sending index: " local.i
+			
+			//--- if the return value is NIL, then the AI couldn't get to a slot
+			if( local.boolGunnerSuccess == NIL )
+			{
+				//--- there are no more free back passengers, so bug out of this part of the loop
+				local.boolGoGunner = 0
+			}
+			
+			continue
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIEnter_Driver local.entAI local.entVehicle:
+//
+//	tells the AI to enter the drivers seat of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entAI = waitthread SetupSelf self local.entAI
+	
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: AI enter driver: The passed in vehicle to have a driver enter on was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: AI enter driver: The passed in vehicle to have a driver enter on was an array larger than 1" )
+	
+	local.intSuccess = NIL
+	
+	//--- call the enter vehicle function: AI, vehicle, goPassenger, goGunner, goDriver, [indexStart], [indexLimit], [boolLockVehicle]
+	local.intSuccess = waitthread AIEnterVehicle local.entAI local.entVehicle 0 0 1 NIL NIL 0
+
+end local.intSuccess
+
+
+// -----------------------------------------------------------------------------------
+AIEnter_Front local.entAI local.entVehicle:
+//
+//	tells the AI to enter the front seat of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entAI = waitthread SetupSelf self local.entAI
+	
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: AI enter front: The passed in vehicle to have a driver enter on was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: AI enter front: The passed in vehicle to have a driver enter on was an array larger than 1" )
+	
+	local.intSuccess = NIL
+	
+	//--- call the enter vehicle function: AI, vehicle, goPassenger, goGunner, goDriver, [indexStart], [indexLimit], [boolLockVehicle]
+	local.intSuccess = waitthread AIEnterVehicle local.entAI local.entVehicle 1 0 0 0 NIL 0
+
+end local.intSuccess
+
+
+// -----------------------------------------------------------------------------------
+AIEnter_Back local.entAI local.entVehicle:
+//
+//	tells the AI to enter the back seat of the passed in vehicle
+//	can accept an array of AI
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entAI = waitthread SetupSelf self local.entAI
+	
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: AI enter back: The passed in vehicle to have a driver enter on was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: AI enter back: The passed in vehicle to have a driver enter on was an array larger than 1" )
+
+	local.intSuccess = NIL
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entAI.size ; local.i++ )
+	{
+		//--- call the enter vehicle function: AI, vehicle, goPassenger, goGunner, goDriver, [indexStart], [indexLimit], [boolLockVehicle]
+		local.intSuccess = waitthread AIEnterVehicle local.entAI[ local.i ] local.entVehicle 1 0 0 NIL 1
+	}
+
+end local.intSuccess
+
+
+// -----------------------------------------------------------------------------------
+AIEnter_Gunner local.entAI local.entVehicle:
+//
+//	tells the AI to enter the gunner of the passed in vehicle
+//	can accept an array of AI
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entAI = waitthread SetupSelf self local.entAI
+	
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: AI enter gunner: The passed in vehicle to have a driver enter on was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: AI enter gunner: The passed in vehicle to have a driver enter on was an array larger than 1" )
+	
+	local.intSuccess = NIL
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entAI.size ; local.i++ )
+	{
+		//--- call the enter vehicle function: AI, vehicle, goPassenger, goGunner, goDriver, [indexStart], [indexLimit], [boolLockVehicle]
+		local.intSuccess = waitthread AIEnterVehicle local.entAI[ local.i ] local.entVehicle 0 1 0
+	}
+
+end local.intSuccess
+
+
+
+
+//===========================================================================================
+//			EXTERNAL GETTER FUNCTIONS
+//===========================================================================================
+
+//==============  GET AI COUNT ====================
+
+// -----------------------------------------------------------------------------------
+GetAICount_All local.entVehicle local.boolGoDriver local.boolGoFrontPassenger local.boolGoBackPassenger local.boolGoGunner:
+//
+//	Returns the total count of how many AI are in all the positions on the vehicle.
+//	This can be tuned by passing in variables to say which rider classes to ignore.
+//	Pass in a 0 to have that rider class not be checkd.  Default is to check all classes.
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI count all: The passed in vehicle was invalid" )
+
+	local.intResult = 0
+	
+	//--- check the driver's position
+	if( local.boolGoDriver != 0 )
+	{
+		local.intResult2 = waitthread GetAICount_Driver local.entVehicle
+		local.intResult += local.intResult2
+	}
+
+	//--- check the front passenger's position
+	if( local.boolGoFrontPassenger != 0 )
+	{
+		local.intResult2 = waitthread GetAICount_Front local.entVehicle
+		local.intResult += local.intResult2
+	}	
+
+	//--- check the back passenger's position
+	if( local.boolGoBackPassenger != 0 )
+	{
+		local.intResult2 = waitthread GetAICount_Back local.entVehicle
+		local.intResult += local.intResult2
+	}	
+
+	//--- check the gunner's position
+	if( local.boolGoGunner != 0 )
+	{
+		local.intResult2 = waitthread GetAICount_Gunner local.entVehicle
+		local.intResult += local.intResult2
+	}	
+		
+end local.intResult
+
+
+// -----------------------------------------------------------------------------------
+GetAICount_Driver local.entVehicle:
+//
+//	returns the count of how many drivers are on the vehicle.  This will pretty much
+//	be either 1 or 0, but to be consistent with the other get count functions, it's the
+//	same format.
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI count driver: The passed in vehicle was invalid" )
+	
+	local.intResult = 0
+	
+	//--- check the driver's position
+	local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "driver" 0
+	
+	if( local.entTestResult != NULL )
+	{
+		local.intResult = 1
+	}
+	
+end local.intResult
+
+
+// -----------------------------------------------------------------------------------
+GetAICount_Front local.entVehicle:
+//
+//	returns the count of how many front passengers are on the vehicle.  This will pretty much
+//	be either 1 or 0, but to be consistent with the other get count functions, it's the
+//	same format.
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI count front: The passed in vehicle was invalid" )
+	
+	local.intResult = 0
+	
+	//--- check the front passenger's position
+	local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "passenger" 0
+	
+	if( local.entTestResult != NULL )
+	{
+		local.intResult = 1
+	}
+	
+end local.intResult
+
+
+// -----------------------------------------------------------------------------------
+GetAICount_Back local.entVehicle:
+//
+//	returns the count of how many back passengers are on the vehicle.  Returns 0
+//	if there are none
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI count back: The passed in vehicle was invalid" )
+	
+	local.intResult = 0
+	
+	//--- check the back passenger positions
+	for( local.i = 1 ; local.i <= local.entVehicle.intNumPassengerSlots ; local.i++ )
+	{
+		local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "passenger" local.i
+			
+		if( local.entTestResult != NULL )
+		{
+			local.intResult++
+		}
+	}
+		
+end local.intResult
+
+
+// -----------------------------------------------------------------------------------
+GetAICount_Gunner local.entVehicle:
+//
+//	returns the count of how many gunners are on the vehicle.  Returns 0
+//	if there are none
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI count gunner: The passed in vehicle was invalid" )
+	
+	local.intResult = 0
+	local.intNumGunnerSlots = local.entVehicle.intNumGunnerSlots - 1
+	
+	//--- check the back passenger positions
+	for( local.i = 0 ; local.i <= local.intNumGunnerSlots ; local.i++ )
+	{
+		local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "turret" local.i
+			
+		if( local.entTestResult != NULL )
+		{
+			local.intResult++
+		}
+	}
+		
+end local.intResult
+
+
+//==============  GET AI ENTITY ====================
+
+// -----------------------------------------------------------------------------------
+GetAI_All local.entVehicle local.boolGoDriver local.boolGoFrontPassenger local.boolGoBackPassenger local.boolGoGunner:
+//
+//	Returns the all the AI entities on the vehicle.  This can be tuned by passing in
+//	variables to say which rider classes to ignore.  Pass in a 0 to have that rider class
+//	not be checkd.  Default is to check all classes.
+//	This function returns an array of all the AI on the vehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI All: The passed in vehicle was invalid" )
+	assert( local.entVehicle.size == 1 &&  "VEHICLE UTILS: Get AI All: The passed in vehicle was an array larger than 1" )
+
+	local.entFinalResult[ 1 ]	= NULL
+	local.intFinalResultIndex	= 1
+		
+	//--- check the driver's position
+	if( local.boolGoDriver != 0 )
+	{
+		local.entTestResult = waitthread GetAI_Driver local.entVehicle
+
+		if( local.entTestResult != NULL )
+		{
+			local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult
+			local.intFinalResultIndex++
+		}
+	}
+
+	//--- check the front passenger's position
+	if( local.boolGoFrontPassenger != 0 )
+	{
+		local.entTestResult = waitthread GetAI_Front local.entVehicle
+
+		if( local.entTestResult != NULL )
+		{
+			local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult
+			local.intFinalResultIndex++
+		}
+	}	
+
+	//--- check the back passenger's position
+	if( local.boolGoBackPassenger != 0 )
+	{
+		local.entTestResult = waitthread GetAI_Back local.entVehicle
+
+		if( local.entTestResult[ 1 ] != NULL )
+		{
+			for( local.i = 1 ; local.i <= local.entTestResult.size ; local.i++ )
+			{
+				local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult[ local.i ]
+				local.intFinalResultIndex++
+			}
+		}
+	}	
+
+	//--- check the gunner's position
+	if( local.boolGoGunner != 0 )
+	{
+		local.entTestResult = waitthread GetAI_Gunner local.entVehicle
+
+		if( local.entTestResult[ 1 ] != NULL )
+		{
+			for( local.i = 1 ; local.i <= local.entTestResult.size ; local.i++ )
+			{
+				local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult[ local.i ]
+				local.intFinalResultIndex++
+			}
+		}
+	}	
+		
+end local.entFinalResult
+
+
+// -----------------------------------------------------------------------------------
+GetAI_Driver local.entVehicle:
+//
+//	returns the driver entity on the vehicle.  Returns NULL if non existent, or the entity
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI Driver: The passed in vehicle was invalid" )
+	assert( local.entVehicle.size == 1 &&  "VEHICLE UTILS: Get AI Drive: The passed in vehicle was an array larger than 1" )
+
+	//--- grabe the enity on the desired slot
+	local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "driver" 0
+		
+end local.entTestResult
+
+
+// -----------------------------------------------------------------------------------
+GetAI_Front local.entVehicle:
+//
+//	returns the front passenger entity on the vehicle.  Returns NULL if non existent, or the entity
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI Front: The passed in vehicle was invalid" )
+	assert( local.entVehicle.size == 1 &&  "VEHICLE UTILS: Get AI Front: The passed in vehicle was an array larger than 1" )
+
+	//--- grabe the enity on the desired slot
+	local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "passenger" 0
+		
+end local.entTestResult
+
+
+// -----------------------------------------------------------------------------------
+GetAI_Back local.entVehicle:
+//
+//	returns the back passengers on the vehicle.  Returns NULL if non existent,
+//	it will return an array of all the passengers.
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI Back: The passed in vehicle was invalid" )
+	assert( local.entVehicle.size == 1 &&  "VEHICLE UTILS: Get AI Back: The passed in vehicle was an array larger than 1" )
+
+	local.entFinalResult[ 1 ]	= NULL
+	local.intFinalResultIndex	= 1
+
+	//--- check the back passenger positions
+	for( local.i = 1 ; local.i <= local.entVehicle.intNumPassengerSlots ; local.i++ )
+	{
+		local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "passenger" local.i
+	
+		//--- If there is an entity on the current slot, store it into the array and up the index
+		if( local.entTestResult != NULL )
+		{
+			local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult
+			local.intFinalResultIndex++
+		}
+	}
+			
+end local.entFinalResult
+
+
+// -----------------------------------------------------------------------------------
+GetAI_Gunner local.entVehicle:
+//
+//	returns the gunners on the vehicle.  Returns NULL if non existent,
+//	it will return an array of all the passengers.
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: Get AI Gunner: The passed in vehicle was invalid" )
+	assert( local.entVehicle.size == 1 &&  "VEHICLE UTILS: Get AI Gunner: The passed in vehicle was an array larger than 1" )
+
+	local.entFinalResult[ 1 ]	= NULL
+	local.intFinalResultIndex	= 1
+
+	local.intNumGunnerSlots = local.entVehicle.intNumGunnerSlots - 1
+	
+	//--- check the gunner positions
+	for( local.i = 0 ; local.i <= local.intNumGunnerSlots ; local.i++ )
+	{
+		local.entTestResult = waitthread GetVehicleSlotEntity local.entVehicle "turret" local.i
+	
+		//--- If there is an entity on the current slot, store it into the array and up the index
+		if( local.entTestResult != NULL )
+		{
+			local.entFinalResult[ local.intFinalResultIndex ] = local.entTestResult
+			local.intFinalResultIndex++
+		}
+	}
+			
+end local.entFinalResult
+
+
+
+
+//===========================================================================================
+//			MISC FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+SetAutoTarget local.entVehicle local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and sets the turret(s) to have "auto" targeting type
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "SET AUTO TARGET: " local.entVehicle " - all turrets: " local.boolUseAllTurrets
+	
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 1
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SetManualTarget local.entVehicle local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and sets the turret(s) to have "none" targeting type for manual assignment
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "SET MANUAL TARGET: " local.entVehicle " - all turrets: " local.boolUseAllTurrets
+	
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 2
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+ClearAimTarget local.entVehicle local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and clears the aim target
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "CLEAR AIM TARGET: " local.entVehicle " - all turrets: " local.boolUseAllTurrets
+	
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 3
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SetAimTarget local.entVehicle local.entTarget local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and sets the passed in target on the turret(s)
+//	This function will set the turret(s) into manual target mode
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "SET AIM TARGET: " local.entVehicle " - target: " local.entTarget " - all turrets: " local.boolUseAllTurrets
+	
+	//--- set manual targeting mode on the turret(s)
+	waitthread SetManualTarget local.entVehicle local.boolUseAllTurrets
+
+	//--- do the turret operation
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 4 local.entTarget
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+ShootAt local.entVehicle local.entTarget local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and makes it shoot at the passed in target
+//	can accept an array of vehicles.
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "SHOOT AT: " local.entVehicle " - target: " local.entTarget " - all turrets: " local.boolUseAllTurrets
+	
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 5 local.entTarget
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+Shoot local.entVehicle local.boolUseAllTurrets:
+//
+//	Takes the passed in vehicle and shoots a burt from its turret(s)
+//	THIS ONLY WORKS WITH VEHICLES THAT HAVE WEAPON TURRETS
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//dprintln "SHOOT: " local.entVehicle " - all turrets: " local.boolUseAllTurrets
+	
+	waitthread SetTurret local.entVehicle local.boolUseAllTurrets 0
+	//--- operations to set on the turret
+	//	0	- shoot
+	//	1	- set targettype to auto
+	//	2	- set targettype to none
+	//	3	- clear aim target
+	//	4	- set aim target to the passed in target
+	//	5	- set enemy to the passed in target
+
+end
+
+
+// -----------------------------------------------------------------------------------
+DrivePath local.entVehicle local.entPath local.intSpeed:
+//
+//	Takes the passed in vehicle and makes it drive the passed in path at the passed in speed.
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: DrivePath: The passed in vehicle entity is an array greater than 1" )
+	assert( local.entPath != NIL && "VEHICLE UTILS: DrivePath: A NIL path was passed in to be driven" )
+	assert( local.entPath != NULL && "VEHICLE UTILS: DrivePath: The passed in path to drive was invalid" )
+	
+	//--- if the passed speed was not nil, pass it to the drive command
+	if( local.intSpeed != NIL )
+	{
+		local.entVehicle drive local.entPath local.intSpeed
+	}
+	else
+	{
+		local.entVehicle drive local.entPath
+	}
+		
+	local.entVehicle waittill drive
+
+end
+
+
+// -----------------------------------------------------------------------------------
+WaitForVehicle local.entVehicle:
+//
+//	this is a stall thread that can be called.  It will hold until all the AI that have
+//	been told to get on or off the vehicle have completed their actions, or the vehicle
+//	is destroyed
+//	can accept an array of vehicles
+// -----------------------------------------------------------------------------------
+
+	//--- test to see if self was used, if so, override the passed in parameter
+	local.entVehicle = waitthread SetupSelf self local.entVehicle
+	
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		while( local.entVehicle[ local.i ] != NULL && local.entVehicle[ local.i ].health > 0 && local.entVehicle[ local.i ].intWaitingForAI != 0 )
+		{
+			//dprintln "WAITING FOR ALL AI TO DO STUFF ON VEHILCE: " local.entVehicle " - Num AI: " local.entVehicle.intWaitingForAI
+			wait .25
+		}
+	}
+	
+end
+
+
+
+
+// ----------------------------------------------------------------------------------
+FollowTheLeader local.entFollower local.entLeader:
+//
+//	tells a vehicle to follow a leader on the path
+// ----------------------------------------------------------------------------------
+
+	assert( local.entFollower != NULL && "The passed in follower is invalid" )
+	assert( local.entLeader != NULL && "The passed in leader is invalid" )
+
+	//--- set the leader
+	local.entFollower.entLeader = local.entLeader.targetname
+
+	while( (local.entFollower.health > 0) && (local.entFollower.entLeader != NIL) )
+	{
+		//--- check the distance, if we're too close, pause, else resume
+		local.fltDistance = vector_length (local.entFollower.origin - local.entLeader.origin)
+		
+		//dprintln "FOLLOW DISTANCE CHECK: " local.fltDistance " - on follower: " local.entFollower " - leader: " local.entLeader
+		
+		if( local.fltDistance < level.VEHICLE_FOLLOW_THRESHOLD )
+		{
+			//dprintln "FOLLOW DISTANCE THRESHOLD BREACHED! PAUSING"
+			local.entFollower pausedrive 1
+		}
+		else
+		{
+			//dprintln "FOLLOW DISTANCE RESUMING"
+			wait 1
+			local.entFollower pausedrive 0
+		}
+		
+		//--- check if the leader was destroyed, if so, cycle to a new leader if available
+		if( local.entLeader.health < 0 )
+		{
+			//--- see if there's another leader
+			local.entNewLeader = waitthread VehicleThinker_Follow_FindNewLeader local.entLeader
+			
+			//--- if the returned new leader is null, then there are no more leaders to follow
+			if( local.entNewLeader == NULL )
+			{
+				//--- set to nil to end this loop and make sure he's driving
+				local.entFollower.entLeader = NIL
+				local.entFollower pausedrive 0
+			}
+			else	//--- assign it as the new leader
+			{
+				local.entLeader = local.entNewLeader
+			}
+		}
+		
+		//--- think cycle time
+		wait .2
+	}
+
+end
+
+
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//			INTERNAL FUNCTIONS
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+//=====================================================================================================================================================================
+
+//===========================================================================================
+//			SPAWN FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+SpawnVehicle local.strVehicleHag local.entSpawnTarget local.strTargetname local.bPlayStartSounds:
+//
+//	spawns the passed in hag vehicle at the passed in spawn target location
+// -----------------------------------------------------------------------------------
+
+	//--- spawn the vehicle, check to make sure it spawned
+	local.entVehicle = spawn local.strVehicleHag spawntarget local.entSpawnTarget
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The vehicle did not spawn!  The .hag used could be invalid" )
+
+	// b/c this script puts guys in the vehicle, we have to pass this in so we don't hear 
+	// the door closing sounds when they get in
+	if ( local.bPlayStartSounds != NIL && local.bPlayStartSounds != NULL )
+	{
+		local.entVehicle startsounds local.bPlayStartSounds
+	}
+
+	//--- assign the targetname, used the passed in value over the one on the entity
+	if( local.strTargetname == "" || local.strTargetname == NIL )
+	{
+		//--- an empty string was passed, meaning to use the one on the entity
+		local.strTargetname = local.entSpawnTarget.spawnTargetname
+	}
+
+	assert( local.strTargetname != NIL && "VEHICLE UTILS: The targetname found when spawning in a vehicle was NIL" )
+	
+	//--- set the targetname on the vehicle
+	local.entVehicle.targetname 			= local.strTargetname
+
+	//--- set properties on the vehicle that were possibly stored on the spawntarget entity
+	local.entVehicle.modelDriver			= local.entSpawnTarget.modelDriver
+	local.entVehicle.modelFrontPassenger	= local.entSpawnTarget.modelFrontPassenger
+	local.entVehicle.modelBackPassenger		= local.entSpawnTarget.modelBackPassenger
+	local.entVehicle.numBackPassenger		= local.entSpawnTarget.numBackPassenger
+	local.entVehicle.spawnTargetname		= local.entSpawnTarget.spawnTargetname
+	local.entVehicle.modelGunner			= local.entSpawnTarget.modelGunner
+	local.entVehicle.numGunner				= local.entSpawnTarget.numGunner
+	local.entVehicle.threadOnDriverDeath	= local.entSpawnTarget.threadOnDriverDeath
+	local.entVehicle.threadOnVehicleDeath	= local.entSpawnTarget.threadOnVehicleDeath
+
+end local.entVehicle
+
+
+// -----------------------------------------------------------------------------------
+SpawnAndSetupDriver local.entVehicle local.strDriverHag:
+//
+//	will spawn in the driver hag and make him the driver of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle was invalid" )
+
+	local.entTestSlot = waitthread GetVehicleSlotEntity local.entVehicle "driver" 0
+	
+	//--- check if the passenger slot is empty, if not, bug out
+	if( local.entTestSlot != NULL )
+	{
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Tried to spawn a driver AI in a slot that's taken"
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Vehicle: " local.entVehicle " - Slot: 0"
+		end
+	}
+	
+	//--- spawn the driver AI
+	local.entDriver = spawn local.strDriverHag
+	
+	assert( local.entDriver != NULL && "VEHICLE UTILS: The driver AI did not spawn!  The .hag used could be invalid" )
+
+	//--- give the driver AI a targetname
+	local.strAssemble			= local.entVehicle.targetname + "_driver"
+	local.entDriver.targetname	= local.strAssemble
+
+	//--- set the values on the vehicle and driver
+	waitthread SetupDriver local.entVehicle local.entDriver
+	
+	//--- get the driverslot and attach the driver
+	local.intDriverSlot = local.entVehicle QueryFreeDriverSlot 
+
+	assert( local.intDriverSlot == 0 && "VEHICLE UTILS: The vehicle passed in does not have a valid drivers slot, or it already has a driver" )
+	
+	local.entVehicle AttachDriverSlot local.intDriverSlot local.entDriver
+
+	if( local.entVehicle.mySquadname != NIL )
+	{
+		local.entDriver.squad_name = local.entVehicle.mySquadname
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SpawnAndSetupPassenger local.entVehicle local.strPassengerHag local.intPassengerSlot:
+//
+//	will spawn in the passenger hag and make him a passenger in the passed in slot of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle was invalid" )
+
+	local.entTestSlot = waitthread GetVehicleSlotEntity local.entVehicle "passenger" local.intPassengerSlot
+
+	//--- check if the passenger slot is empty, if not, bug out
+	if( local.entTestSlot != NULL )
+	{
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Tried to spawn a passenger AI in a slot that's taken"
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Vehicle: " local.entVehicle " - Slot: " local.intPassengerSlot
+		end
+	}
+
+	//--- spawn the passenger AI
+	local.entPassenger = spawn local.strPassengerHag
+	
+	assert( local.entPassenger != NULL && "VEHICLE UTILS: The passenger AI did not spawn!  The .hag used could be invalid" )
+
+	//--- give the passenger AI a targetname
+	local.strAssemble				= local.entVehicle.targetname + "_passenger" + local.intPassengerSlot
+	local.entPassenger.targetname	= local.strAssemble
+	
+	//--- attach the passenger AI to the slot	
+	local.entVehicle AttachPassengerSlot local.intPassengerSlot local.entPassenger
+
+	if( local.entVehicle.mySquadname != NIL )
+	{
+		local.entPassenger.squad_name = local.entVehicle.mySquadname
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SpawnAndSetupGunner local.entVehicle local.strGunnerHag local.intGunnerSlot local.boolIsTank:
+//
+//	will spawn in the gunner hag and make him the gunner in the passed in slot of the passed in vehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle was invalid" )
+
+	local.entTestSlot = waitthread GetVehicleSlotEntity local.entVehicle "turret" local.intGunnerSlot
+
+	//dprintln "SPAWN GUNNER: attempting to spawn gunner guy at slot: " local.intGunnerSlot " - result: " local.entTestSlot
+	//dprintln "SPAWN GUNNER: number of gunner slots on vehicle: " local.entVehicle.intNumGunnerSlots
+
+	//--- check if the passenger slot is empty, if not, bug out
+	if( local.entTestSlot != NULL )
+	{
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Tried to spawn a gunner AI in a slot that's taken"
+		dprintln "^~^~^ SCRIPT WARNING: VEHICLE UTILS: Vehicle: " local.entVehicle " - Slot: " local.intGunnerSlot
+		end
+	}
+
+	//--- spawn the gunner AI
+	local.entGunner = spawn local.strGunnerHag
+	
+	assert( local.entGunner != NULL && "VEHICLE UTILS: The gunner AI did not spawn!  The .hag used could be invalid" )
+
+	//--- give the gunner AI a targetname
+	local.strAssemble			= local.entVehicle.targetname + "_gunner" + local.intGunnerSlot
+	local.entGunner.targetname	= local.strAssemble
+
+	//dprintln "SPAWN GUNNER: gunner dude spawned: " local.entGunner
+	
+	//--- if we're attaching a gunner to a tank, do some special setup and attach stuff
+	if( local.boolIsTank == 1 )
+	{
+		//--- setup the AI 
+		local.entGunner hide
+		local.entGunner notsolid
+		local.entGunner nodamage
+		local.entGunner takeall
+		local.entGunner.enablePain = 0
+
+		thread RemoveHiddenOccupantOnDeath local.entVehicle local.entGunner
+	
+		//--- attach the gunner AI to the slot	
+		local.entVehicle AttachTurretSlot local.intGunnerSlot local.entGunner 1
+	}
+	else	//--- setup a normal gunner
+	{
+		//--- attach the gunner AI to the slot	
+		local.entVehicle AttachTurretSlot local.intGunnerSlot local.entGunner
+	}
+	
+	//dprintln "SPAWN GUNNER: attached to gunner slot: " local.intGunnerSlot " - on vehicle: " local.entVehicle
+	
+	//local.entShitty = waitthread GetVehicleSlotEntity local.entVehicle "turret" local.intGunnerSlot
+	//dprintln "SPAWN GUNNER: post test on gunner slot: " local.intGunnerSlot " - returned entity: " local.entShitty
+
+	if( local.entVehicle.mySquadname != NIL )
+	{
+		local.entGunner.squad_name = local.entVehicle.mySquadname
+	}
+
+
+end
+
+
+// -----------------------------------------------------------------------------------
+RemoveHiddenOccupantOnDeath local.entVehicle local.entOccupant:
+//
+//	wait until the vehicle is killed or removed, then remove the occupant
+// -----------------------------------------------------------------------------------
+
+	while ( (local.entVehicle != NULL) && (isalive local.entVehicle) )
+	{
+		wait 0.5
+	}
+	if ( (local.entOccupant != NULL) && (local.entOccupant != NIL) )
+	{
+		local.entOccupant remove
+	}
+
+end
+
+
+//===========================================================================================
+//			SETTER FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+SetupSelf local.entSelf local.entObject:
+//
+//	checks if the passed in self is not NIL, if it's not, return it, else return the object
+//	this is used so that way all the vehicle functions can support the 'self' method along with their current method
+// -----------------------------------------------------------------------------------
+
+	//if( local.entSelf != NULL && local.entSelf != NIL)
+	//{
+	//	local.entReturn = local.entSelf
+	//}
+	//else
+	//{
+		local.entReturn = local.entObject
+	//}
+
+end local.entReturn
+
+
+// -----------------------------------------------------------------------------------
+BroadCastPhysVehicleSounds local.entVehicle:
+// Setup engine, whoosh skid and surface sound entities to broadcast
+// -----------------------------------------------------------------------------------
+	//---  turn off sound culling so when a vehicle is not in view frustum, we still hear it.
+	local.vehEng		= local.entVehicle.targetname + "_engine0"
+	$(local.vehEng)		svflags "+broadcast"
+
+	local.vehWhoosh		= local.entVehicle.targetname + "_whoosh0"
+	$(local.vehWhoosh)	svflags "+broadcast"
+
+	local.vehSkid		= local.entVehicle.targetname + "_skid0"
+	$(local.vehSkid)	svflags "+broadcast"
+	
+	local.vehSkid		= local.entVehicle.targetname + "_surface0"
+	$(local.vehSkid)	svflags "+broadcast"
+	
+end
+
+// -----------------------------------------------------------------------------------
+SetupVehicle local.entVehicle:
+//
+//	Setup various values on the vehicle such as slot counts, squad name, and broadcast flags
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle to be setup was invalid" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: The passed in vehicle for setup was an array" )
+	
+	//--- check if the vehicle's already been setup, if so dump out
+	if( local.entVehicle.boolIsSetup != NIL )
+	{
+		//dprintln "VEHICLE HAS ALREADY BEEN SETUP"
+		end
+	}
+	
+	//--- set the flag that the vehicle has been setup
+	local.entVehicle.boolIsSetup = 1
+
+	waitthread BroadCastPhysVehicleSounds local.entVehicle
+	
+	//--- cycle through all the passenger slots and mark the total
+	local.intSlotCountTotal = 0
+	
+	for( local.i = 0 ; local.i <= 31 ; local.i++ )
+	{
+		local.intSlotStatus = local.entVehicle QueryPassengerSlotStatus local.i
+		
+		if( local.intSlotStatus != NIL && local.intSlotStatus < 4 )
+		{
+			local.intSlotCountTotal++
+		}
+	}
+
+
+
+	//--- store the passenger slot total on the vehicle
+	local.entVehicle.intNumPassengerSlots = local.intSlotCountTotal
+	
+	//--- cycle through all the gunner slots and mark the total
+	local.intSlotCountTotal = 0
+	
+	for( local.i = 0 ; local.i <= 7 ; local.i++ )
+	{
+		local.intSlotStatus = local.entVehicle QueryTurretSlotStatus local.i
+
+		//dprintln "SETUP VEHICLE: testing gunner slot: " local.i " - status: " local.intSlotStatus
+		if( local.intSlotStatus != NIL && local.intSlotStatus == 2 )
+		{
+			local.entTurret = local.entVehicle QueryTurretSlotEntity local.i
+
+			local.entTurret shouldhavereloader 0
+
+			local.intSlotCountTotal++
+		}
+	}
+
+	//--- store the gunner slot total on the vehicle
+	local.entVehicle.intNumGunnerSlots = local.intSlotCountTotal
+
+	//--- initialize variables for checking later
+	local.entVehicle.boolAIInTransit		= 0
+	local.entVehicle.intNumExitFunctions	= 0
+	local.entVehicle.intWaitingForAI		= 0
+	
+	//--- launch the on vehicle death function if one was passed
+	if( local.entVehicle.threadOnVehicleDeath != NIL && local.entVehicle.threadOnVehicleDeath != "" )
+	{
+		//thread SetupVehicleOnDeath local.entVehicle local.entVehicle.threadOnVehicleDeath
+		
+		//--- set it back to NIL so it won't initialize again
+		local.entVehicle.threadOnVehicleDeath = NIL
+	}
+
+	//dprintln "SETTING UP VEHICLE: " local.entVehicle " - passenger: " local.entVehicle.intNumPassengerSlots " - gunner: " local.entVehicle.intNumGunnerSlots
+
+	local.entVehicle waitthread GenerateUniqueSquadID
+
+end
+
+
+// -----------------------------------------------------------------------------------
+GenerateUniqueSquadID:
+//
+// -----------------------------------------------------------------------------------
+	self.mySquadname = self.targetname + level.VEHICLE_UTILS_UNIQUE_ID
+	level.VEHICLE_UTILS_UNIQUE_ID++
+end
+
+
+// -----------------------------------------------------------------------------------
+SetupVehicleOnDeath local.entVehicle local.threadOnVehicleDeath:
+//
+//	upon the vehicles death, launch the ondeath function if set
+// -----------------------------------------------------------------------------------
+
+	local.entVehicle waittill death
+	
+	thread local.threadVehicleOnDeath
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SetupDriver local.entVehicle local.entDriver:
+//
+//	sets up values for the vehicle and the driver
+// -----------------------------------------------------------------------------------
+
+	//--- take the drivers weapons
+	//local.entDriver holster
+	
+	//--- store the settings on the vehicle
+	local.entVehicle.entDriver = local.entDriver
+	
+	//--- store the vehicle on the driver, used by the drivers death function
+	local.entDriver.entVehicle = local.entVehicle
+
+	//--- store the ondriver death function
+	local.entDriver.threadOnDriverDeath = local.entVehicle.threadOnDriverDeath
+
+	//--- launch the death check
+	thread AIDriverOnDeath local.entDriver
+	
+	//--- store the thread reference for termination later
+	local.entDriver.threadRef_OnDeath = parm.previousthread
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+SetupNoDriver local.entDriver:
+//
+//	unsets the values on the driver and the vehicle
+// -----------------------------------------------------------------------------------
+
+	//--- make the driver unholster his weapon
+	//local.entDriver weapon "models/weapons/m38_arisaka.hag"
+	//local.entDriver unholster
+	
+	//--- remove the stored driver reference on the vehicle
+	local.entDriver.entVehicle.entDriver = NULL
+	
+	//--- remove the stored vehicle reference on the driver
+	local.entDriver.entVehicle = NULL
+
+	//--- delete the death thread running
+	local.entDriver.threadRef_OnDeath delete
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+SetTurret local.entVehicle local.boolUseAllTurrets local.intOperation local.entTarget:
+//
+//	Takes the turret(s) on the passed in vehicle and performs the passed in operation on them
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NIL && "VEHICLE UTILS: SetTurret: A NIL vehicle reference was passed" )
+	assert( local.intOperation != NIL && "VEHICLE UTILS: SetTurret: A NIL operation reference was passed" )
+
+	//--- handle in case an array was passed in
+	for( local.i = 1 ; local.i <= local.entVehicle.size ; local.i++ )
+	{
+		//--- if the passed in vehicle is dead or removed, skip it
+		if( local.entVehicle[ local.i ] == NULL || local.entVehicle[ local.i ].health <= 0 )
+		{
+			continue
+		}
+		
+		local.intGunnerCount = 1
+		
+		//--- if set to use all available gunners, then get the total gunner count
+		if( local.boolUseAllTurrets != NIL )
+		{
+			local.intGunnerCount = waitthread GetAICount_Gunner local.entVehicle
+		}
+		
+		//--- lower the gunner count by 1 to account for a 0 base
+		local.intGunnerCount--
+		
+		//--- cycle through the desired turrets on the vehicle and make them shoot
+		for( local.i = 0 ; local.i <= local.intGunnerCount ; local.i++ )
+		{
+			waitthread SetTurret_DoOperation local.entVehicle local.i local.intOperation local.entTarget
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+SetTurret_DoOperation local.entVehicle local.intSlot local.intOperation local.entTarget:
+//
+//	grabs the passed in turret slot on the passed in vehicle, and performs the passed in operation on it
+//	0	- shoot
+//	1	- set targettype to auto
+//	2	- set targettype to none
+//	3	- clear aim target
+//	4	- set aim target to the passed in target
+//	5	- set enemy to the passed in target
+// -----------------------------------------------------------------------------------
+	
+	//--- grab the current turret entity
+	local.entTurret = local.entVehicle QueryTurretSlotEntity local.intSlot
+	
+	//--- if there's a turret at this slot, perform the desired operation on it
+	if( local.entTurret == NULL || local.entTurret == NIL )
+	{
+		end
+	}
+
+	//--- perform the desired operation
+	switch( local.intOperation )
+	{
+	case	0:
+		local.entTurret shoot
+		break
+		
+	case	1:
+		local.entTurret targettype "auto"
+		break
+
+	case	2:
+		local.entTurret targettype "none"
+		break
+
+	case	3:
+		local.entTurret clearaimtarget
+		break
+
+	case	4:
+		if( local.entTarget != NIL )
+		{
+			local.entTurret setaimtarget local.entTarget
+		}
+		break
+
+	case	5:
+		if( local.entTarget != NIL )
+		{
+			local.entTurret setenemy local.entTarget
+		}
+		break
+	default:
+		assert( 1 && "VEHICLE UTILS: SetTurret: The passed in operation was invalid" )
+		break
+	}
+	
+end
+
+
+
+
+//===========================================================================================
+//			GETTER FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+GetAndSpawnDriver local.entVehicle local.strDriverHag:
+//
+//	checks for a hag file, assigns a default if none found, then performs the spawn
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle entity for the driver was invalid" )
+	
+	if( local.strDriverHag != NIL )
+	{
+		//--- use a passed in value over the one on the entity, else default
+		if( local.strDriverHag == "" )
+		{
+			if( local.entVehicle.modelDriver != NIL && local.entVehicle.modelDriver != "" )
+			{
+				local.strDriverHag = local.entVehicle.modelDriver
+			}
+			else
+			{
+				local.strDriverHag = level.VEHICLE_UTILS_DEFAULT_DRIVER_HAG
+			}
+		}
+
+		waitthread SpawnAndSetupDriver local.entVehicle local.strDriverHag
+	}
+
+end
+
+// -----------------------------------------------------------------------------------
+GetAndSpawnFrontPassenger local.entVehicle local.strFrontRiderHag:
+//
+//	checks for a hag file, assigns a default if none found, then performs the spawn
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle entity for the front passenger was invalid" )
+
+	if( local.strFrontRiderHag != NIL )
+	{
+		//--- use a passed in value over the one on the entity, else default
+		if( local.strFrontRiderHag == "" )
+		{
+			if( local.entVehicle.modelFrontPassenger != NIL && local.entVehicle.modelFrontPassenger != "" )
+			{
+				local.strFrontRiderHag = local.entVehicle.modelFrontPassenger
+			}
+			else
+			{
+				local.strFrontRiderHag = level.VEHICLE_UTILS_DEFAULT_FRONT_PASSENGER_HAG
+			}
+		}
+
+		waitthread SpawnAndSetupPassenger local.entVehicle local.strFrontRiderHag 0
+	}
+	
+end
+
+
+// -----------------------------------------------------------------------------------
+GetAndSpawnBackPassenger local.entVehicle local.intBackRiders local.strBackRidersHag local.intVehicleLimit:
+//
+//	checks for a hag file, assigns a default if none found, then performs the spawn
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle entity for the front passenger was invalid" )
+	
+	if( local.intBackRiders != NIL && local.intBackRiders != 0 )
+	{
+		//--- get the number of back riders, use a passed in value over the one on the entity, else default
+		if( local.intBackRiders == "" )
+		{
+			if( local.entVehicle.numBackPassenger != NIL && local.entVehicle.numBackPassenger != "" )
+			{
+				local.intBackRiders = local.entVehicle.numBackPassenger
+			}
+			else
+			{
+				local.intBackRiders = level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_NUM
+			}
+		}
+
+		//--- check if the returned number of riders exceeds the passed limit for the vehicle, if it does make it equal to the passed limit
+		if( local.intBackRiders > local.intVehicleLimit )
+		{
+			local.intBackRiders = local.intVehicleLimit
+		}
+
+		//--- get the hag to use for the back riders, use a passed in value over the one on the entity, else default
+		if( local.strBackRidersHag == "" || local.strBackRidersHag == NIL )
+		{
+			if( local.entVehicle.modelBackPassenger != NIL && local.entVehicle.modelBackPassenger != "" )
+			{
+				local.strBackRidersHag = local.entVehicle.modelBackPassenger
+			}
+			else
+			{
+				local.strBackRidersHag = level.VEHICLE_UTILS_DEFAULT_BACK_PASSENGER_HAG
+			}
+		}		
+
+		//--- figure out the number to count down to
+		local.intCount = local.intVehicleLimit - local.intBackRiders
+		
+		//--- loop through and spawn all of the back passengers
+		for( local.i = local.intVehicleLimit ; local.i > local.intCount ; local.i-- )
+		{
+			waitthread SpawnAndSetupPassenger local.entVehicle local.strBackRidersHag local.i
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+GetAndSpawnGunner local.entVehicle local.intGunnerRiders local.strGunnerRidersHag local.intVehicleLimit local.boolIsTank:
+//
+//	checks for a hag file, assigns a default if none found, then performs the spawn
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle entity for the front passenger was invalid" )
+	
+	if( local.intGunnerRiders != NIL && local.intGunnerRiders != 0 )
+	{
+		//--- get the number of gunner riders, use a passed in value over the one on the entity, else default
+		if( local.intGunnerRiders == "" )
+		{
+			if( local.entVehicle.numGunner != NIL && local.entVehicle.numGunner != "" )
+			{
+				local.intGunnerRiders = local.entVehicle.numGunner
+			}
+			else
+			{
+				local.intGunnerRiders = level.VEHICLE_UTILS_DEFAULT_GUNNER_NUM
+			}
+		}
+
+		//--- check if the returned number of riders exceeds the passed limit for the vehicle, if it does make it equal to the passed limit
+		if( local.intGunnerRiders > local.intVehicleLimit )
+		{
+			local.intGunnerRiders = local.intVehicleLimit
+		}
+		
+		//--- get the hag to use for the back riders, use a passed in value over the one on the entity, else default
+		if( local.strGunnerRidersHag == "" || local.strGunnerRidersHag == NIL )
+		{
+			if( local.entVehicle.modelGunner != NIL && local.entVehicle.modelGunner != "" )
+			{
+				local.strGunnerRidersHag = local.entVehicle.modelGunner
+			}
+			else
+			{
+				local.strGunnerRidersHag = level.VEHICLE_UTILS_DEFAULT_GUNNER_HAG
+			}
+		}		
+
+		//--- if the requested number of gunners is greater than the vehicle slot limit, set it equal to it.
+		if( local.intGunnerRiders > local.intVehicleLimit )
+		{
+			local.intGunnerRiders = local.intVehicleLimit
+		}
+		
+		//--- reduce the gunner count by 1 to account for a 0 base
+		local.intGunnerRiders--
+		
+		//--- loop through and spawn all of the gunner AI
+		for( local.i = 0 ; local.i <= local.intGunnerRiders ; local.i++ )
+		{
+			//dprintln "GET AND SPAWN GUNNER: vehicle limit: " local.intVehicleLimit " - intCount: " local.intCount " - on: " local.i
+			waitthread SpawnAndSetupGunner local.entVehicle local.strGunnerRidersHag local.i local.boolIsTank
+		}
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+GetVehicleSlotEntity local.entVehicle local.strRiderClass local.intSlot:
+//
+//	queries the class of slot on the passed in vehicle at the passed in slot number
+//	and returns the entity there (if one is there)
+// -----------------------------------------------------------------------------------
+
+	assert( local.entVehicle != NULL && "VEHICLE UTILS: The passed in vehicle for rider slot query was invalid" )
+	assert( local.intSlot != NIL && "VEHICLE UTILS: The passed in slot to query was NIL" )
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: The passed in vehicle to query rider slots on was an array" )
+	assert( local.strRiderClass == "passenger" ||
+			local.strRiderClass == "turret" ||
+			local.strRiderClass == "driver" && "VEHICLE UTILS: The passed in slot class for query was not a valid one" )
+				
+	local.entResult = NULL
+
+	if( local.strRiderClass == "passenger" )
+	{
+		local.entResult = local.entVehicle QueryPassengerSlotEntity local.intSlot
+	}
+	else if( local.strRiderClass == "turret" )
+	{
+		local.entResult = local.entVehicle QueryTurretSlotGunner local.intSlot
+	}
+	else if( local.strRiderClass == "driver" )
+	{
+		local.entResult = local.entVehicle QueryDriverSlotEntity local.intSlot
+	}
+
+end local.entResult
+
+
+// -----------------------------------------------------------------------------------
+GetVehicleFirstEnterSlot local.entAI local.entVehicle local.strRiderClass local.intNumSlots local.intStartIndex local.intLowestIndex:
+//
+//	queries the class of slot on the passed in vehicle looking for the first available
+//	entry slot based on what AI is currently occuping the vehicle and where.  The goal
+//	is to eliminate the syndrom where there's an empty seat between 2 AI.  This seat
+//	can not be considered valid due to the animations.
+// -----------------------------------------------------------------------------------
+
+	local.intSlot = NIL
+
+	//--- find and return the first available entry slot
+	for( local.i = local.intStartIndex ; local.i >= 0 ; local.i-- )
+	{
+		//dprintln "FIND ENTRY: current slot check: " local.i " - start index: " local.intStartIndex " - lowest slot: " local.intLowestIndex
+		
+		//--- check if the vehicle and the AI are alive or gone, or if the index is lower than the set lowest
+		if( local.entVehicle == NULL ||
+			local.entVehicle.health <= 0 ||
+			local.entAI == NULL ||
+			local.entAI.health <= 0 ||
+			local.i < local.intLowestIndex )
+		{
+			break
+		}
+		
+		//--- check the current slot
+		local.entSlot = waitthread GetVehicleSlotEntity local.entVehicle local.strRiderClass local.i
+		
+		//dprintln "FIND ENTRY: current slot status: " local.entSlot
+		
+		//--- if there's no AI, and a slot hasn't been found yet, set the slot
+		if( local.entSlot == NULL )
+		{
+			//--- only store the slot if one hasn't been found yet
+			if( local.intSlot == NIL )
+			{
+				//dprintln "FIND ENTRY: marking current slot"
+				local.intSlot = local.i
+			}
+		}
+		else	//--- else set the found slot to NIL since another AI was found down the chain
+		{
+			local.intSlot = NIL
+		}
+	}
+	
+end local.intSlot
+
+
+// -----------------------------------------------------------------------------------
+GetAIInSlot local.entAI local.entVehicle local.strRiderClass local.intSlot:
+//
+//	cycles and waits until the passed in AI is either dead, removed, or in the vehicle slot
+// -----------------------------------------------------------------------------------
+
+	local.entSlot		= NULL
+	local.intSuccess	= NIL
+
+	while( local.entAI != NULL &&
+		   local.entAI.health > 0 &&
+		   local.entVehicle != NULL &&
+		   local.entVehicle.health > 0 )
+	{
+		local.entSlot = waitthread GetVehicleSlotEntity local.entVehicle local.strRiderClass local.intSlot
+
+		//dprintln "GET AI IN SLOT: AI: " local.entAI " - vehicle: " local.entVehicle " - class: " local.strRiderClass " - slot: " local.intSlot
+
+		if( local.entAI == local.entSlot )
+		{
+			//--- wait to give time for the animation to finish properly
+			wait 1.5
+			
+			//--- set the success flag that the AI made it, which is 2
+			local.intSuccess = 1
+			
+			break
+		}
+		wait .5
+	}
+
+	//--- if the AI died in transit, mark the sucess flag to 1 for dead
+	if( local.entAI == NULL || local.entAI.health <= 0 )
+	{
+		//--- set the success flag to -1, to mean the AI died in transit
+		local.intSuccess = -1
+	}
+
+	//dprintln "GET AI IN SLOT: dude status: " local.intSuccess
+
+end local.intSuccess
+
+
+
+
+// ----------------------------------------------------------------------------------
+VehicleThinker_Follow_FindNewLeader local.entLeader:
+//
+//	trys to find a new leader to pass back
+// ----------------------------------------------------------------------------------
+
+	assert( local.entLeader != NULL && "The passed in leader is invalid" )
+	
+	local.boolDone = 0
+	
+	//--- cycle through to find a new leader
+	while( local.boolDone != 1 )
+	{
+		//--- check if the passed in leader has a leader, if so, assign it
+		if( local.entLeader.entLeader != NIL )
+		{
+			local.entLeader = $(local.entLeader.entLeader)
+			
+			//--- check if the new leader is valid, if it's not, allow this to loop again
+			if( local.entLeader != NULL && local.entLeader.health > 0 )
+			{
+				//--- end the loop
+				local.boolDone = 1
+			}
+		}
+		else	//--- there are no more leaders up the chain, so end the loop
+		{
+			local.entLeader = NULL
+			local.boolDone = 1
+		}
+	}
+	
+end local.entLeader
+
+
+
+
+//===========================================================================================
+//			AI FUNCTIONS
+//===========================================================================================
+
+// -----------------------------------------------------------------------------------
+AIDriverOnDeath local.entDriver:
+//
+//	death thread for when the driver dies, checks whether or not to dump the passengers
+// -----------------------------------------------------------------------------------
+
+	assert( local.entDriver != NULL && "VEHICLE UTILS: The passed in driver for the on death function was invalid" )
+
+	//--- check if the driver on death is already running
+	if( local.entDriver.boolDriverOnDeath == 1 )
+	{
+		end
+	}
+	
+	//--- set the flag
+	local.entDriver.boolDriverOnDeath = 1
+
+	local.entDriver waittill death
+	
+	//--- capture the vehicle before the AI is fully removed from the level
+	local.entVehicle = local.entDriver.entVehicle
+	
+	//--- if the vehicle is still alive, get everybody out and set values
+	if( local.entVehicle != NULL && local.entVehicle.health > 0 )
+	{
+		//--- reset the variable on the vehicle
+		local.entVehicle.entDriver = NULL
+
+		//--- mark the vehicle as the driver has been killed
+		//--- this is used so AI about to get on the vehicle won't since the driver was just killed
+		local.entVehicle.boolDriverIsDead = 1
+
+		//--- kick everybody out of the vehicle
+		thread AIExitVehicle local.entDriver.entVehicle -1 -1 -1
+		
+		//--- launch the ondriver death function
+		if( local.entDriver.threadOnDriverDeath != NIL && local.entDriver.threadOnDriverDeath != "" )
+		{
+			//thread local.entDriver.threadOnDriverDeath
+		}
+	}
+	
+end
+
+	
+// -----------------------------------------------------------------------------------
+AIExitVehicle local.entVehicle local.intNumPassnegersToExit local.intNumGunnersToExit local.intNumDriversToExit local.intStartIndex:
+//
+//	tells AI to exit the passed in vehicle.  The individual parameters for passenger, gunner,
+//	and driver tell how many of the respective slots to exit
+//
+//	If a -1 is passed for any of these, it means all of that class are to get out
+//
+//	Start Index is an optional parameter that this function will pass to the actual exit
+//	function that will tell what slot index to start at in each class.  If set to NIL
+//	then then exiting begins at slot 0
+// -----------------------------------------------------------------------------------
+
+	assert( local.intNumPassnegersToExit != NIL && "VEHICLE UTILS: The passed in number of passengers to exit the vehicle was NIL" )
+	assert( local.intNumGunnersToExit != NIL && "VEHICLE UTILS: The passed in number of gunners to exit the vehicle was NIL" )
+	assert( local.intNumDriversToExit != NIL && "VEHICLE UTILS: The passed in number of drivers to exit the vehicle was NIL" )
+
+	//--- if the vehicle is dead or removed, end the function
+	if( local.entVehicle == NULL || local.entVehicle.health <= 0 )
+	{
+		end
+	}
+
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: The passed in vehicle for riders to exit from was an array" )
+
+	//--- setup the vehicles slot counts
+	waitthread SetupVehicle local.entVehicle
+
+	//--- check if the vehicle is alive, if so, tell the AI to exit per slot class
+	//--- also check if there are any riders set for the class to exit
+	if( local.intNumPassnegersToExit > 0 || local.intNumPassnegersToExit == -1 )
+	{
+		waitthread AIExitVehicle_Exit local.entVehicle "passenger" local.entVehicle.intNumPassengerSlots local.intNumPassnegersToExit local.intStartIndex
+	}
+	else if( local.intNumGunnersToExit > 0 || local.intNumGunnersToExit == -1 )
+	{
+		waitthread AIExitVehicle_Exit local.entVehicle "turret" local.entVehicle.intNumGunnerSlots local.intNumGunnersToExit local.intStartIndex
+	}
+	else if( local.intNumDriversToExit > 0 || local.intNumDriversToExit == -1 )
+	{
+		waitthread AIExitVehicle_Exit local.entVehicle "driver" 1 local.intNumDriversToExit local.intStartIndex
+	}
+
+end
+
+
+// -----------------------------------------------------------------------------------
+AIExitVehicle_Exit local.entVehicle local.strRiderClass local.intNumSlots local.intNumRidersToGetOff local.intStartIndex:
+//
+//	checkes the passed in vehicle's slots of the passed in class.  It will tell any AI found
+//	in those slots to exit, up to the intNumRidersToGetOff.
+//	THIS FUNCTION SHOULD ONLY BE CALLED BY AIExitVehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.strRiderClass == "passenger" ||
+			local.strRiderClass == "turret" ||
+			local.strRiderClass == "driver" && "VEHICLE UTILS: The passed in slot class for exiting was not a valid one" )
+	assert( local.intNumSlots != NIL && "VEHICLE UTILS: The passed in number of slots for AI exiting the vehicle was NIL" )
+	
+	//--- increment the intNumExitFunctions variable on the vehicle to mark priority of exit functions
+	//--- this is used in the AIEnterVehicle_Enter functions stall loop to give priority to exit commands
+	local.entVehicle.intNumExitFunctions++
+	
+	//--- increment the intWaitingForAI value on the vehicle
+	local.entVehicle.intWaitingForAI++
+	
+	//--- stall loop, if AI are in transit of getting on or off the vehicle, wait until done
+	while( local.entVehicle != NULL && local.entVehicle.health > 0 && local.entVehicle.boolAIInTransit != 0 )
+	{
+		wait .1
+	}
+
+	//--- time has passed, check if the vehicle is alive or gone
+	if( local.entVehicle == NULL || local.entVehicle.health <= 0 )
+	{
+		end
+	}
+
+	//--- mark the flag that AI are in transit
+	local.entVehicle.boolAIInTransit = 1
+
+	//--- decrement the priority variable on the vehicle
+	local.entVehicle.intNumExitFunctions--
+	
+	//--- set the counter
+	local.intAIGottenOff = 0
+
+	//--- if a -1 was passed of the number to get off, set it equal to the total number of slots
+	if( local.intNumRidersToGetOff <= -1 )
+	{
+		local.intNumRidersToGetOff = local.intNumSlots
+	}
+
+	//--- set the starting index
+	if( local.intStartIndex == NIL )
+	{
+		local.intStartIndex = 0
+	}
+
+	//--- cycle through all of the passed in slot types for this vehicle and exit AI
+	for( local.i = local.intStartIndex ; local.i < local.intNumSlots ; local.i++ )
+	{
+		//--- check if the vehicle is alive
+		if( local.entVehicle == NULL || local.entVehicle.health <= 0 )
+		{
+			end
+		}
+		
+		//--- check if the set number of riders to get off has been exceeded
+		if( local.intAIGottenOff >= local.intNumRidersToGetOff )
+		{
+			break
+		}
+		
+		//--- check the current slot
+		local.entSlot = waitthread GetVehicleSlotEntity local.entVehicle local.strRiderClass local.i
+		
+		//--- if there's an AI there, kick him out and up the counter
+		if( local.entSlot != NULL )
+		{
+			local.entSlot thread ForceExitVehicle
+			//local.entSlot exitvehicle
+			local.intAIGottenOff++
+			
+			//--- if a driver was told to get off, remove the flags set on him
+			if( local.strRiderClass == "driver" )
+			{	
+				waitthread SetupNoDriver local.entSlot
+			}
+		}
+		
+		wait .5
+	}
+
+	if( local.entVehicle != NULL )
+	{
+		//--- decrement the intWaitingForAI on the vehicle since this AI operation is done
+		local.entVehicle.intWaitingForAI--
+	
+		//--- mark the flag that AI are no longer transit
+		local.entVehicle.boolAIInTransit = 0
+	}
+
+end
+
+// -----------------------------------------------------------------------------------
+ForceExitVehicle:
+// -----------------------------------------------------------------------------------
+	self.ExitedVehicle = 0
+	self thread MonitorForceExitVehicle
+	local.lastThread = parm.previousthread
+	while( self != NULL && self != NIL && (isAlive self) && self.ExitedVehicle == 0 )
+	{
+		//dprintln "I'm trying to exit vehicle"
+		self exitvehicle
+		wait 0.5
+	}
+
+	if( local.lastThread != NULL )
+	{
+		local.lastThread remove
+	}
+end
+
+// -----------------------------------------------------------------------------------
+MonitorForceExitVehicle:
+// -----------------------------------------------------------------------------------
+	self.monitorForceExitVehicleThread = local
+	self waittill taskdone
+	self.ExitedVehicle = 1
+end
+
+
+// -----------------------------------------------------------------------------------
+AIEnterVehicle local.entAI local.entVehicle local.intPassengerEnter local.intGunnerEnter local.intDriverEnter local.intStartIndex local.intLowestIndex local.boolLockVehicle:
+//
+//	tells AI to enter the passed in vehicle.  The individual parameters for passenger, gunner,
+//	and driver tell which class of slot to enter
+//
+//	Start Index is an optional parameter that this function will pass to the actual enter
+//	function that will tell what slot index to start at in each class.  If set to NIL
+//	then then entering begins at slot 0
+// -----------------------------------------------------------------------------------
+
+	assert( local.intPassengerEnter != NIL && "VEHICLE UTILS: The passed in number of passengers to enter the vehicle was NIL" )
+	assert( local.intGunnerEnter != NIL && "VEHICLE UTILS: The passed in number of gunners to enter the vehicle was NIL" )
+	assert( local.intDriverEnter != NIL && "VEHICLE UTILS: The passed in number of drivers to enter the vehicle was NIL" )
+
+	//--- used to determine if the AI made it successfully to his slot
+	local.intSuccess = NIL
+
+	//--- if the vehicle is dead or removed, end the function
+	if( local.entVehicle == NULL || local.entVehicle.health <= 0 )
+	{
+		end
+	}
+
+	//--- if the AI is dead or removed, set the success flag and end the function
+	if( local.entAI == NULL || local.entAI.health <= 0 )
+	{
+		//--- set the success flag to -1, to mean the AI died in transit
+		local.intSuccess = -1
+		
+		end local.intSuccess
+	}
+
+	assert( local.entVehicle.size == 1 && "VEHICLE UTILS: The passed in vehicle for riders to enter from was an array" )
+	
+	//--- setup the vehicle's slot counts
+	waitthread SetupVehicle local.entVehicle
+
+	//--- check if the vehicle is alive, if so, tell the AI to enter per slot class
+	//--- also check if there are any riders set for the class to enter
+	if( local.intPassengerEnter == 1 )
+	{
+		local.intSuccess = waitthread AIEnterVehicle_Enter local.entAI local.entVehicle "passenger" local.entVehicle.intNumPassengerSlots local.intStartIndex local.intLowestIndex local.boolLockVehicle
+	}
+	else if( local.intGunnerEnter == 1 )
+	{
+		local.intSuccess = waitthread AIEnterVehicle_Enter local.entAI local.entVehicle "turret" local.entVehicle.intNumGunnerSlots local.intStartIndex local.intLowestIndex local.boolLockVehicle
+	}
+	else if( local.intDriverEnter == 1 )
+	{
+		local.intSuccess = waitthread AIEnterVehicle_Enter local.entAI local.entVehicle "driver" 1 local.intStartIndex local.intLowestIndex local.boolLockVehicle
+	}
+
+end local.intSuccess
+
+
+// -----------------------------------------------------------------------------------
+AIEnterVehicle_Enter local.entAI local.entVehicle local.strRiderClass local.intNumSlots local.intStartIndex local.intLowestIndex local.boolLockVehicle:
+//
+//	Tells the passed in AI to enter the passed in vehicle in the passed in slot class.
+//	start index and lowest index are optional parameters used to narrow the slot searching
+//	of particular passenger types.
+//	In a 0 is passed for the lock parameter, then this function will not lock other enter
+//	or exit calls from happening.  It defaults to locked with any other value
+//	THIS FUNCTION SHOULD ONLY BE CALLED BY AIEnterVehicle
+// -----------------------------------------------------------------------------------
+
+	assert( local.strRiderClass == "passenger" ||
+			local.strRiderClass == "turret" ||
+			local.strRiderClass == "driver" && "VEHICLE UTILS: The passed in slot class for entering was not a valid one" )
+	assert( local.intNumSlots != NIL && "VEHICLE UTILS: The passed in number of slots for AI entering the vehicle was NIL" )
+
+	//--- used to determine if the AI made it successfully to his slot
+	local.intSuccess = NIL
+	
+	//--- increment the intWaitingForAI value on the vehicle
+	local.entVehicle.intWaitingForAI++
+		
+	//--- stall loopo, if AI are in transit of getting on or off the vehicle, or an exit function is waiting, wait for them to be done first
+	while( (local.entVehicle != NULL && local.entVehicle.health > 0 && local.entVehicle.boolAIInTransit != 0) ||
+		   (local.entVehicle != NULL && local.entVehicle.health > 0 && local.entVehicle.intNumExitFunctions > 0) )
+	{
+		wait .1
+	}
+
+	//--- time has passed, check if the vehicle is alive or gone
+	if( local.entVehicle == NULL || local.entVehicle.health <= 0 )
+	{
+		end
+	}
+
+	//--- mark the flag that AI are in transit if set
+	if( local.boolLockVehicle != 0 )
+	{
+		//dprintln "ENTER VEHICLE: locking vehicle for rider class: " local.strRiderClass " - AI: " local.entAI
+		local.entVehicle.boolAIInTransit = 1
+	}
+
+	//--- set the starting index, if none was passed start at the highest index and work down
+	if( local.intStartIndex == NIL )
+	{
+		local.intStartIndex = local.intNumSlots - 1
+	}
+
+	//--- set the lowest index to 0 if none was passed
+	if( local.intLowestIndex == NIL )
+	{
+		local.intLowestIndex = 0
+	}
+
+	//--- find the first available entry slot, returns NIL if none are available, or the vehicle / AI died or got removed
+	local.intEntrySlot = waitthread GetVehicleFirstEnterSlot local.entAI local.entVehicle local.strRiderClass local.intNumSlots local.intStartIndex local.intLowestIndex
+	
+	//dprintln "ENTRY: vehicle: " local.entVehicle " - Slot found: " local.intEntrySlot
+	
+	//--- if the slot was found put the guy in the slot
+	if( local.intEntrySlot != NIL )
+	{
+		//--- if a driver was told to enter, set him up to be the driver
+		if( local.strRiderClass == "driver" )
+		{	
+			waitthread SetupDriver local.entVehicle local.entAI
+			
+			//--- reset the dead driver flag on the vehicle
+			local.entVehicle.boolDriverIsDead = NIL
+		}
+		
+		//--- if there is not a driver that was killed on the vehicle, then tell the AI to enter
+		if( local.entVehicle.boolDriverIsDead == NIL )
+		{
+			//dprintln "ENTRY: sending AI: " local.entAI
+			local.entAI entervehicle local.entVehicle local.strRiderClass local.intEntrySlot
+	
+			//--- wait until the AI is either in the slot, dead, or the vehicle is dead
+			local.intSuccess = waitthread GetAIInSlot local.entAI local.entVehicle local.strRiderClass local.intEntrySlot
+		}
+	}
+
+	//--- if the AI died in transit, mark the sucess flag to -1 for dead
+	if( local.entAI == NUL || local.entAI.health < 0 )
+	{
+		//--- set the success flag to -1, to mean the AI died in transit
+		local.intSuccess = -1
+	}
+
+	//--- decrement the intWaitingForAI on the vehicle since this AI operation is done
+	local.entVehicle.intWaitingForAI--
+
+	//--- mark the flag that AI are no longer in transit if set
+	if( local.boolLockVehicle != 0 )
+	{	
+		local.entVehicle.boolAIInTransit = 0
+	}
+
+end local.intSuccess
+
+
+

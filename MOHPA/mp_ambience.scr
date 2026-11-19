@@ -1,0 +1,149 @@
+// mp_ambience.scr
+//
+// This script is used to play sounds at script_origins placed by designers.
+// The script_origins are required to have the targetname speaker, as well
+// as fields labeled '$alias' and '$wait'. The '$alias' field must be a valid
+// alias in one of the ubersound files, and '$wait' must be an integer greater
+// than or equal to zero.
+//
+// To use this script add the line 'thread global/mp_ambience.scr::init' to your
+// script after 'level waittill spawn'.   
+//
+// SCOSGRAVE - 06-03-04 - first pass
+
+//------------------
+init local.devel_volume local.devel_min_distance local.devel_max_distance:
+//------------------
+	if (int(getcvar "dm_cull_placed_sounds") == 1)
+		end
+	
+	if( $speaker == NIL || $speaker == NULL ) 
+	{
+		dprintln "Ambience Error: no $speaker"
+		end
+	}
+	
+	if (local.devel_volume != NIL && local.devel_volume != NULL)
+		if (local.devel_min_distance != NIL && local.devel_min_distance!=NULL)
+			if (local.devel_max_distance != NIL && local.devel_max_distance!=NULL)
+				for( local.i = 1; local.i <= $speaker.size; local.i++ )
+				{
+					$speaker[local.i].volume = local.devel_volume
+					$speaker[local.i].min_distance = local.devel_min_distance
+					$speaker[local.i].max_distance = local.devel_max_distance
+					$speaker[local.i] thread sound $speaker[local.i].alias $speaker[local.i].wait
+				}
+			else
+				for( local.i = 1; local.i <= $speaker.size; local.i++ )
+				{
+					$speaker[local.i].volume = local.devel_volume
+					$speaker[local.i].min_distance = local.devel_min_distance
+					$speaker[local.i] thread sound $speaker[local.i].alias $speaker[local.i].wait
+				}
+		else		
+			for( local.i = 1; local.i <= $speaker.size; local.i++ )
+			{
+				$speaker[local.i].volume = local.devel_volume
+				$speaker[local.i] thread sound $speaker[local.i].alias $speaker[local.i].wait
+			}
+	else			
+	// loop through the array of speakers and have them play their alias on whatever wait 
+	// may be assigned to them
+		for( local.i = 1; local.i <= $speaker.size; local.i++ )
+		{
+			$speaker[local.i] thread sound $speaker[local.i].alias $speaker[local.i].wait
+		}
+end
+
+
+//------------------
+sound local.sndAlias local.sndWait :
+//------------------
+
+	// this came in as a string, needed an int
+	if(local.sndWait != NIL && local.sndWait != NULL)
+		local.wait = int (local.sndWait)
+
+	// needed to spawn this hag in order for loopsound to work
+	self.soundmaker = spawn info_notnull 
+	self.soundmaker.origin = self.origin	
+		
+	// hide the hag, it's just a sound source
+	self.soundmaker rendereffects "+dontdraw"
+		
+	// broadcast so that line of sight does not interfere with playing the sound
+	self.soundmaker svflags "+broadcast"	 
+	
+	// if wait is 0 then just loop the sound repeatedly
+	if( local.wait != NIL && local.wait != NULL && local.wait >= 1)	
+	{	  
+		// if you have a wait value attached to the script_origin, play the sound on a wait
+		if (self.volume != NIL && self.volume != NULL)
+			if (self.min_distance != NIL && self.min_distance != NULL)
+				while( 1 )
+				{					
+					self.soundmaker playsound local.sndAlias self.volume self.min_distance
+					wait local.wait
+				}
+			else
+				while(1)
+				{
+					self.soundmaker playsound local.sndAlias self.volume
+					wait local.wait
+				}
+		else
+		{
+			while(1)
+			{
+				self.soundmaker playsound local.sndAlias
+				wait local.wait
+			}
+		}
+	}
+	else
+	{		
+		// loop it
+		if (self.volume != NIL && self.volume != NULL)
+			if (self.min_distance != NIL && self.min_distance != NULL)
+				if (self.max_distance != NIL && self.max_distance != NULL)
+					self.soundmaker loopsound local.sndAlias self.volume self.min_distance self.max_distance
+				else
+					self.soundmaker loopsound local.sndAlias self.volume self.min_distance
+			else
+				self.soundmaker loopsound local.sndAlias self.volume
+		else
+			self.soundmaker loopsound local.sndAlias
+	}
+
+end
+
+
+// NOTES:
+// Some other ways to make sounds come from entities:
+//
+//
+// 	Old Occupation Method:
+//		self.soundmaker = spawn script_model model "fx/dummy.tik"
+//		self.soundmaker.origin = self.origin
+//		self.soundmaker notsolid 
+//		self.soundmaker svflags "+broadcast"
+//
+//
+//	Airfield Generator Method:
+//		// if wait is 0 then just loop the sound repeatedly
+//		// needed to spawn this hag in order for loopsound to work
+//		self.soundmaker = spawn script_model model "models/common/manmade/props/lantern_hanging.hag" "origin" self.origin "scale" "0.01"		
+//	
+//		// move the origin up a bit, siren sounds better
+//		self.soundmaker.origin = self.origin + (0 0 20)
+//	
+//		// hide the hag, it's just a sound source
+//		self.soundmaker rendereffects "+dontdraw"
+//	
+//		// broadcast so that line of sight does not interfere with playing the sound
+//		self.soundmaker svflags "+broadcast"	  
+//	
+//		// loop it
+//		self.soundmaker loopsound local.sndAlias
+//
+//	

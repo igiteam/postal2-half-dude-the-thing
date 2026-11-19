@@ -1,0 +1,211 @@
+//
+// mp_parallel_objectives.scr
+//
+// This script is used to keep the compass pointing at the correct
+// objective during concurrent item objectives that can be done in 
+// any order (e.g. blowing up 3 anti-aircraft guns).  It can also be
+// specified that the compass follows moving objectives.
+//
+// The initialize function will ultimately create a trigger_relay
+// which will be triggered when all the objectives are complete.
+//
+// 03.22.04 VDODS - original version
+//
+
+//-----------------
+main:
+//-----------------
+
+	// used to trap accidental execs on this script
+	
+end
+
+
+//-----------------
+initialize local.debug:
+//-----------------
+
+	// call this function and save the return value to initialize
+	// the parallel objective functionality.  subsequent calls to
+	// add_objective and complete_objective will use this returned value.
+	//
+	// the returned script_origin contains a trigger_relay called
+	// "completeTrigger" which will be triggered when all the objectives
+	// have been completed.
+	
+	// self is undefined
+	
+	// spawn a script origin to contain the data which will be returned
+	local.retval = spawn script_origin
+	
+	// init to no objectives.  the script will have to add each one
+	local.retval.numObjectives = 0
+	// spawn a trigger_relay which will be triggered when all objectives
+	// have been completed
+	local.retval.completeTrigger = spawn trigger_relay
+	// set this parallel objective object to active
+	local.retval.active = 1
+	// set the debug flag
+	if (local.debug != NIL && local.debug != NULL)
+		local.retval.debug = local.debug
+	else
+		local.retval.debug = 0
+		
+	local.retval waitthread debug_message "initialize"
+	
+	// start the objective monitor (for moving objectives)
+	local.retval thread objective_monitor
+	
+end local.retval // return the script_origin used to store the values
+	
+
+//-----------------
+add_objective local.objective local.objectiveCanMove:
+//-----------------
+
+	// this function is used to add an objective to the list of concurrent
+	// objectives.  it will return an integer value which must be saved
+	// so that calls to complete_objective can indicate which objective
+	// has been completed.  pass whateven object the compass should point
+	// to as local.objective, and 1 or 0 indicating wether or not the
+	// compass should be updated each frame to point to the objective
+	// (a moving objective).
+	
+	// self is the script_origin returned by initialize
+	
+	if (local.objectiveCanMove == NIL || local.objectiveCanMove == NULL)
+		local.objectiveCanMove = 0
+	
+	self waitthread debug_message ("add_objective " + local.objective.targetname + " " + local.objectiveCanMove)
+
+	// increase the number of stored objectives
+	self.numObjectives++
+	// store the objective
+	self.objectiveArray[self.numObjectives] = local.objective
+	// store if the objective can move
+	self.objectiveCanMoveArray[self.numObjectives] = local.objectiveCanMove
+	
+	// update the compass (this may be the first objective)
+	self waitthread update_compass
+	
+end self.numObjectives // return the number assigned to this objective
+	
+	
+//-----------------
+complete_objective local.number:
+//-----------------
+
+	// this function is used by the map script to indicate that
+	// a particular objective has been completed
+
+	// self is the script_origin returned by initialize
+	
+	// just do a sanity check first
+	if (local.number < 1 || local.number > self.numObjectives)
+		end
+		
+	self waitthread debug_message ("complete_objective " + local.number)
+	
+	// effectively remove the specified objective from the list
+	self.objectiveArray[local.number] = NULL
+	self.objectiveCanMoveArray[local.number] = NULL
+	
+	// update the compass
+	self waitthread update_compass
+end
+	
+	
+//----------------------------------------------------------------------------
+// internal script functions
+//----------------------------------------------------------------------------
+	
+	
+//-----------------
+update_compass:
+//-----------------
+
+	// self is the script_origin returned by initialize
+
+	self waitthread debug_message "update_compass"
+	
+	for (local.i = 1; local.i <= self.numObjectives; local.i++) {
+		if (self.objectiveArray[local.i] != NIL && self.objectiveArray[local.i] != NULL) {
+			waitthread global/mp_invader.scr::set_objective_position self.objectiveArray[local.i].origin
+			self waitthread debug_message ("update_compass - ending on " + local.i)
+			end
+		}
+	}
+	
+	// deactivate this parallel objective object.
+	self.active = 0
+end
+
+
+//-----------------
+objective_monitor:
+//-----------------
+
+	// self is the script_origin returned by initialize
+	
+	while (self.active) {
+		// get the first incomplete objective
+		local.i = self waitthread get_first_incomplete_objective
+		// check if the compass must track it
+		if (self.objectiveCanMoveArray[local.i]) {
+			// keep updating the compass as long as this 
+			// objective remains the current one
+			while (local.i == (self waitthread get_first_incomplete_objective)) {
+				// update the compass
+				self waitthread debug_message ("objective_monitor - setting compass to point to #" + local.i)
+				thread global/mp_invader.scr::set_objective_position self.objective[local.i].origin
+				// wait a frame
+				waitframe
+			}
+		}
+		// wait a frame to check again
+		waitframe
+	}
+
+	// reaching this line indicates all objectives are complete
+	self waitthread debug_message "objective_monitor - triggering completeTrigger"
+	trigger self.completeTrigger
+	
+	// wait a bit and delete the trigger and self
+	wait 3
+	self waitthread debug_message "objective_monitor - removing completeTrigger and self"
+	self.completeTrigger remove
+	self remove
+end
+
+
+//-----------------
+get_first_incomplete_objective:
+//-----------------
+
+	// returns the index of the first incomplete objective
+	// (or 0 if they are all complete)
+	
+	// self is the script_origin returned by initialize
+	
+	// go from first to last objective, checking for the first active one
+	for (local.i = 1; local.i <= self.numObjectives; local.i++)
+		if (self.objectiveArray[local.i] != NIL && self.objectiveArray[local.i] != NULL)
+			end local.i // return this index
+			
+end 0 // all objectives were completed, return sentinel 0
+		
+			
+//--------------------
+debug_message local.message:
+//--------------------
+	
+	// used to print the given message depending on if 
+	// self.debug is set to 1
+	
+	// self is the script_origin returned by initialize
+
+	if (self.debug != NIL && self.debug != NULL && self.debug != 0)
+		dprintln "mp_parallel_objectives.scr::" local.message
+end
+
+	

@@ -1,0 +1,1 @@
+class LPDamageTypeLaRocheVsEMP_Proj extends LPDamageTypeEMPGrenade;

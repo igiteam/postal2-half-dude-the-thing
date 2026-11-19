@@ -1,0 +1,233 @@
+///////////////////////////////////////////////////////////////////////////////
+// RocketExpl
+//
+// explosion for a rocket
+///////////////////////////////////////////////////////////////////////////////
+class NukeExplosion extends RocketExplosion;
+/*
+var vector BlowOffMom;
+
+///////////////////////////////////////////////////////////////////////////////
+// Given this index, cut off that limb
+// Assumes it's there to cut
+// Uses given momentum instead of pre-calculated momentum
+///////////////////////////////////////////////////////////////////////////////
+function CutThisLimb(AWPerson BlowOffPawn, Pawn instigatedBy, int cutindex, vector momentum, float DoSound,
+				 float DoBlood)
+{
+	local coords usec, usec2;
+	local Limb uselimb;
+	local rotator LimbRot;
+	local Stump usestump;
+	local P2Emitter sblood;
+	local vector hitlocation, usev;
+	local Vector UseMom;
+
+	// We got something chopped off
+	BlowOffPawn.bMissingLimbs=true;
+	// Mark if it was a leg, specifically
+	if(cutindex == BlowOffPawn.LEFT_LEG
+		|| cutindex == BlowOffPawn.RIGHT_LEG)
+		BlowOffPawn.bMissingLegParts=true;
+
+	// Shrink bone just before it, completely
+	BlowOffPawn.SetBoneScale(cutindex+1, 0.0, BlowOffPawn.SeverBone[cutindex+1]);
+	// Mostly shrink the bone we've specified to keep some of the joint
+	BlowOffPawn.SetBoneScale(cutindex, 0.2, BlowOffPawn.SeverBone[cutindex]);
+	// Both bones are gone now
+	BlowOffPawn.BoneArr[cutindex+1] = 0;
+	BlowOffPawn.BoneArr[cutindex] = 0;
+
+	// Generate limb cut off
+	// Move hit location to bone joint of the next part down
+	usec = BlowOffPawn.GetBoneCoords(BlowOffPawn.SeverBone[cutindex+1]);
+	hitlocation = usec.origin;
+	// momentum for limbs is different
+	LimbRot=rotator(usec.Xaxis);
+	// Move the limb forward a little too, because it's centered in the limb, but
+	// we want the joints to look close.
+	hitlocation = BlowOffPawn.MOVE_LIMB*vector(LimbRot) + hitlocation;
+//	Momentum = LimbMomMag*(Normal(HitLocation - Location) + 0.01*VRand());// + Velocity*Mass;
+	UseMom = Momentum + 300*VRand();
+	uselimb = spawn(BlowOffPawn.LimbClass,BlowOffPawn,,HitLocation,Rotation);
+	if(uselimb != None)
+	{
+		uselimb.SetupLimb(BlowOffPawn.Skins[0], BlowOffPawn.AmbientGlow, LimbRot, BlowOffPawn.bIsFat, BlowOffPawn.bIsFemale, BlowOffPawn.bPants);
+		uselimb.GiveMomentum(Momentum);
+		// Synch up your limbs to be dissolved the same as your body
+//		if(AWZombie(self) != None)
+//			uselimb.SetLimbToDissolve(TimeTillDissolve);
+		if(cutindex < BlowOffPawn.RIGHT_ARM)
+			uselimb.ConvertToLeftArm();
+		else if(cutindex < BlowOffPawn.LEFT_LEG)
+			uselimb.ConvertToRightArm();
+		else if(cutindex < BlowOffPawn.RIGHT_LEG)
+			uselimb.ConvertToLeftLeg();
+		else
+			uselimb.ConvertToRightLeg();
+		// Make section you cut through explode
+		usec2 = BlowOffPawn.GetBoneCoords(BlowOffPawn.SeverBone[cutindex]);
+		// make it spawn about halfway between the two bones
+		usev = (usec.origin + usec2.origin)/2;
+	}
+
+	if(FRand() < DoBlood)
+		spawn(class'LimbExplode',BlowOffPawn,,usev);
+
+	if(FRand() < DoSound)
+		// play gross sound
+		BlowOffPawn.PlaySound(BlowOffPawn.CutLimbSound,,,,,GetRandPitch());
+
+	// Now add stump to the bone that was cut on the person
+	usestump = spawn(BlowOffPawn.StumpClass,BlowOffPawn,,usec2.origin);
+	BlowOffPawn.Stumps.Insert(BlowOffPawn.Stumps.Length, 1);
+	BlowOffPawn.Stumps[BlowOffPawn.Stumps.Length-1] = usestump;
+	BlowOffPawn.AttachToBone(usestump, BlowOffPawn.SeverBone[cutindex]);
+	usestump.SetupStump(BlowOffPawn.Skins[0], BlowOffPawn.AmbientGlow, BlowOffPawn.bIsFat, BlowOffPawn.bIsFemale, BlowOffPawn.bPants, BlowOffPawn.bSkirt);
+	if(cutindex < BlowOffPawn.RIGHT_ARM)
+		usestump.ConvertToLeftArm();
+	else if(cutindex < BlowOffPawn.LEFT_LEG)
+		usestump.ConvertToRightArm();
+	else if(cutindex < BlowOffPawn.RIGHT_LEG)
+		usestump.ConvertToLeftLeg();
+	else
+		usestump.ConvertToRightLeg();
+	// attach blood too
+	sblood= spawn(BlowOffPawn.StumpBloodClass,BlowOffPawn,,usec2.origin);
+	BlowOffPawn.AttachToBone(sblood, BlowOffPawn.SeverBone[cutindex]);
+
+	// Tell the dude if he did it
+	if(AWDude(InstigatedBy) != None)
+		AWDude(InstigatedBy).CutLimb(BlowOffPawn);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Tear the torso from the extremities and send it flying backwards,
+// while the limbs and head fall to the ground
+// Must have all your limbs to start with
+// Uses given momentum instead of precalculated momentum
+///////////////////////////////////////////////////////////////////////////////
+function BlowOffHeadAndLimbs(AWPerson BlowOffPawn, Pawn InstigatedBy, vector momentum)
+{
+	local int i;
+	log(self@"BlowOffHeadAndLimbs start: Pawn"@BlowOffPawn@"Instigator"@InstigatedBy@"Momentum"@Momentum);
+
+	// Tear off head
+
+	if (BlowOffPawn.bHasHead && BlowOffPawn.MyHead != None)
+	{
+		log(BlowOffPawn$".PopOffHead");
+		BlowOffPawn.PopOffHead(BlowOffPawn.Location, momentum);
+		BlowOffPawn.PlaySound(BlowOffPawn.BladeCleaveNeckSound,,,,,BlowOffPawn.GetRandPitch());
+	}
+
+	// Tear off all limbs
+	for(i=0; i<BlowOffPawn.SeverBone.Length; i+=2)
+	{
+		if (BlowOffPawn.BoneArr[i] == 1)
+		{
+			log(BlowOffPawn$".CutThisLimb");
+			CutThisLimb(BlowOffPawn, InstigatedBy, i, momentum, 0.5, 0.5);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CheckHurtRadius is final in normal explosion
+///////////////////////////////////////////////////////////////////////////////
+simulated function CheckHurtRadius2( float DamageAmount, float DamageRadius,
+										 class<DamageType> DamageType, float MomMag, vector HitLocation )
+{
+	local actor Victims;
+	local float damageScale, dist;
+	local vector dir;
+	local vector Momentum;
+	local bool bDoHurt;
+	local int FinalDamage;
+	local vector UseBlowOffMom;
+
+	foreach CollidingActors( class 'Actor', Victims, DamageRadius, HitLocation )
+	{
+		if( (!Victims.bHidden)
+			&& (Victims != self) 
+			&& (Victims.Role == ROLE_Authority) )
+		{
+			// If it's a player pawn (main player in single, or anyone in multi)
+			// then check to have explosions blocked by 'walls'.
+			if(Pawn(Victims) != None
+				&& PlayerController(Pawn(Victims).Controller) != None)
+			{
+				// solid check
+				if(FastTrace(Victims.Location, Location))
+					bDoHurt=true;
+				else // something in the way, so don't do hurt this time
+					bDoHurt=false;
+			}
+			else
+				bDoHurt=true;
+
+			if(bDoHurt)
+			{
+				dir = Victims.Location - HitLocation;
+				dist = FMax(1,VSize(dir));
+				dir = dir/dist;
+				damageScale = 1 - FMax(0,(dist - Victims.CollisionRadius)/DamageRadius);
+				Momentum = (damageScale * MomMag * dir);
+				// Create a fake momentum vector which emphasizes being thrown into the air
+				if(dir.z > 0)
+					Momentum.z += (MomMag*(1- dist/DamageRadius));
+
+				FinalDamage = damageScale * DamageAmount;
+
+				if (AWPerson(Victims) != None)
+				{
+					if (FinalDamage*(1-AWPerson(Victims).ARMOR_EXPLODED_BLOCK) >= AWPerson(Victims).Health)
+					{
+						UseBlowOffMom = BlowOffMom + 250 * (Victims.Location - Location) + 50 * VRand();
+						BlowOffHeadAndLimbs(AWPerson(Victims), Instigator, UseBlowOffMom);
+					}
+				}
+
+				Victims.TakeDamage
+				(
+					FinalDamage,
+					Instigator,
+					Victims.Location - 0.5 * (Victims.CollisionHeight + Victims.CollisionRadius) * dir,
+					Momentum,
+					DamageType
+				);
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+auto state Exploding
+{
+Begin:
+	PlaySound(ExplodingSound,,1.0,,,,true);
+	Sleep(DelayToHurtTime);
+	CheckHurtRadius2(ExplosionDamage, ExplosionRadius, MyDamageType, ExplosionMag, ForceLocation);
+	Sleep(DelayToNotifyTime);
+	NotifyPawns();
+}
+*/
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    ExplodingSound=Sound'AW7Sounds.Nuke.Nuke'
+    ExplosionMag=200000.0000000
+    ExplosionDamage=360.0000000
+    ExplosionRadius=1500.0000000
+    MyDamageType=Class'NukeDamage'
+    Emitters[0]=SpriteEmitter'SpriteEmitter27'
+    Emitters[1]=SpriteEmitter'SpriteEmitter28'
+    Emitters[2]=SpriteEmitter'SpriteEmitter29'
+    Emitters[3]=SpriteEmitter'SpriteEmitter30'
+    Emitters[4]=SpriteEmitter'SpriteEmitter31'
+    Emitters[5]=SuperSpriteEmitter'SuperSpriteEmitter16'
+    bAlwaysRelevant=true
+    LifeSpan=12.0000000
+}

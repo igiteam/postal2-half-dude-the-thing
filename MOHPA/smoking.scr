@@ -1,0 +1,293 @@
+// --------------------------------------------------------------------------------
+// Smoking.scr
+//
+// This is a sub script that can be called as a subroutine
+// whenever an animation behavior wants to smoke
+
+// --------------------------------------------------------------------------------
+
+
+// --------------------------------------------------------------------------------
+Smoke:
+//
+//	Will play our various smoking animations until it's time to throw it out...
+//
+// --------------------------------------------------------------------------------
+
+	// make sure we're standing up when we start smoking
+	self waitthread anim/stand.scr::transition
+
+	if ( self.smoking_starttime==NIL )
+		self.smoking_starttime = 0
+
+	if ( self.smoking_starttime==0 )
+	{
+		self waitthread LightUp
+	}
+
+	self waitthread SmokingLoop
+
+	end
+
+
+// --------------------------------------------------------------------------------
+LightUp:
+// --------------------------------------------------------------------------------
+	self setmotionanim xxxxx_smoking_light
+	self waittill flaggedanimdone
+
+//	dprintln "Lighting up a cig!"
+
+	if ( self.smoking_mintime==NIL )
+		self.smoking_mintime = 30
+
+	if ( self.smoking_maxtime==NIL )
+		self.smoking_maxtime  = 60
+
+	self.smoking_starttime			= level.time
+	self.smoking_endtime			= level.time + self.smoking_mintime + randomfloat (self.smoking_maxtime - self.smoking_mintime)
+//	self.smoking_endtime			= level.time + 10
+	self.idletaskexitthread			= "anim/smoking.scr::SmokingInterrupt"
+
+	end
+
+// --------------------------------------------------------------------------------
+SmokingLoop:
+// --------------------------------------------------------------------------------
+
+	local.took_hit = 0
+
+	self setmotionanim xxxxx_smoking_inhale
+	self waittill flaggedanimdone
+
+	local.took_hit = 2
+
+
+	while ( isAlive self && level.time < self.smoking_endtime )
+	{
+		local.random = randomint 100
+
+		if ( local.took_hit==0 && local.random < 30 )
+		{
+			self setmotionanim xxxxx_smoking_inhale
+			self waittill flaggedanimdone
+
+			// flag so we don't do 2 inhales in a row...
+			local.took_hit = 3
+		}
+		else
+		{
+			self setmotionanim xxxxx_smoking_idle
+			self waittill flaggedanimdone
+
+			if ( local.took_hit > 0 )
+				local.took_hit --
+		}
+	}
+
+	if ( isAlive self )
+	{
+//		dprintln "Time to stop smoking."
+		// all done with this smoke...
+		self setmotionanim xxxex_smoking_throwaway
+		self waittill flaggedanimdone
+
+//		dprintln "Threw cigarette away!."
+
+	}
+
+	self.smoking_starttime = 0
+
+	end
+
+// --------------------------------------------------------------------------------
+SmokingInterrupt:
+//
+//	Will play animation to get rid of my cigarette and start fighting...
+//
+// --------------------------------------------------------------------------------
+
+//	dprintln "smoking interrupt!!"
+
+	self setmotionanim xxxcx_smoking_throwaway
+	self waittill flaggedanimdone
+	self.smoking_starttime = 0
+
+	end
+
+// --------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------------
+SmokeRemoveCigarette:
+RemoveCigarette:
+// --------------------------------------------------------------------------------
+
+	end
+
+// --------------------------------------------------------------------------------
+StartSmoking local.howlongmin local.howlongmax:
+//
+//	This function can be called from outside scripts. 
+//	Will auto-launch and idle task that will do the smoking bit...
+// --------------------------------------------------------------------------------
+
+	// jsl-->Mohpa kicked the habit on 09/23/2004  (for ERSB reasons)
+	end
+
+	self.smoking_mintime	= local.howlongmin
+	self.smoking_maxtime	= local.howlongmax
+
+
+	self.idletaskthread		= "anim/smoking.scr::Smoke"
+
+	self waittill taskdone
+
+	end
+
+
+/* old allied assault stuff...
+
+SmokeCigaretteInit:
+
+	// TODO: MJG - disabled to reduce console error spamming
+	end
+	
+	
+	if (self.smokinginitialized != "yes")
+	{
+		//println "smoking init"
+		self.cigarettelit = 0
+		self.smokesremaining = 0
+		self.cigarettesremaining = randomint 10
+		self.smokinginitialized = "yes"
+		self.nextsmoketime = level.time + ((randomint 100)/10) + 5
+
+		// Initialise say manager
+		self waitthread anim/SayManager.scr::Init
+	}
+end
+
+
+//===================================================================================
+SmokeCigarette:
+
+	// TODO: MJG - disabled to reduce console error spamming
+	end
+	
+	if ( (self.bIAmASmoker != NIL) && (self.bIAmASmoker == 0) )
+	{
+		end
+	}
+
+	//Should I smoke?
+	local.randnum = randomint 100
+	
+	if (self.cigarettelit == 0)
+	{
+		if ( (level.time > self.nextsmoketime) && (local.randnum < 30) )
+		{
+			if (self.cigarettesremaining > 0)
+			{
+				//println "Lighting up cigarette"
+				
+				//stop, light up cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking01  
+				self thread anim/SayManager.scr::SayManager smoking_lightup_face 2
+				self waittill flaggedanimdone
+				
+				self.cigarettelit = 1
+				self.smokesremaining = randomint(3) + 4
+				self.cigarettesremaining = self.cigarettesremaining - 1
+				
+				//put down cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking02  
+				self thread anim/SayManager.scr::SayManager smoking_firstinhale_face 2
+				self waittill flaggedanimdone
+				
+				//println "Done lighting up cigarette"
+			}
+		}
+	}
+	else if (local.randnum <70)
+	{
+		if (self.smokesremaining > 0)
+		{
+			//println "Puffing up cigarette"
+			
+			//puff cigarette
+			self.blendtime = 0.5
+			self setupperanim (smoking03) 
+			//self setmotionanim (aim_leg_stance)
+			self thread anim/SayManager.scr::SayManager smoking_inhale_face 2
+			self waittill upperanimdone
+			
+			self.smokesremaining = self.smokesremaining - 1
+			
+			//println "Done puffing up cigarette"
+		}
+		else
+		{
+			//println "Throwing away cigarette"
+			
+			local.randnum = randomint 100
+
+			if (local.randnum > 50)
+			{
+				//put down and extinguish cigarette
+				self.blendtime = 0.5
+				self setmotionanim smoking04  
+				self thread anim/SayManager.scr::SayManager smoking_buttout_face 2
+				self waittill flaggedanimdone
+			}
+			else
+			{
+				//put down and throw cigarette 
+				self.blendtime = 0.5
+				self setupperanim (smoking05) 
+				//self setmotionanim (aim_leg_stance)
+				self waittill upperanimdone
+			}
+			
+			self.cigarettelit = 0
+			self.nextsmoketime = level.time + ((randomint 150)/10) + 15
+			
+			//println "Done throwing away cigarette"
+		}
+	}
+		
+end
+
+//===================================================================================
+//This should be called before changing states (idle,stand,attack,aim,shoot..etc etc)
+//SmokeThrowCigarette:
+//	if (self.cigarettelit > 0)
+//	{
+//		self.blendtime = 0.5
+//		self setupperanim (smoking05)
+//		self waittill upperanimdone
+//		self.cigarettelit = 0
+//	}
+//end
+
+
+//===================================================================================
+//This is basically called by the pain script to remove cigarettes
+SmokeRemoveCigarette:
+
+	// TODO: MJG - disabled to reduce console error spamming
+	end
+
+	//if (self.smokinginitialized == "yes")
+	//{
+		if (self.cigarettelit == 1)
+		{
+			self removeattachedmodel "Bip01 L Finger11"
+			self.cigarettelit = 0
+		}
+	//}
+end
+
+*/
