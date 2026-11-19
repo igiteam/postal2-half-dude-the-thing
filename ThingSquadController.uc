@@ -15,6 +15,79 @@
 //   signature against the exact Postal 2 SDK/compiler you are using.
 // ============================================================================
 
+/*
+===============================================================================
+HOW TO INITIALISE THE SQUAD
+===============================================================================
+
+The controller does not automatically know which NPCs belong together.
+Your spawn script must initialise the leader first, then register the
+other NPCs.
+
+
+LEADER:
+
+    CaptainController.InitializeSquad("PlayerSquad", "Captain");
+    CaptainController.CreateSquad();
+
+
+OTHER MEMBERS:
+
+    MarineController.InitializeSquad("PlayerSquad", "Marine");
+    MarineController.JoinSquad(CaptainController);
+
+
+ISSUE AN ORDER:
+
+    CaptainController.OrderAdvance();
+    CaptainController.OrderFallback();
+    CaptainController.OrderFlank();
+    CaptainController.OrderCharge();
+    CaptainController.OrderHold();
+    CaptainController.OrderFollow();
+
+
+===============================================================================
+IMPORTANT COMPATIBILITY NOTES
+===============================================================================
+
+This is a consolidated implementation, but it has not been compile-verified.
+The following items need checking against your Postal 2 SDK:
+
+1. MoveToward(Vector)
+   Retained from the original code. Verify the exact Postal 2 controller
+   function signature.
+
+2. Dynamic arrays
+   AddItem() and Remove() must be supported by your UnrealScript compiler.
+
+3. Formation vectors
+   Cross, Normal and Vector(Rotation) expressions should be checked with
+   the UE2 compiler.
+
+4. Leader death
+   Call HandleSquadMemberDeath() from the actual NPC death/destruction path.
+   The controller cannot reliably detect every Pawn destruction scenario
+   by itself.
+
+===============================================================================
+*/
+
+ORIGINAL SQUAD FILE
+https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/MOHPA/squad.scr
+https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/MOHPA/playersquadnode.scr
+POSTAL2 SPECIFIC
+https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/FollowPlayerController.uc
+https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/AIController.uc
+https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/FPSController.uc
+https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/Postal2Game/AIScript.uc
+HL2 SPECIFIC
+https://github.com/lua9520/source-engine-2018-hl2_src/blob/master/game/client/hud_squadstatus.cpp
+https://github.com/Planimeter/hl2sb-src/blob/master/src/game/server/ai_squad.h
+https://github.com/Planimeter/hl2sb-src/blob/master/src/game/server/ai_squad.cpp
+https://github.com/Planimeter/hl2sb-src/blob/master/src/game/server/ai_squadslot.cpp
+https://github.com/Planimeter/hl2sb-src/blob/master/src/game/server/ai_basenpc_squad.cpp
+
 class ThingSquadController extends FPSController;
 
 
