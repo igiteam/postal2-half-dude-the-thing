@@ -142,3 +142,33 @@ My recommendation is yes. That gives you the RTCW flame behaviour while retainin
 *Licensing note:* the RTCW source identifies itself as GPLv3-or-later with additional terms. If you distribute a derivative implementation, retain the appropriate notices and check the applicable licence requirements.&#x20;
 
 GitHub
+
+'ve received FlameWeapon.uc and inspected its implementation. This gives us the weapon-side integration needed to start the port.
+
+Important discovery: your weapon is called FlameWeapon, extends P2WeaponStreaming, and uses FlameProjectile as its projectile class. I'll preserve those names and the existing inheritance rather than introducing an incompatible replacement called FlamethrowerWeapon.
+What your existing weapon does
+Your current Streaming state:
+- Plays the existing wind-up and looping firing animations.
+- Consumes ammunition through ReduceAmmo(DeltaTime).
+- Spawns a FlameProjectile while firing.
+- Handles NPC firing through BotFire().
+- Uses the existing start, loop and end sounds.
+The main change will be replacing the repeated independent projectile behaviour with a continuous RTCW-style flame stream.
+RTCW values confirmed from the original C source
+These are actual source values, not estimates:
+Parameter	RTCW value
+Initial flame speed	950 units/sec
+Starting flame size	1
+Target flame size	140
+Maximum flame size	200
+Friction	950 units/sec²
+Blue ignition length	230 units
+Flame chunk spacing	4 units
+Damage check interval	100 ms
+Original chunk pool	2,048
+
+The movement algorithm is particularly important: it reduces velocity through friction, calculates the next position, traces against the world, reflects the velocity from collision normals and reduces speed after bouncing. 
+One source discrepancy
+The uploaded file is FlameWeapon.uc, whereas your original GitHub link points to FlamethrowerWeapon.uc. I'll use the uploaded FlameWeapon class as the current integration target, rather than silently assuming they are interchangeable.
+First UnrealScript implementation
+I'd start with the individual flame chunk, because it contains the core RTCW simulation.
