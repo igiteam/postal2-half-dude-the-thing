@@ -113,22 +113,38 @@ Nobody knows who is infected. There are no cutscenes that reveal the monster. Th
 
 ## Postal 2 Test Maps
 
-Thing_Test_Wind.fuk
-Thing_Test_Wind_Physics.fuk
-Thing_Test_Fire.fuk
-Thing_Test_Fire_Propagation.fuk
-Thing_Test_Fire_Wind_Interaction.fuk
-Thing_Test_NPC_Human.fuk
-Thing_Test_NPC_Monster.fuk
-Thing_Test_NPC_Fire_Interaction.fuk
-Thing_Test_Smoke.fuk
-Thing_Test_Debris.fuk
-Thing_Test_Karma_Physics.fuk
-Thing_Test_Environmental_Effects.fuk
-Thing_Test_Combined_Systems.fuk
-Thing_Test_Performance.fuk
-Thing_Test_Stress.fuk
-Thing_Test_Debug.fuk
+- Thing_Test_Wind.fuk
+- Thing_Test_Wind_Physics.fuk
+- Thing_Test_Fire.fuk
+- Thing_Test_Fire_Propagation.fuk
+- Thing_Test_Fire_Wind_Interaction.fuk
+- Thing_Test_NPC_Human.fuk
+- Thing_Test_NPC_Monster.fuk
+- Thing_Test_NPC_Fire_Interaction.fuk
+- Thing_Test_Smoke.fuk
+- Thing_Test_Debris.fuk
+- Thing_Test_Karma_Physics.fuk
+- Thing_Test_Environmental_Effects.fuk
+- Thing_Test_Combined_Systems.fuk
+- Thing_Test_Performance.fuk
+- Thing_Test_Stress.fuk
+- Thing_Test_Debug.fuk
+- Thing_Test_Temperature.fuk
+- Thing_Test_Heating.fuk
+- Thing_Test_Cold_Exposure.fuk
+- Thing_Test_Hypothermia.fuk
+- Thing_Test_Frozen_Objects.fuk
+- Thing_Test_Defrosting.fuk
+- Thing_Test_Weather.fuk
+- Thing_Test_Wind_Chill.fuk
+- Thing_Test_Engine_Heating.fuk
+- Thing_Test_Generator_Heating.fuk
+- Thing_Test_Radiator_Heating.fuk
+- Thing_Test_Local_Temperature_Zones.fuk
+- Thing_Test_Environmental_Survival.fuk
+- Thing_Test_Combined_Thermal_Systems.fuk
+- Thing_Test_Thermal_Performance.fuk
+- Thing_Test_Thermal_Stress.fuk
 
 # How to Add Data in Postal 2
 
