@@ -1,393 +1,1260 @@
+
 // ============================================================================
 // ThingSquadController.uc
-// The Paranoia Engine: A Deep AI System for The Thing Remake
+// The Paranoia Engine - Postal 2 / Unreal Engine 2
 //
-// This class replaces Postal 2's standard FPSController with a multi-layered
-// psychological simulation inspired by:
-// 1. The 2002 The Thing Video Game (Trust/Fear/Infection).
-// 2. Medal of Honor: Pacific Assault (Morale System, Squad Tactics).
-// 3. Nightfire PS2 (Weapon sway/ADS, though that's on the weapon).
+// Squad system inspired by Medal of Honor: Pacific Assault.
+// Also retains the existing infection, psychology and morale systems.
 //
-// Base Class: FPSController (Postal 2's native AI brain)
+// IMPORTANT:
+// - Initialise each NPC's squad from its spawning script.
+// - Call InitializeSquad() for every squad member.
+// - Call CreateSquad() for the leader.
+// - Call JoinSquad() for every other member.
+// - MoveToward() is retained from the original controller. Verify its
+//   signature against the exact Postal 2 SDK/compiler you are using.
 // ============================================================================
 
 class ThingSquadController extends FPSController;
 
+
 // ============================================================================
-// SECTION 1: CORE PARANOIA VARIABLES
+// SECTION 1: INFECTION STATE
 // ============================================================================
 
-// --- INFECTION STATE ---
-var bool  bIsInfected;          // The dark secret. Is this NPC a Thing?
-var float InfectionTimer;       // Seconds until transformation if not tested.
-var bool  bHasTransformed;      // Prevents double-transformation.
+var bool bIsInfected;
+var float InfectionTimer;
+var bool bHasTransformed;
 
-// --- PSYCHOLOGY STATE (Multi-Axis) ---
-var float TrustLevel;           // 0 = Will shoot you, 100 = Loyal ally
-var float FearLevel;            // 0 = Calm, 100 = Screaming in terror
-var float ParanoiaLevel;        // 0 = Relaxed, 100 = Sees threats everywhere
 
-// --- MOHPA-INSPIRED MORALE SYSTEM (0-19 Scale) ---
-// Source: MoHPA Class Reference - morale(Integer morale, Integer bReact)
-// In MoHPA, morale is a single 0-19 value. We use it as a "combat stress" meter.
-var int   MoraleLevel;          // 0-19 scale. 0 = Broken, 19 = Unbreakable.
-var int   MoraleBaseMin;        // The minimum morale this NPC drifts back to.
-var int   MoraleBaseRate;       // How fast morale drifts back to baseline.
-var bool  bMoraleEnabled;       // Toggle for the morale system.
+// ============================================================================
+// SECTION 2: PSYCHOLOGY STATE
+// ============================================================================
 
-// --- MOHPA-INSPIRED SQUAD TACTICS ---
-// Source: MoHPA Class Reference - order_advance, order_flankleft, etc.
-var string CurrentTactic;       // "none", "advance", "fallback", "flank", "charge"
-var ThingSquadController SquadLeader; // The NPC who issues orders.
+var float TrustLevel;
+var float FearLevel;
+var float ParanoiaLevel;
+
+
+// ============================================================================
+// SECTION 3: MORALE SYSTEM
+// ============================================================================
+
+var int MoraleLevel;
+var int MoraleBaseMin;
+var int MoraleBaseRate;
+var bool bMoraleEnabled;
+
+// Retains fractional morale changes between ticks.
+var float MoraleChangeAccumulator;
+
+
+// ============================================================================
+// SECTION 4: SQUAD SYSTEM
+// ============================================================================
+
+// Squad identity and role.
+var string SquadID;
+var string SquadRole;
+
+// Current order:
+// "none", "advance", "fallback", "flank", "charge", "hold", "follow".
+var string CurrentTactic;
+
+// Squad leadership.
+var ThingSquadController SquadLeader;
 var array<ThingSquadController> SquadMembers;
 
-// --- REFERENCES ---
+var bool bIsSquadLeader;
+var bool bIsInSquad;
+var bool bSquadInitialized;
+
+// Squad movement configuration.
+var bool bSquadMovementEnabled;
+var bool bSquadFollowing;
+var bool bSquadHoldingPosition;
+var bool bSquadCombatActive;
+
+var float SquadFormationSpacing;
+var float SquadFormationDistance;
+
+// Shared order destination.
+var Vector SquadOrderTarget;
+
+// Update throttling.
+var float SquadUpdateInterval;
+var float SquadUpdateTimer;
+
+// Position in the leader's roster.
+// Index zero is reserved for the leader.
+var int SquadMemberIndex;
+
+
+// ============================================================================
+// SECTION 5: REFERENCES
+// ============================================================================
+
 var Pawn MyPawn;
 
+
 // ============================================================================
-// SECTION 2: INITIALIZATION
+// SECTION 6: INITIALIZATION
 // ============================================================================
+
 function PostBeginPlay()
 {
-    Super.PostBeginPlay();
-    
-    MyPawn = Pawn;
-    
-    // --- PSYCHOLOGY DEFAULTS ---
-    TrustLevel    = 50.0;
-    FearLevel     = 0.0;
-    ParanoiaLevel = FRand() * 20.0;
-    
-    // --- MOHPA MORALE DEFAULTS ---
-    // Source: morale_basemin, morale_baserate from MoHPA.
-    // Each NPC has a different "breaking point".
-    MoraleLevel   = 10 + (FRand() * 9); // Start between 10 and 19
-    MoraleBaseMin = 5 + (FRand() * 10); // Drift back to 5-15
-    MoraleBaseRate = 1;
-    bMoraleEnabled = true;
-    
-    // --- INFECTION ROLL ---
-    if (FRand() < 0.25)
-    {
-        bIsInfected = true;
-        InfectionTimer = 30.0 + (FRand() * 150.0);
-        Log("THING: NPC " $ MyPawn $ " is INFECTED. Timer: " $ InfectionTimer);
-    }
-    
-    // --- SQUAD ASSIGNMENT ---
-    CurrentTactic = "none";
+Super.PostBeginPlay();
+
+MyPawn = Pawn;
+
+// Psychology defaults.
+TrustLevel = 50.0;
+FearLevel = 0.0;
+ParanoiaLevel = FRand() * 20.0;
+
+// Morale defaults.
+MoraleLevel = 10 + int(FRand() * 10);
+MoraleBaseMin = 5 + int(FRand() * 11);
+MoraleBaseRate = 1;
+bMoraleEnabled = true;
+MoraleChangeAccumulator = 0.0;
+
+// Infection roll.
+if (FRand() < 0.25)
+{
+    bIsInfected = true;
+    InfectionTimer = 30.0 + (FRand() * 150.0);
+
+    Log("THING: NPC " $ MyPawn $
+        " is INFECTED. Timer: " $ InfectionTimer);
 }
 
+// Squad defaults.
+SquadID = "";
+SquadRole = "";
+CurrentTactic = "none";
+
+SquadLeader = None;
+SquadMembers.Length = 0;
+
+bIsSquadLeader = false;
+bIsInSquad = false;
+bSquadInitialized = false;
+
+bSquadMovementEnabled = true;
+bSquadFollowing = false;
+bSquadHoldingPosition = false;
+bSquadCombatActive = false;
+
+SquadFormationSpacing = 180.0;
+SquadFormationDistance = 250.0;
+
+SquadOrderTarget = vect(0,0,0);
+
+SquadUpdateInterval = 0.25;
+SquadUpdateTimer = 0.0;
+
+SquadMemberIndex = -1;
+}
+
+
 // ============================================================================
-// SECTION 3: THE TICK — The Heartbeat of the Paranoia Engine
+// SECTION 7: MAIN TICK
 // ============================================================================
+
 function Tick(float DeltaTime)
 {
-    Super.Tick(DeltaTime);
-    
-    // --- INFECTION CHECK ---
-    if (bIsInfected && !bHasTransformed)
-    {
-        // The infection timer ticks faster when the player isn't looking.
-        if (IsPlayerOutOfSight())
-            InfectionTimer -= 2.0 * DeltaTime;
-        else
-            InfectionTimer -= 1.0 * DeltaTime;
-        
-        if (InfectionTimer <= 0)
-            TransformIntoThing();
-    }
-    
-    // --- PSYCHOLOGY UPDATE ---
-    UpdatePsychology(DeltaTime);
-    
-    // --- MOHPA MORALE UPDATE ---
-    // Source: morale_baserate in MoHPA.
-    UpdateMorale(DeltaTime);
-    
-    // --- SQUAD TACTICS UPDATE ---
-    UpdateSquadTactics(DeltaTime);
+Super.Tick(DeltaTime);
+
+if (MyPawn == None)
+    MyPawn = Pawn;
+
+if (MyPawn == None)
+    return;
+
+// Infection.
+if (bIsInfected && !bHasTransformed)
+{
+    if (IsPlayerOutOfSight())
+        InfectionTimer -= 2.0 * DeltaTime;
+    else
+        InfectionTimer -= 1.0 * DeltaTime;
+
+    if (InfectionTimer <= 0.0)
+        TransformIntoThing();
 }
 
+// Psychology.
+UpdatePsychology(DeltaTime);
+
+// Morale.
+UpdateMorale(DeltaTime);
+
+// Squad management.
+if (bIsSquadLeader)
+    CleanupSquadRoster();
+
+UpdateSquadTactics(DeltaTime);
+}
+
+
 // ============================================================================
-// SECTION 4: THE MOHPA MORALE SYSTEM
+// SECTION 8: MORALE SYSTEM
 // ============================================================================
-// Source: MoHPA Class Reference - morale(Integer morale, Integer bReact)
-// The morale system governs how combat stress affects the NPC.
+
 function UpdateMorale(float DeltaTime)
 {
-    if (!bMoraleEnabled) return;
-    
-    // --- MORALE DECAY (Combat Stress) ---
-    // If the NPC is in combat (enemy nearby, or player is shooting), morale drops.
-    if (IsInCombat())
+if (!bMoraleEnabled)
+    return;
+
+if (IsInCombat())
+{
+    MoraleChangeAccumulator -= 1.0 * DeltaTime;
+}
+else if (MoraleLevel < MoraleBaseMin)
+{
+    MoraleChangeAccumulator += float(MoraleBaseRate) * DeltaTime;
+}
+
+// Convert accumulated fractional changes into integer morale changes.
+while (MoraleChangeAccumulator >= 1.0)
+{
+    MoraleLevel++;
+    MoraleChangeAccumulator -= 1.0;
+}
+
+while (MoraleChangeAccumulator <= -1.0)
+{
+    MoraleLevel--;
+    MoraleChangeAccumulator += 1.0;
+}
+
+MoraleLevel = Clamp(MoraleLevel, 0, 19);
+
+// Low morale: panic response.
+if (MoraleLevel < 5)
+{
+    if (FRand() < 0.1)
     {
-        MoraleLevel -= 1 * DeltaTime;
-    }
-    // --- MORALE RECOVERY (Peace) ---
-    // If the NPC is safe, morale drifts back to baseline.
-    else if (MoraleLevel < MoraleBaseMin)
-    {
-        MoraleLevel += MoraleBaseRate * DeltaTime;
-    }
-    
-    // Clamp the morale to 0-19.
-    MoraleLevel = FClamp(MoraleLevel, 0, 19);
-    
-    // --- MORALE EFFECTS ---
-    // Source: MoHPA's morale levels affect combat behavior.
-    // In our system, low morale = panic.
-    if (MoraleLevel < 5)
-    {
-        // The NPC is breaking. They might flee or freeze.
-        if (FRand() < 0.1)
-        {
-            PlayDialog("aid_lowhealth"); // MoHPA: aid_lowhealth
-            SetToPanic();
-        }
-    }
-    else if (MoraleLevel > 15)
-    {
-        // The NPC is confident. They might advance.
-        if (CurrentTactic == "none")
-            OrderAdvance();
+        PlayDialog("aid_lowhealth");
+        SetToPanic();
     }
 }
 
-// ============================================================================
-// SECTION 5: THE MOHPA SQUAD TACTICS
-// ============================================================================
-// Source: MoHPA Class Reference - order_advance, order_flankleft, etc.
-// These functions replace simple "charge" AI with coordinated tactics.
-function UpdateSquadTactics(float DeltaTime)
+// High morale: confident advance, but only if not already following
+// another squad order.
+else if (MoraleLevel > 15)
 {
-    if (SquadLeader == None)
+    if (CurrentTactic == "none" && bIsSquadLeader)
+        OrderAdvance();
+}
+}
+
+
+// ============================================================================
+// SECTION 9: SQUAD INITIALIZATION
+// ============================================================================
+
+// Call this for every NPC that belongs to a squad.
+//
+// Example:
+// InitializeSquad("PlayerSquad", "Captain");
+//
+function InitializeSquad(string NewSquadID, string NewRole)
+{
+SquadID = NewSquadID;
+SquadRole = NewRole;
+
+CurrentTactic = "none";
+
+SquadLeader = None;
+SquadMembers.Length = 0;
+
+bIsSquadLeader = false;
+bIsInSquad = false;
+bSquadInitialized = true;
+
+SquadMemberIndex = -1;
+
+bSquadFollowing = false;
+bSquadHoldingPosition = false;
+
+Log("SQUAD: Initialised " $ MyPawn $
+    " as " $ SquadRole $ " in squad " $ SquadID);
+}
+
+
+// ============================================================================
+// SECTION 10: CREATE AND JOIN SQUADS
+// ============================================================================
+
+// Call this on the NPC that should lead the squad.
+function CreateSquad()
+{
+if (!bSquadInitialized)
+{
+    Log("SQUAD ERROR: CreateSquad called before InitializeSquad.");
+    return;
+}
+
+if (MyPawn == None)
+    return;
+
+// Leave any previous squad first.
+if (bIsInSquad)
+    LeaveSquad();
+
+SquadMembers.Length = 0;
+
+SquadLeader = Self;
+
+bIsSquadLeader = true;
+bIsInSquad = true;
+
+CurrentTactic = "none";
+
+RegisterSquadMember(Self);
+
+Log("SQUAD: " $ SquadID $
+    " created. Leader: " $ MyPawn);
+}
+
+
+// Call this on a non-leader NPC.
+// NewLeader must already have called CreateSquad().
+function JoinSquad(ThingSquadController NewLeader)
+{
+if (!bSquadInitialized)
+{
+    Log("SQUAD ERROR: JoinSquad called before InitializeSquad.");
+    return;
+}
+
+if (NewLeader == None)
+    return;
+
+if (NewLeader == Self)
+    return;
+
+if (!NewLeader.bIsSquadLeader)
+{
+    Log("SQUAD ERROR: Attempted to join a controller that is not leader.");
+    return;
+}
+
+if (!NewLeader.bIsInSquad)
+    return;
+
+if (NewLeader.SquadID != SquadID)
+{
+    Log("SQUAD ERROR: Squad ID mismatch. Member: " $
+        SquadID $ " Leader: " $ NewLeader.SquadID);
+    return;
+}
+
+if (bIsInSquad)
+    LeaveSquad();
+
+SquadLeader = NewLeader;
+
+bIsSquadLeader = false;
+bIsInSquad = true;
+
+CurrentTactic = NewLeader.CurrentTactic;
+
+NewLeader.RegisterSquadMember(Self);
+
+Log("SQUAD: " $ MyPawn $
+    " joined " $ SquadID $
+    ". Leader: " $ NewLeader.MyPawn);
+}
+
+
+// ============================================================================
+// SECTION 11: MEMBER REGISTRATION
+// ============================================================================
+
+// This function is called on the leader's controller.
+function RegisterSquadMember(ThingSquadController Member)
+{
+local int i;
+
+if (!bIsSquadLeader)
+    return;
+
+if (Member == None)
+    return;
+
+if (Member.MyPawn == None)
+    return;
+
+// Avoid duplicate registrations.
+for (i = 0; i < SquadMembers.Length; i++)
+{
+    if (SquadMembers[i] == Member)
     {
-        // If we don't have a leader, we act alone.
+        Member.SquadLeader = Self;
+        Member.bIsInSquad = true;
+        Member.UpdateSquadIndices();
         return;
     }
-    
-    // Execute the tactic assigned by the leader.
-    switch (CurrentTactic)
-    {
-        case "advance":
-            // Move toward the enemy.
-            MoveToward(GetEnemyLocation());
-            break;
-        case "fallback":
-            // Retreat to a safe location.
-            MoveToward(GetRetreatLocation());
-            break;
-        case "flank":
-            // Move to the side of the enemy.
-            MoveToward(GetFlankLocation());
-            break;
-        case "charge":
-            // Rush the enemy in a Banzai-style attack.
-            SetToPanic(); // Postal 2's equivalent of "Charge!"
-            break;
-    }
 }
 
-// --- SQUAD ORDERS (Callable by the Squad Leader) ---
+SquadMembers.AddItem(Member);
+
+Member.SquadLeader = Self;
+Member.bIsInSquad = true;
+
+Member.UpdateSquadIndices();
+
+Log("SQUAD: Registered " $ Member.MyPawn $
+    ". Squad size: " $ SquadMembers.Length);
+}
+
+
+// Remove a member from the leader's roster.
+function UnregisterSquadMember(ThingSquadController Member)
+{
+local int i;
+
+if (!bIsSquadLeader || Member == None)
+    return;
+
+for (i = SquadMembers.Length - 1; i >= 0; i--)
+{
+    if (SquadMembers[i] == Member)
+        SquadMembers.Remove(i, 1);
+}
+
+UpdateSquadIndices();
+
+Log("SQUAD: Unregistered member. Squad size: " $
+    SquadMembers.Length);
+}
+
+
+// Recalculate each member's formation index.
+function UpdateSquadIndices()
+{
+local int i;
+
+if (!bIsSquadLeader)
+{
+    if (SquadLeader != None)
+        SquadLeader.UpdateSquadIndices();
+
+    return;
+}
+
+for (i = 0; i < SquadMembers.Length; i++)
+{
+    if (SquadMembers[i] != None)
+    {
+        SquadMembers[i].SquadMemberIndex = i;
+        SquadMembers[i].SquadLeader = Self;
+        SquadMembers[i].bIsInSquad = true;
+    }
+}
+}
+
+
+// Returns the number of currently registered members.
+function int GetSquadSize()
+{
+if (!bIsSquadLeader)
+{
+    if (SquadLeader != None)
+        return SquadLeader.GetSquadSize();
+
+    return 0;
+}
+
+return SquadMembers.Length;
+}
+
+
+// Returns this NPC's current roster index.
+function int GetSquadMemberIndex()
+{
+return SquadMemberIndex;
+}
+
+
+// ============================================================================
+// SECTION 12: LEAVING A SQUAD
+// ============================================================================
+
+function LeaveSquad()
+{
+local ThingSquadController OldLeader;
+
+OldLeader = SquadLeader;
+
+if (OldLeader != None && OldLeader != Self)
+{
+    OldLeader.UnregisterSquadMember(Self);
+}
+
+SquadLeader = None;
+
+bIsSquadLeader = false;
+bIsInSquad = false;
+
+SquadMemberIndex = -1;
+
+CurrentTactic = "none";
+
+bSquadFollowing = false;
+bSquadHoldingPosition = false;
+
+Log("SQUAD: " $ MyPawn $ " left squad " $ SquadID);
+}
+
+
+// ============================================================================
+// SECTION 13: LEADER PROMOTION
+// ============================================================================
+
+// Promote the first living member in the current roster.
+// This is intended to be called when the leader dies or is removed.
+function PromoteNextSquadLeader()
+{
+local ThingSquadController NewLeader;
+local ThingSquadController Member;
+local int i;
+
+if (!bIsSquadLeader)
+    return;
+
+NewLeader = None;
+
+// Find the first living member other than the current leader.
+for (i = 0; i < SquadMembers.Length; i++)
+{
+    Member = SquadMembers[i];
+
+    if (Member == None || Member == Self)
+        continue;
+
+    if (Member.MyPawn == None)
+        continue;
+
+    if (Member.MyPawn.Health <= 0)
+        continue;
+
+    NewLeader = Member;
+    break;
+}
+
+if (NewLeader == None)
+{
+    Log("SQUAD: No living member available for leader promotion.");
+
+    SquadMembers.Length = 0;
+    SquadLeader = None;
+
+    bIsSquadLeader = false;
+    bIsInSquad = false;
+
+    return;
+}
+
+Log("SQUAD: Promoting " $ NewLeader.MyPawn $ " to leader.");
+
+// Preserve the old roster before changing leadership.
+NewLeader.SquadMembers.Length = 0;
+
+// Transfer all living members to the new leader.
+for (i = 0; i < SquadMembers.Length; i++)
+{
+    Member = SquadMembers[i];
+
+    if (Member == None || Member == Self)
+        continue;
+
+    if (Member.MyPawn == None)
+        continue;
+
+    if (Member.MyPawn.Health <= 0)
+        continue;
+
+    NewLeader.SquadMembers.AddItem(Member);
+}
+
+// The new leader now owns the roster.
+NewLeader.SquadLeader = NewLeader;
+NewLeader.bIsSquadLeader = true;
+NewLeader.bIsInSquad = true;
+
+// Reassign every transferred member.
+for (i = 0; i < NewLeader.SquadMembers.Length; i++)
+{
+    Member = NewLeader.SquadMembers[i];
+
+    if (Member == None)
+        continue;
+
+    Member.SquadLeader = NewLeader;
+    Member.bIsSquadLeader = (Member == NewLeader);
+    Member.bIsInSquad = true;
+}
+
+// The old leader is no longer part of the active squad.
+SquadMembers.Length = 0;
+
+SquadLeader = None;
+bIsSquadLeader = false;
+bIsInSquad = false;
+
+SquadMemberIndex = -1;
+
+NewLeader.UpdateSquadIndices();
+
+Log("SQUAD: Leadership transferred successfully.");
+}
+
+
+// ============================================================================
+// SECTION 14: SQUAD ORDER DISTRIBUTION
+// ============================================================================
+
+// All squad orders should enter through this function.
+// If called by a normal member, the order is forwarded to its leader.
+function IssueSquadOrder(string NewTactic, Vector NewTarget)
+{
+local int i;
+local ThingSquadController Member;
+
+if (!bIsInSquad)
+{
+    ReceiveSquadOrder(NewTactic, NewTarget);
+    return;
+}
+
+if (!bIsSquadLeader)
+{
+    if (SquadLeader != None)
+        SquadLeader.IssueSquadOrder(NewTactic, NewTarget);
+
+    return;
+}
+
+SquadOrderTarget = NewTarget;
+CurrentTactic = NewTactic;
+
+bSquadFollowing = (NewTactic == "follow");
+bSquadHoldingPosition = (NewTactic == "hold");
+
+// Give the order to every registered member.
+for (i = 0; i < SquadMembers.Length; i++)
+{
+    Member = SquadMembers[i];
+
+    if (Member == None || Member == Self)
+        continue;
+
+    if (Member.MyPawn == None)
+        continue;
+
+    Member.ReceiveSquadOrder(NewTactic, NewTarget);
+}
+
+// Apply the order to the leader too.
+ReceiveSquadOrder(NewTactic, NewTarget);
+
+Log("SQUAD: Issued order " $ NewTactic $
+    " to " $ SquadMembers.Length $ " registered members.");
+}
+
+
+// Called on each member when an order is received.
+function ReceiveSquadOrder(string NewTactic, Vector NewTarget)
+{
+CurrentTactic = NewTactic;
+SquadOrderTarget = NewTarget;
+
+bSquadFollowing = (NewTactic == "follow");
+bSquadHoldingPosition = (NewTactic == "hold");
+
+SquadUpdateTimer = 0.0;
+}
+
+
+// ============================================================================
+// SECTION 15: PUBLIC SQUAD ORDERS
+// ============================================================================
+
 function OrderAdvance()
 {
-    CurrentTactic = "advance";
-    PlayDialog("aid_enadvance"); // MoHPA: aid_enadvance
+IssueSquadOrder("advance", GetEnemyLocation());
 }
+
 
 function OrderFallback()
 {
-    CurrentTactic = "fallback";
-    PlayDialog("aid_enfallback_response"); // MoHPA: aid_enfallback_response
+IssueSquadOrder("fallback", GetRetreatLocation());
 }
+
 
 function OrderFlank()
 {
-    CurrentTactic = "flank";
-    PlayDialog("aid_enflank"); // MoHPA: aid_enflank
+IssueSquadOrder("flank", GetFlankLocation());
 }
+
 
 function OrderCharge()
 {
-    CurrentTactic = "charge";
-    PlayDialog("aid_banzai"); // MoHPA: aid_banzai
+IssueSquadOrder("charge", GetEnemyLocation());
 }
 
+
+function OrderHold()
+{
+IssueSquadOrder("hold", MyPawn.Location);
+}
+
+
+function OrderFollow()
+{
+local Vector FollowTarget;
+
+if (SquadLeader != None && SquadLeader.MyPawn != None)
+    FollowTarget = SquadLeader.MyPawn.Location;
+else
+    FollowTarget = MyPawn.Location;
+
+IssueSquadOrder("follow", FollowTarget);
+}
+
+
 // ============================================================================
-// SECTION 6: THE PSYCHOLOGY SYSTEM (Trust, Fear, Paranoia)
+// SECTION 16: SQUAD MOVEMENT AND TACTICS
 // ============================================================================
+
+function UpdateSquadTactics(float DeltaTime)
+{
+local Vector Destination;
+
+if (!bIsInSquad)
+    return;
+
+if (!bSquadMovementEnabled)
+    return;
+
+if (MyPawn == None)
+    return;
+
+// Throttle movement updates to avoid issuing movement requests every tick.
+SquadUpdateTimer += DeltaTime;
+
+if (SquadUpdateTimer < SquadUpdateInterval)
+    return;
+
+SquadUpdateTimer = 0.0;
+
+switch (CurrentTactic)
+{
+    case "none":
+        return;
+
+    case "hold":
+        // Do not issue movement commands while holding position.
+        return;
+
+    case "advance":
+        if (Enemy != None)
+            Destination = GetEnemyLocation();
+        else
+            Destination = SquadOrderTarget;
+
+        break;
+
+    case "fallback":
+        Destination = SquadOrderTarget;
+        break;
+
+    case "flank":
+        Destination = SquadOrderTarget;
+        break;
+
+    case "charge":
+        SetToPanic();
+        Destination = SquadOrderTarget;
+        break;
+
+    case "follow":
+        Destination = GetFormationLocation();
+        break;
+
+    default:
+        return;
+}
+
+// Avoid unnecessary movement requests when already close to the target.
+if (VSize(Destination - MyPawn.Location) < 80.0)
+    return;
+
+// Retained from the original controller.
+// Confirm this call against the Postal 2 SDK.
+MoveToward(Destination);
+}
+
+
+// ============================================================================
+// SECTION 17: FORMATION POSITIONING
+// ============================================================================
+
+// Calculates a position behind and to the side of the squad leader.
+//
+// Formation layout:
+//             Leader
+//       Member 2   Member 1
+//       Member 4   Member 3
+//
+// The exact layout can be adjusted using SquadFormationSpacing.
+function Vector GetFormationLocation()
+{
+local Vector LeaderLocation;
+local Vector ForwardVector;
+local Vector RightVector;
+local Vector FormationLocation;
+
+local int RowNumber;
+local int SideNumber;
+
+if (SquadLeader == None)
+    return MyPawn.Location;
+
+if (SquadLeader.MyPawn == None)
+    return MyPawn.Location;
+
+if (SquadLeader == Self)
+    return MyPawn.Location;
+
+LeaderLocation = SquadLeader.MyPawn.Location;
+
+ForwardVector = Vector(SquadLeader.MyPawn.Rotation);
+
+RightVector = Normal(ForwardVector Cross vect(0,0,1));
+
+// Index zero is the leader.
+// Members are arranged in alternating left/right positions.
+RowNumber = (SquadMemberIndex + 1) / 2;
+
+if ((SquadMemberIndex % 2) == 0)
+    SideNumber = 1;
+else
+    SideNumber = -1;
+
+FormationLocation =
+    LeaderLocation
+    - (ForwardVector * SquadFormationDistance * float(RowNumber))
+    + (RightVector * SquadFormationSpacing * float(SideNumber));
+
+return FormationLocation;
+}
+
+
+// ============================================================================
+// SECTION 18: ROSTER CLEANUP
+// ============================================================================
+
+// Called by the leader to remove invalid or dead members.
+function CleanupSquadRoster()
+{
+local int i;
+local ThingSquadController Member;
+
+if (!bIsSquadLeader)
+    return;
+
+for (i = SquadMembers.Length - 1; i >= 0; i--)
+{
+    Member = SquadMembers[i];
+
+    if (Member == None)
+    {
+        SquadMembers.Remove(i, 1);
+        continue;
+    }
+
+    // Do not accidentally remove the leader from its own roster.
+    if (Member == Self)
+        continue;
+
+    if (Member.MyPawn == None)
+    {
+        Member.SquadLeader = None;
+        Member.bIsInSquad = false;
+
+        SquadMembers.Remove(i, 1);
+        continue;
+    }
+
+    if (Member.MyPawn.Health <= 0)
+    {
+        Member.SquadLeader = None;
+        Member.bIsInSquad = false;
+
+        Member.CurrentTactic = "none";
+
+        SquadMembers.Remove(i, 1);
+        continue;
+    }
+}
+
+UpdateSquadIndices();
+}
+
+
+// Explicit death notification.
+// Call this before destroying or replacing a squad member's Pawn.
+function HandleSquadMemberDeath()
+{
+if (bIsSquadLeader)
+{
+    PromoteNextSquadLeader();
+    return;
+}
+
+if (SquadLeader != None)
+    SquadLeader.UnregisterSquadMember(Self);
+
+SquadLeader = None;
+
+bIsInSquad = false;
+bIsSquadLeader = false;
+
+CurrentTactic = "none";
+SquadMemberIndex = -1;
+}
+
+
+// ============================================================================
+// SECTION 19: SQUAD MOVEMENT CONFIGURATION
+// ============================================================================
+
+function EnableSquadMovement()
+{
+bSquadMovementEnabled = true;
+}
+
+
+function DisableSquadMovement()
+{
+bSquadMovementEnabled = false;
+}
+
+
+function SetSquadFormationSpacing(float NewSpacing)
+{
+if (NewSpacing < 50.0)
+    NewSpacing = 50.0;
+
+if (NewSpacing > 1000.0)
+    NewSpacing = 1000.0;
+
+SquadFormationSpacing = NewSpacing;
+}
+
+
+function SetSquadFormationDistance(float NewDistance)
+{
+if (NewDistance < 50.0)
+    NewDistance = 50.0;
+
+if (NewDistance > 1500.0)
+    NewDistance = 1500.0;
+
+SquadFormationDistance = NewDistance;
+}
+
+
+// ============================================================================
+// SECTION 20: PSYCHOLOGY SYSTEM
+// ============================================================================
+
 function UpdatePsychology(float DeltaTime)
 {
-    // --- FEAR DECAY ---
-    if (FearLevel > 0)
-        FearLevel = FMax(FearLevel - 1.0 * DeltaTime, 0.0);
-    
-    // --- TRUST DECAY ---
-    if (TrustLevel > 50)
-        TrustLevel = FMax(TrustLevel - 0.5 * DeltaTime, 50.0);
-    else if (TrustLevel < 50)
-        TrustLevel = FMin(TrustLevel + 0.5 * DeltaTime, 50.0);
-    
-    // --- PARANOIA INCREASE ---
-    if (PlayerHoldingWeapon() && VSize(PlayerLocation() - MyPawn.Location) < 500)
-    {
-        ParanoiaLevel = FMin(ParanoiaLevel + 2.0 * DeltaTime, 100.0);
-        TrustLevel = FMax(TrustLevel - 1.0 * DeltaTime, 0.0);
-    }
-    
-    // --- PANIC REACTION ---
-    if (FearLevel > 70 && TrustLevel < 30)
-    {
-        if (FRand() < 0.1)
-        {
-            PlayDialog("aid_lowhealth"); // MoHPA: aid_lowhealth
-            SetToPanic();
-        }
-    }
+// Fear decay.
+if (FearLevel > 0.0)
+    FearLevel = FMax(FearLevel - 1.0 * DeltaTime, 0.0);
+
+// Trust slowly returns towards neutral.
+if (TrustLevel > 50.0)
+    TrustLevel = FMax(TrustLevel - 0.5 * DeltaTime, 50.0);
+else if (TrustLevel < 50.0)
+    TrustLevel = FMin(TrustLevel + 0.5 * DeltaTime, 50.0);
+
+// Weapon-related paranoia.
+if (PlayerHoldingWeapon() &&
+    VSize(PlayerLocation() - MyPawn.Location) < 500.0)
+{
+    ParanoiaLevel = FMin(
+        ParanoiaLevel + 2.0 * DeltaTime,
+        100.0
+    );
+
+    TrustLevel = FMax(
+        TrustLevel - 1.0 * DeltaTime,
+        0.0
+    );
 }
 
+// Panic reaction.
+if (FearLevel > 70.0 && TrustLevel < 30.0)
+{
+    if (FRand() < 0.1)
+    {
+        PlayDialog("aid_lowhealth");
+        SetToPanic();
+    }
+}
+}
+
+
 // ============================================================================
-// SECTION 7: THE BLOOD TEST
+// SECTION 21: BLOOD TEST
 // ============================================================================
+
 function bool PerformBloodTest()
 {
-    if (bHasTransformed) return false;
-    
-    if (bIsInfected)
-    {
-        Log("THING: Blood test revealed a Thing!");
-        BroadcastTrustLoss(20.0);
-        // MoHPA: aid_enemygethelp — the Thing calls for help.
-        PlayDialog("aid_enemygethelp");
-        TransformIntoThing();
-        return false;
-    }
-    else
-    {
-        Log("THING: Blood test confirmed a Human.");
-        TrustLevel = FMin(TrustLevel + 40.0, 100.0);
-        FearLevel  = FMax(FearLevel - 30.0, 0.0);
-        MoraleLevel = FMin(MoraleLevel + 5, 19); // Morale boost
-        return true;
-    }
+if (bHasTransformed)
+    return false;
+
+if (bIsInfected)
+{
+    Log("THING: Blood test revealed a Thing!");
+
+    BroadcastTrustLoss(20.0);
+
+    PlayDialog("aid_enemygethelp");
+
+    TransformIntoThing();
+
+    return false;
 }
 
+Log("THING: Blood test confirmed a Human.");
+
+TrustLevel = FMin(TrustLevel + 40.0, 100.0);
+FearLevel = FMax(FearLevel - 30.0, 0.0);
+
+MoraleLevel = Clamp(MoraleLevel + 5, 0, 19);
+
+return true;
+}
+
+
 // ============================================================================
-// SECTION 8: TRANSFORMATION
+// SECTION 22: TRANSFORMATION
 // ============================================================================
+
 function TransformIntoThing()
 {
-    if (bHasTransformed) return;
-    bHasTransformed = true;
-    
-    Log("THING: NPC " $ MyPawn $ " is TRANSFORMING!");
-    
-    // MoHPA: aid_enemygethelp — the Thing roars.
-    PlayDialog("aid_enemygethelp");
-    
-    // Broadcast fear to nearby NPCs.
-    BroadcastFear(50.0);
-    
-    // Spawn the Thing monster (placeholder).
-    // NewThing = Spawn(class'ThingMonster', , , MyPawn.Location, MyPawn.Rotation);
-    // MyPawn.Destroy();
+if (bHasTransformed)
+    return;
+
+bHasTransformed = true;
+
+Log("THING: NPC " $ MyPawn $ " is TRANSFORMING!");
+
+PlayDialog("aid_enemygethelp");
+
+BroadcastFear(50.0);
+
+// Placeholder for the actual monster transformation.
+//
+// Example:
+// NewThing = Spawn(
+//     class'ThingMonster',
+//     ,
+//     ,
+//     MyPawn.Location,
+//     MyPawn.Rotation
+// );
+//
+// MyPawn.Destroy();
 }
 
+
 // ============================================================================
-// SECTION 9: AUDIO / DIALOG EVENTS (MoHPA Inspiration)
+// SECTION 23: EXISTING DIALOGUE STUB
 // ============================================================================
-// Source: MoHPA Class Reference - aid_* events.
-// The AID system is a priority-based sound system. Here, we simplify it.
+
+// Retained from the original controller.
+// No new audio implementation is included here.
 function PlayDialog(string DialogName)
 {
-    local Sound DialogSound;
-    
-    // In a real mod, you would load these from a .uax file.
-    // Example: DialogSound = Sound'ThingDialog.PanicScream';
-    Log("NPC " $ MyPawn $ " says: " $ DialogName);
-    
-    // Play the sound at the NPC's location.
-    // PlaySound(DialogSound, SLOT_Talk, 1.0, true, 800, 1.0);
+local Sound DialogSound;
+
+Log("NPC " $ MyPawn $ " says: " $ DialogName);
+
+// Example for a future sound implementation:
+// DialogSound = Sound'ThingDialog.PanicScream';
+// PlaySound(DialogSound, SLOT_Talk, 1.0, true, 800, 1.0);
 }
 
+
 // ============================================================================
-// SECTION 10: TRUST / FEAR MODIFIERS
+// SECTION 24: TRUST AND FEAR MODIFIERS
 // ============================================================================
-function AddTrust(float Amount) { TrustLevel = FClamp(TrustLevel + Amount, 0, 100); }
-function AddFear(float Amount)  { FearLevel  = FClamp(FearLevel + Amount, 0, 100); }
+
+function AddTrust(float Amount)
+{
+TrustLevel = FClamp(TrustLevel + Amount, 0.0, 100.0);
+}
+
+
+function AddFear(float Amount)
+{
+FearLevel = FClamp(FearLevel + Amount, 0.0, 100.0);
+}
+
 
 function BroadcastTrustLoss(float Amount)
 {
-    local ThingSquadController Ally;
-    foreach AllActors(class'ThingSquadController', Ally)
+local ThingSquadController Ally;
+
+foreach AllActors(class'ThingSquadController', Ally)
+{
+    if (Ally == None || Ally == Self)
+        continue;
+
+    if (Ally.MyPawn == None || MyPawn == None)
+        continue;
+
+    if (VSize(Ally.MyPawn.Location - MyPawn.Location) < 1000.0)
     {
-        if (Ally != Self && VSize(Ally.MyPawn.Location - MyPawn.Location) < 1000)
-        {
-            Ally.AddTrust(-Amount);
-            Ally.AddFear(10.0);
-            // MoHPA: aid_ff (friendly fire)
-            Ally.PlayDialog("aid_ff");
-        }
+        Ally.AddTrust(-Amount);
+        Ally.AddFear(10.0);
+
+        Ally.PlayDialog("aid_ff");
     }
 }
+}
+
 
 function BroadcastFear(float Amount)
 {
-    local ThingSquadController Ally;
-    foreach AllActors(class'ThingSquadController', Ally)
-    {
-        if (Ally != Self && VSize(Ally.MyPawn.Location - MyPawn.Location) < 1000)
-        {
-            Ally.AddFear(Amount);
-        }
-    }
+local ThingSquadController Ally;
+
+foreach AllActors(class'ThingSquadController', Ally)
+{
+    if (Ally == None || Ally == Self)
+        continue;
+
+    if (Ally.MyPawn == None || MyPawn == None)
+        continue;
+
+    if (VSize(Ally.MyPawn.Location - MyPawn.Location) < 1000.0)
+        Ally.AddFear(Amount);
+}
 }
 
+
 // ============================================================================
-// SECTION 11: HELPER FUNCTIONS
+// SECTION 25: PLAYER AND COMBAT HELPERS
 // ============================================================================
+
 function bool IsPlayerOutOfSight()
 {
-    if (PlayerController(Level.GetLocalPlayerController()) == None) return true;
-    return !LineOfSightTo(PlayerController(Level.GetLocalPlayerController()).Pawn);
+local PlayerController PC;
+
+PC = PlayerController(Level.GetLocalPlayerController());
+
+if (PC == None || PC.Pawn == None)
+    return true;
+
+return !LineOfSightTo(PC.Pawn);
 }
+
 
 function bool PlayerHoldingWeapon()
 {
-    local Pawn P;
-    P = PlayerController(Level.GetLocalPlayerController()).Pawn;
-    if (P == None) return false;
-    return (P.Weapon != None);
+local PlayerController PC;
+local Pawn P;
+
+PC = PlayerController(Level.GetLocalPlayerController());
+
+if (PC == None)
+    return false;
+
+P = PC.Pawn;
+
+if (P == None)
+    return false;
+
+return (P.Weapon != None);
 }
+
 
 function Vector PlayerLocation()
 {
-    return PlayerController(Level.GetLocalPlayerController()).Pawn.Location;
+local PlayerController PC;
+
+PC = PlayerController(Level.GetLocalPlayerController());
+
+if (PC == None || PC.Pawn == None)
+    return MyPawn.Location;
+
+return PC.Pawn.Location;
 }
+
 
 function bool IsInCombat()
 {
-    // Simplified: If the enemy is nearby, we're in combat.
-    return (Enemy != None && VSize(Enemy.Location - MyPawn.Location) < 1000);
+if (Enemy == None || MyPawn == None)
+    return false;
+
+return (VSize(Enemy.Location - MyPawn.Location) < 1000.0);
 }
+
 
 function Vector GetEnemyLocation()
 {
-    if (Enemy != None) return Enemy.Location;
-    return MyPawn.Location + (Vector(MyPawn.Rotation) * 500);
+if (Enemy != None)
+    return Enemy.Location;
+
+if (MyPawn != None)
+    return MyPawn.Location + (Vector(MyPawn.Rotation) * 500.0);
+
+return vect(0,0,0);
 }
+
 
 function Vector GetRetreatLocation()
 {
-    // Retreat away from the player.
-    return MyPawn.Location - (Normal(PlayerLocation() - MyPawn.Location) * 1000);
+local Vector AwayDirection;
+
+if (MyPawn == None)
+    return vect(0,0,0);
+
+AwayDirection = Normal(MyPawn.Location - PlayerLocation());
+
+return MyPawn.Location + (AwayDirection * 1000.0);
 }
+
 
 function Vector GetFlankLocation()
 {
-    // Move to the side of the player.
-    local Vector RightVector;
-    RightVector = Normal(PlayerLocation() - MyPawn.Location) cross vect(0,0,1);
-    return PlayerLocation() + (RightVector * 500);
+local Vector RightVector;
+local Vector TargetLocation;
+local Vector DirectionToTarget;
+
+if (MyPawn == None)
+    return vect(0,0,0);
+
+TargetLocation = PlayerLocation();
+
+DirectionToTarget = Normal(TargetLocation - MyPawn.Location);
+
+RightVector = Normal(DirectionToTarget Cross vect(0,0,1));
+
+return TargetLocation + (RightVector * 500.0);
 }
+
+
+// ============================================================================
+// END OF THINGSQUADCONTROLLER.UC
+// ============================================================================
