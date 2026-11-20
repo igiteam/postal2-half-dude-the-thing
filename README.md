@@ -1,4 +1,4 @@
-# postal2-half-dude-the-thing
+a# postal2-half-dude-the-thing
 ## Postal 2: Half Dude - The Thing Remake
 A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Postal 2 with the unscripted paranoia and survival horror of *The Thing* (2002) and the atmosphere of Half-Life 2's Ravenholm.
 
@@ -21,6 +21,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 [![The Thing PS2 Gameplay](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/refs/heads/main/thethingsquad.png)](https://ytembed.macosxjs.com/?WHJtSG5jRC16LVE)
 
+[![the-thing-intro-4k-hd](https://img.youtube.com/vi/1sxWVU5ffKo/maxresdefault.jpg)](https://ytembed.macosxjs.com/?MXN4V1ZVNWZmS28)
 
 ## WS11WineCX20.0.4 (MacOSX Big Sur 32bit)
 [WS11WineCX20.0.4.tar.7z](https://github.com/vitor251093/porting-kit-engines/releases/download/wineskin/WS11WineCX20.0.4.tar.7z)
