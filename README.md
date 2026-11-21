@@ -23,6 +23,7 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 
 [![the-thing-intro-4k-hd](https://img.youtube.com/vi/1sxWVU5ffKo/maxresdefault.jpg)](https://ytembed.macosxjs.com/?MXN4V1ZVNWZmS28)
 
+
 ## WS11WineCX20.0.4 (MacOSX Big Sur 32bit)
 [WS11WineCX20.0.4.tar.7z](https://github.com/vitor251093/porting-kit-engines/releases/download/wineskin/WS11WineCX20.0.4.tar.7z)
 
@@ -41,6 +42,80 @@ A total conversion mod for Postal 2 that fuses the free-roam sandbox chaos of Po
 This is not a linear horror game. It is a **paranoia sandbox**. The player is dropped into a sprawling, snowed-in environment (based on The Thing's Antarctic outpost) with a squad of NPCs who have their own lives, schedules, and secrets.
 
 Nobody knows who is infected. There are no cutscenes that reveal the monster. The horror is emergent, created by the simulation itself. You recruit people. You blood-test them. You watch them break down under fear. And sometimes, you're too late.
+
+### Reference Links
+- [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
+- [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
+- [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
+- [https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/DNF2001_FORMATS.md](https://github.com/igiteam/postal2-half-dude-the-thing/blob/main/DNF2001_FORMATS.md)
+- [https://github.com/SuiMachine/The-Thing-Wrapper](https://github.com/SuiMachine/The-Thing-Wrapper)
+- [https://archive.org/details/unreal-script-classes](https://archive.org/details/unreal-script-classes)
+- [https://archive.org/details/forums.epicgames.com](https://archive.org/details/forums.epicgames.com)
+- [https://archive.org/details/DukeNukemForver2001LeakedBuild](https://archive.org/details/DukeNukemForver2001LeakedBuild)
+- [https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project](https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
+- [https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
+- [https://github.com/Jeffsteelflex/nightfire-port](https://github.com/Jeffsteelflex/nightfire-port)
+- [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html)
+- [https://www.moddb.com/games/postal-2/tutorials](https://www.moddb.com/games/postal-2/tutorials)
+- [https://beyondunrealwiki.github.io/pages/unrealscript-lessons.html](https://beyondunrealwiki.github.io/pages/unrealscript-lessons.html)
+- [https://github.com/BeyondUnrealWiki/BeyondUnrealWiki.github.io](https://github.com/BeyondUnrealWiki/BeyondUnrealWiki.github.io)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=259272369](https://steamcommunity.com/sharedfiles/filedetails/?id=259272369)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=257870337](https://steamcommunity.com/sharedfiles/filedetails/?id=257870337)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=627130941](https://steamcommunity.com/sharedfiles/filedetails/?id=627130941)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268](https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=545318800](https://steamcommunity.com/sharedfiles/filedetails/?id=545318800)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=472643736](https://steamcommunity.com/sharedfiles/filedetails/?id=472643736)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=737631813](https://steamcommunity.com/sharedfiles/filedetails/?id=737631813)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=738015266](https://steamcommunity.com/sharedfiles/filedetails/?id=738015266)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=768635358](https://steamcommunity.com/sharedfiles/filedetails/?id=768635358)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=791667661](https://steamcommunity.com/sharedfiles/filedetails/?id=791667661)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346](https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789](https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489](https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616](https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863](https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973](https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517](https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517)
+- [https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243](https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243)
+- [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm)
+- [https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
+- [https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
+- [https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new](https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new)
+- [https://www.gildor.org/smf/index.php?topic=8889.0](https://www.gildor.org/smf/index.php?topic=8889.0)
+- [Brothers In Arms road to Hill 30: How to get Unreal Editor to Work](https://ytembed.macosxjs.com/?cDlKekVueng4Y2c)
+- [https://sites.google.com/site/biawarzone/downloads](https://sites.google.com/site/biawarzone/downloads)
+- [https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq](https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq)
+- [Map Making #7 - Brothers in Arms: Earned in Blood Mod - MOWAS2](https://www.youtube.com/watch?v=ZXP1RCMCu10)
+
+## The Ultimate POSTAL 2 Mods Installation Guide
+[![The Ultimate POSTAL 2 Mods Installation Guide](https://img.youtube.com/vi/MMkF9aJnUSk/maxresdefault.jpg)](https://www.youtube.com/watch?v=MMkF9aJnUSk&t=7s)
+
+## Postal 2 video tutorials
+[![Postal 2 Editor Tutorials](https://img.youtube.com/vi/THaRzdtM5RY/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLzlHQaNpSPoVHU1drEgjgEsZmX9DkNbBx)
+
+[![duke-nukem-forever-2001-unreal-engine-1](https://i.ytimg.com/vi/pzFTJ7qpw0s/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLb8oNKiUbnjH9MZYeI3zRvRXYDSMJkSSZ)
+
+## The Thing Editor & Modding
+[![The Thing Editor Files](https://media.moddb.com/cache/images/downloads/1/181/180370/thumb_620x2000/thethingeditor.jpg)](https://www.moddb.com/games/the-thing/downloads/editor-files-password-viruspunk)
+
+## How to Mod The Thing with Editor
+[How to Mod The Thing with Editor](https://www.moddb.com/games/the-thing/tutorials/how-to-mod-the-thing-with-editor)
+
+## AudioScriptTM The Thing
+[https://audioscripttm.macosxjs.com/](https://audioscripttm.macosxjs.com/)
+
+[https://thethingscript.macosxjs.com/](https://thethingscript.macosxjs.com/)
+
+## The Thing 1982 OST
+- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
+[![The Thing Soundtrack](https://img.youtube.com/vi/kXBGDf2IDQI/maxresdefault.jpg)](https://www.youtube.com/watch?v=kXBGDf2IDQI&list=RDkXBGDf2IDQI)
+
+## The Thing 1982 
+- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
+- [https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4](https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4)
+
+
 
 ## Core Pillars
 
@@ -491,77 +566,6 @@ Paths=..\..\Textures\*.utx
 3. **Sounds**: Extract → `.wav` (22050 Hz, 16-bit, mono) → `.uax` → POSTed.
 4. **Maps**: Rebuild manually in POSTed (no converter from PS2 format).
 
-### Reference Links
-- [https://archive.org/details/postal2_202004](https://archive.org/details/postal2_202004)
-- [https://archive.org/details/thing-pc-redump](https://archive.org/details/thing-pc-redump)
-- [https://github.com/kizoky/p2unrealscript](https://github.com/kizoky/p2unrealscript)
-- [https://github.com/SuiMachine/The-Thing-Wrapper](https://github.com/SuiMachine/The-Thing-Wrapper)
-- [https://archive.org/details/unreal-script-classes](https://archive.org/details/unreal-script-classes)
-- [https://archive.org/details/forums.epicgames.com](https://archive.org/details/forums.epicgames.com)
-- [https://archive.org/details/DukeNukemForver2001LeakedBuild](https://archive.org/details/DukeNukemForver2001LeakedBuild)
-- [https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project](https://www.moddb.com/downloads/start/255975?referer=https%3A%2F%2Fwww.moddb.com%2Fmods%2Fdnf2001-restoration-project)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=558183480](https://steamcommunity.com/sharedfiles/filedetails/?id=558183480)
-- [https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source](https://www.moddb.com/mods/chrzans-widescreen-fix-for-stp-and-aw/downloads/widescreen-fixes-source)
-- [https://github.com/Jeffsteelflex/nightfire-port](https://github.com/Jeffsteelflex/nightfire-port)
-- [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/class_reference.html)
-- [https://www.moddb.com/games/postal-2/tutorials](https://www.moddb.com/games/postal-2/tutorials)
-- [https://beyondunrealwiki.github.io/pages/unrealscript-lessons.html](https://beyondunrealwiki.github.io/pages/unrealscript-lessons.html)
-- [https://github.com/BeyondUnrealWiki/BeyondUnrealWiki.github.io](https://github.com/BeyondUnrealWiki/BeyondUnrealWiki.github.io)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=259272369](https://steamcommunity.com/sharedfiles/filedetails/?id=259272369)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=257870337](https://steamcommunity.com/sharedfiles/filedetails/?id=257870337)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=627130941](https://steamcommunity.com/sharedfiles/filedetails/?id=627130941)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268](https://steamcommunity.com/sharedfiles/filedetails/?id=1358868268)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=545318800](https://steamcommunity.com/sharedfiles/filedetails/?id=545318800)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=472643736](https://steamcommunity.com/sharedfiles/filedetails/?id=472643736)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=737631813](https://steamcommunity.com/sharedfiles/filedetails/?id=737631813)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=738015266](https://steamcommunity.com/sharedfiles/filedetails/?id=738015266)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=768635358](https://steamcommunity.com/sharedfiles/filedetails/?id=768635358)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=791667661](https://steamcommunity.com/sharedfiles/filedetails/?id=791667661)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346](https://steamcommunity.com/sharedfiles/filedetails/?id=3334953346)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789](https://steamcommunity.com/sharedfiles/filedetails/?id=2046034789)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489](https://steamcommunity.com/sharedfiles/filedetails/?id=2065382489)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616](https://steamcommunity.com/sharedfiles/filedetails/?id=2120417616)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863](https://steamcommunity.com/sharedfiles/filedetails/?id=3424785863)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973](https://steamcommunity.com/sharedfiles/filedetails/?id=3624720973)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517](https://steamcommunity.com/sharedfiles/filedetails/?id=3689128517)
-- [https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243](https://steamcommunity.com/sharedfiles/filedetails/?id=3774314243)
-- [http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm](http://fallout.bplaced.net/gameserver/mohpa/files/mohpa_mdk/ai_and_scripting/ai_and_scripting_topics.htm)
-- [https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port](https://treegit.macosxjs.com/?url=https://github.com/Jeffsteelflex/nightfire-port)
-- [https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript](https://treegit.macosxjs.com/?url=https://github.com/kizoky/p2unrealscript)
-- [https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new](https://www.moddb.com/games/brothers-in-arms-earned-in-blood/downloads/bia-eib-sdk-new)
-- [https://www.gildor.org/smf/index.php?topic=8889.0](https://www.gildor.org/smf/index.php?topic=8889.0)
-- [Brothers In Arms road to Hill 30: How to get Unreal Editor to Work](https://ytembed.macosxjs.com/?cDlKekVueng4Y2c)
-- [https://sites.google.com/site/biawarzone/downloads](https://sites.google.com/site/biawarzone/downloads)
-- [https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq](https://www.youtube.com/playlist?list=PLfmWj_TzuPMDRi7LAHfUbbpl1hL3gx9oq)
-- [Map Making #7 - Brothers in Arms: Earned in Blood Mod - MOWAS2](https://www.youtube.com/watch?v=ZXP1RCMCu10)
-
-## The Ultimate POSTAL 2 Mods Installation Guide
-[![The Ultimate POSTAL 2 Mods Installation Guide](https://img.youtube.com/vi/MMkF9aJnUSk/maxresdefault.jpg)](https://www.youtube.com/watch?v=MMkF9aJnUSk&t=7s)
-
-## Postal 2 video tutorials
-[![Postal 2 Editor Tutorials](https://img.youtube.com/vi/THaRzdtM5RY/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLzlHQaNpSPoVHU1drEgjgEsZmX9DkNbBx)
-
-[![duke-nukem-forever-2001-unreal-engine-1](https://i.ytimg.com/vi/pzFTJ7qpw0s/hqdefault.jpg)](https://www.youtube.com/playlist?list=PLb8oNKiUbnjH9MZYeI3zRvRXYDSMJkSSZ)
-
-## The Thing Editor & Modding
-[![The Thing Editor Files](https://media.moddb.com/cache/images/downloads/1/181/180370/thumb_620x2000/thethingeditor.jpg)](https://www.moddb.com/games/the-thing/downloads/editor-files-password-viruspunk)
-
-## How to Mod The Thing with Editor
-[How to Mod The Thing with Editor](https://www.moddb.com/games/the-thing/tutorials/how-to-mod-the-thing-with-editor)
-
-## AudioScriptTM The Thing
-[https://audioscripttm.macosxjs.com/](https://audioscripttm.macosxjs.com/)
-
-[https://thethingscript.macosxjs.com/](https://thethingscript.macosxjs.com/)
-
-## The Thing 1982 OST
-- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
-[![The Thing Soundtrack](https://img.youtube.com/vi/kXBGDf2IDQI/maxresdefault.jpg)](https://www.youtube.com/watch?v=kXBGDf2IDQI&list=RDkXBGDf2IDQI)
-
-## The Thing 1982 
-- [https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default](https://archive.org/details/the-thing-original-motion-picture-soundtrack?webamp=default)
-- [https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4](https://dn710209.ca.archive.org/0/items/the.-thing.-1982.1080p.-blu-ray.x-264-yts.-ag_202409/The.Thing.1982.1080p.BluRay.x264-%5BYTS.AG%5D.mp4)
-
 
 ## Current Status
 
@@ -573,7 +577,9 @@ Paths=..\..\Textures\*.utx
 - 🚧 Facial animation system under research.
 
 
-[![Postal 2 PC Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png) [![The Thing PS2 Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)
+[![Postal 2 PC Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/postal2-pc-cover.png) 
+
+[![The Thing PS2 Cover](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)](https://raw.githubusercontent.com/igiteam/postal2-half-dude-the-thing/main/the-thing-2002-ps2-cover.png)
 
 ## Unreal Engine Game List
 [![Unreal Engine Game List](https://unrealarchive.org/static/images/games/t_Unreal%20Tournament%202003.png)](https://unrealenginegames.netlify.app/)
